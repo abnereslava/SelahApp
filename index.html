@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selah | Gestão de Devocionais</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-card">
+            <i class="ph ph-book-bookmark login-logo"></i>
+            <h2 class="login-title">Bem-vindo de volta</h2>
+            <p class="login-subtitle">Entre na sua conta Selah para continuar</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail"><i class="ph ph-envelope"></i> E-mail</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword"><i class="ph ph-lock-key"></i> Senha</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn-primary btn-block" id="btnLogin">Entrar</button>
+            </form>
+            <div id="loginError" class="login-error text-danger mt-2" style="display:none; text-align:center; font-size: 0.9rem;"></div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboardContainer" style="display: none;">
+        <div class="app-container">
+                
+                <header class="app-header">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h1 id="formTitle">Novo Registro</h1>
+                            <p class="header-subtitle">O que o Senhor falou ao seu coração hoje?</p>
+                        </div>
+                        <button type="button" id="btnLogout" class="btn-secondary" style="padding: 8px 15px; flex: none; width: auto;"><i class="ph ph-sign-out"></i> Sair</button>
+                    </div>
+                </header>
+
+        <main class="form-container">
+            <form id="devotionalForm">
+                <input type="hidden" id="editId">
+                
+                <div class="form-group">
+                    <label for="title"><i class="ph ph-text-t"></i> Título do Registro</label>
+                    <input type="text" id="title" placeholder="Ex: O Bom Pastor" required>
+                </div>
+
+                <div class="form-group date-group">
+                    <label for="date"><i class="ph ph-calendar-blank"></i> Data Inicial</label>
+                    <input type="date" id="date" required>
+                </div>
+                
+                <div class="form-group autocomplete-container">
+                    <label for="continuationSearch"><i class="ph ph-link"></i> Continuação de...</label>
+                    <input type="text" id="continuationSearch" placeholder="Buscar título do registro anterior..." autocomplete="off">
+                    <input type="hidden" id="continuationOf">
+                    <ul id="continuationDropdown" class="autocomplete-list" style="display:none;"></ul>
+                </div>
+
+                <div class="form-group">
+                    <label for="mainPassage"><i class="ph ph-bookmark-simple"></i> Passagem Principal</label>
+                    <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="recordType"><i class="ph ph-tag"></i> Tipo de Registro</label>
+                    <select id="recordType" required>
+                        <option value="devocional">Devocional</option>
+                        <option value="culto_domestico">Culto Doméstico</option>
+                        <option value="aula">Aula</option>
+                        <option value="ebd">EBD</option>
+                        <option value="pregacao">Pregação</option>
+                        <option value="anotacoes_gerais">Anotações Gerais</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+
+                <details class="optional-fields">
+                    <summary><i class="ph ph-user"></i> Autoria</summary>
+                    <div class="details-content"><input type="text" id="author" placeholder="Ex: Pr. Hernandes Dias Lopes"></div>
+                </details>
+                <details class="optional-fields">
+                    <summary><i class="ph ph-bookmarks"></i> Passagens Relacionadas</summary>
+                    <div class="details-content"><input type="text" id="relatedPassages" placeholder="Ex: Romanos 5:8"></div>
+                </details>
+                <details class="optional-fields">
+                    <summary><i class="ph ph-tag"></i> Palavras-chave</summary>
+                    <div class="details-content">
+                        <input type="text" id="keywords" list="keywordsList" placeholder="Ex: Salvação, Graça, Amor (separadas por vírgula)">
+                        <datalist id="keywordsList"></datalist>
+                    </div>
+                </details>
+
+                <hr class="divider">
+
+                <div class="form-group">
+                    <label><i class="ph ph-pen-nib"></i> Formato do Registro</label>
+                    <div class="toggle-group">
+                        <button type="button" class="btn-toggle active" data-type="livre">Livre</button>
+                        <button type="button" class="btn-toggle" data-type="orientado">Perguntas Orientadoras</button>
+                    </div>
+                </div>
+
+                <div id="freeRecordContainer" class="record-section active">
+                    <div class="guided-question">
+                        <div id="quillEditorLivre" class="editor-container"></div>
+                    </div>
+                </div>
+
+                <div id="guidedRecordContainer" class="record-section">
+                    <div id="dynamicQuestionsContainer">
+                        <!-- Questions will be injected here by JS -->
+                    </div>
+                    <button type="button" id="btnAddQuestion" class="btn-secondary mt-2"><i class="ph ph-plus"></i> Adicionar Pergunta</button>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="button" class="btn-secondary" id="btnOpenActionsModal"><i class="ph ph-list-plus"></i> Ações e Links</button>
+                    <button type="submit" class="btn-primary" id="btnSubmit"><i class="ph ph-floppy-disk"></i> Salvar na Nuvem</button>
+                    <button type="button" class="btn-secondary" id="btnCancelEdit" style="display: none;">Cancelar Edição</button>
+                </div>
+            </form>
+        </main>
+
+        <main class="data-container mt-4">
+            <header class="section-header">
+                <h2><i class="ph ph-books"></i> Meus Registros</h2>
+            </header>
+
+            <div class="filters-container">
+                <input type="text" id="filterKeyword" placeholder="Buscar termo ou passagem">
+                <select id="filterType">
+                    <option value="">Todos os Tipos</option>
+                    <option value="devocional">Devocional</option>
+                    <option value="culto_domestico">Culto Doméstico</option>
+                    <option value="aula">Aula</option>
+                    <option value="ebd">EBD</option>
+                    <option value="pregacao">Pregação</option>
+                    <option value="anotacoes_gerais">Anotações Gerais</option>
+                    <option value="outros">Outros</option>
+                </select>
+                <div class="filter-dates">
+                    <input type="date" id="filterDateStart" title="Data Inicial">
+                    <input type="date" id="filterDateEnd" title="Data Final">
+                </div>
+                <input type="text" id="filterAuthor" placeholder="Filtrar por autor">
+                <div class="filter-actions">
+                    <button type="button" id="btnApplyFilters" class="btn-primary"><i class="ph ph-funnel"></i> Filtrar</button>
+                    <button type="button" id="btnRandom" class="btn-secondary" title="Sortear Aleatório"><i class="ph ph-shuffle"></i></button>
+                </div>
+            </div>
+
+            <div id="devotionalsFeed" class="feed-grid mt-4"></div>
+
+            <hr class="divider">
+            <header class="section-header mt-4"><h2><i class="ph ph-chart-pie"></i> Estatísticas</h2></header>
+            <div class="charts-grid">
+                <div class="chart-wrapper">
+                    <h3 class="chart-title">Por Tipo de Registro</h3>
+                    <canvas id="devotionalsChart"></canvas>
+                </div>
+                <div class="chart-wrapper">
+                    <h3 class="chart-title">Livros Mais Frequentes</h3>
+                    <canvas id="booksChart"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <dialog id="actionsModal" class="modal modal-lg">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>Ações e Links</h2>
+                <button type="button" onclick="this.closest('dialog').close()" class="btn-icon"><i class="ph ph-x"></i></button>
+            </header>
+            <div class="modal-body dual-panel">
+                <div class="panel-section">
+                    <h3><i class="ph ph-list-checks"></i> Ações</h3>
+                    <div class="inline-form">
+                        <select id="actionType" class="compact-select">
+                            <option value="pedidos_oracao">Oração</option>
+                            <option value="acoes_pessoas">Prática</option>
+                            <option value="metas_espirituais">Meta</option>
+                            <option value="gratidao">Gratidão</option>
+                            <option value="jejum">Jejum</option>
+                            <option value="outros">Lembrete</option>
+                        </select>
+                        <input type="text" id="actionDesc" placeholder="O que fazer?">
+                        <input type="date" id="actionDate" class="compact-date">
+                        <button type="button" id="btnAddAction" class="btn-secondary btn-compact" title="Inserir"><i class="ph ph-plus"></i></button>
+                    </div>
+                    <ul id="actionsListDOM" class="modern-item-list"></ul>
+                </div>
+                <hr class="divider mobile-only">
+                <div class="panel-section">
+                    <h3><i class="ph ph-link"></i> Links Relacionados</h3>
+                    <div class="inline-form">
+                        <input type="text" id="linkTitle" placeholder="Título do link">
+                        <input type="url" id="linkUrl" placeholder="https://...">
+                        <button type="button" id="btnAddLink" class="btn-secondary btn-compact" title="Inserir"><i class="ph ph-plus"></i></button>
+                    </div>
+                    <ul id="linksListDOM" class="modern-item-list"></ul>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="viewModal" class="modal view-modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="viewTitle">Título do Devocional</h2>
+                <button type="button" onclick="this.closest('dialog').close()" class="btn-icon"><i class="ph ph-x"></i></button>
+            </header>
+            <div id="viewBody" class="modal-body read-content">
+                </div>
+        </div>
+    </dialog>
+            </div> <!-- End app-container -->
+    </div> <!-- End dashboardContainer -->
+
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
