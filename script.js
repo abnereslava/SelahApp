@@ -62,6 +62,24 @@ const setTodayDate = () => {
 };
 setTodayDate();
 
+const resetFormFields = () => {
+    document.getElementById('devotionalForm').reset();
+    document.getElementById('editId').value = "";
+    document.getElementById('continuationOf').value = "";
+    document.getElementById('continuationSearch').value = "";
+    document.getElementById('btnCancelEdit').style.display = 'none';
+    document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-floppy-disk"></i> Salvar na Nuvem';
+    document.getElementById('formTitle').innerText = "Novo Registro";
+    
+    // Limpa editores e arrays
+    editors.livre.root.innerHTML = "<p><br></p>";
+    renderGuidedQuestions(); // Reseta para as perguntas padrão
+    tempActions = [];
+    tempLinks = [];
+    renderLists();
+    setTodayDate();
+};
+
 // --- EDITORES E PERGUNTAS DINÂMICAS ---
 const toolbar = [['bold', 'italic', 'underline'], [{ 'color': [] }], [{ 'header': [1, 2, false] }], ['clean']];
 const editors = {
@@ -226,9 +244,14 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
             await addDoc(collection(db, "devotionals"), data);
             alert("Salvo com sucesso!");
         }
-        window.location.reload();
+        
+        resetFormFields(); // Limpa o formulário silenciosamente
+        fetchAll(); // Busca os dados atualizados sem piscar a tela
+        
     } catch (err) {
-        console.error(err);
+        console.error("Erro ao salvar no Firestore:", err);
+        alert("Ocorreu um erro ao salvar. Verifique o console (F12) para mais detalhes.");
+    } finally {
         submitBtn.disabled = false;
     }
 });
@@ -415,7 +438,10 @@ window.deleteRecord = async (id) => {
     }
 };
 
-document.getElementById('btnCancelEdit').onclick = () => window.location.reload();
+document.getElementById('btnCancelEdit').onclick = () => {
+    resetFormFields();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 // --- GRÁFICOS ---
 let typeChart, booksChartInstance;
@@ -483,5 +509,3 @@ document.getElementById('btnRandom').onclick = () => {
     const randomIdx = Math.floor(Math.random() * allRecords.length);
     viewRecord(allRecords[randomIdx].id);
 };
-
-// window.addEventListener('DOMContentLoaded', fetchAll);
