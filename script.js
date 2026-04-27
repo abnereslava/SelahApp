@@ -78,6 +78,7 @@ const resetFormFields = () => {
     tempLinks = [];
     renderLists();
     setTodayDate();
+    if (tagManager) tagManager.clear(); // Limpa as tags
 };
 
 // --- EDITORES E PERGUNTAS DINÂMICAS ---
@@ -225,7 +226,7 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
         recordType: document.getElementById('recordType').value,
         author: document.getElementById('author').value,
         relatedPassages: document.getElementById('relatedPassages').value,
-        keywords: document.getElementById('keywords').value.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== ""),
+        keywords: tagManager.getTags(),
         recordFormat: isLivre ? 'livre' : 'orientado',
         content: isLivre ? { texto: editors.livre.root.innerHTML } : {
             questions: getGuidedData()
@@ -296,21 +297,200 @@ const initAutocomplete = () => {
     });
 };
 
-const updateKeywordsDatalist = () => {
-    const list = document.getElementById('keywordsList');
-    const uniqueKeywords = new Set();
-    
+// Global keyword index: maps lowercase key → original casing (first seen)
+const globalKeywordIndex = new Map();
+
+const buildKeywordIndex = () => {
+    globalKeywordIndex.clear();
     allRecords.forEach(r => {
-        if(r.keywords) r.keywords.forEach(k => { if(k) uniqueKeywords.add(k); });
+        if (r.keywords) {
+            r.keywords.forEach(k => {
+                if (k && !globalKeywordIndex.has(k.toLowerCase())) {
+                    globalKeywordIndex.set(k.toLowerCase(), k);
+                }
+            });
+        }
     });
-    list.innerHTML = Array.from(uniqueKeywords).map(k => `<option value="${k}">`).join('');
 };
+
+// ── TagManager ──────────────────────────────────────────────────────────
+class TagManager {
+    constructor() {
+        this.tags = [];          // array of lowercase strings
+        this.activeIdx = -1;     // keyboard selection index in suggestions
+
+        this.wrapper   = document.getElementById('tagInputWrapper');
+        this.chipsEl   = document.getElementById('tagChips');
+        this.input     = document.getElementById('tagInputField');
+        this.sugList   = document.getElementById('tagSuggestions');
+
+        this._bind();
+    }
+
+    _bind() {
+        // Click on wrapper → focus input
+        this.wrapper.addEventListener('click', () => this.input.focus());
+
+        // Typing
+        this.input.addEventListener('input', () => this._onInput());
+
+        // Keyboard: Enter / comma add tag; Backspace removes last; Arrow keys navigate
+        this.input.addEventListener('keydown', (e) => this._onKeydown(e));
+
+        // Hide suggestions on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#keywordsSection')) this._hideSuggestions();
+        });
+    }
+
+    _onInput() {
+        const raw = this.input.value;
+        // If user typed a comma, treat everything before it as a tag
+        if (raw.includes(',')) {
+            const parts = raw.split(',');
+            parts.slice(0, -1).forEach(p => this._addTag(p.trim()));
+            this.input.value = parts[parts.length - 1].trim();
+        }
+        this._renderSuggestions(this.input.value.trim());
+    }
+
+    _onKeydown(e) {
+        const val = this.input.value.trim();
+        const items = this.sugList.querySelectorAll('.tag-suggestion-item');
+
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            if (this.activeIdx >= 0 && items[this.activeIdx]) {
+                this._acceptSuggestion(items[this.activeIdx].dataset.tag);
+            } else if (val) {
+                this._addTag(val);
+                this.input.value = '';
+                this._hideSuggestions();
+            }
+        } else if (e.key === 'Backspace' && val === '' && this.tags.length) {
+            this._removeTag(this.tags.length - 1);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.activeIdx = Math.min(this.activeIdx + 1, items.length - 1);
+            this._highlightSuggestion(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.activeIdx = Math.max(this.activeIdx - 1, -1);
+            this._highlightSuggestion(items);
+        } else if (e.key === 'Escape') {
+            this._hideSuggestions();
+        }
+    }
+
+    _renderSuggestions(query) {
+        this.sugList.innerHTML = '';
+        this.activeIdx = -1;
+        if (!query) { this._hideSuggestions(); return; }
+
+        const q = query.toLowerCase();
+        const matches = Array.from(globalKeywordIndex.entries())
+            .filter(([key]) => key.includes(q) && !this.tags.includes(key))
+            .slice(0, 8);
+
+        if (matches.length === 0) { this._hideSuggestions(); return; }
+
+        matches.forEach(([key, label]) => {
+            const li = document.createElement('li');
+            li.className = 'tag-suggestion-item';
+            li.dataset.tag = key;
+            // Highlight matching portion
+            const highlighted = label.replace(
+                new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+                '<mark>$1</mark>'
+            );
+            li.innerHTML = `<i class="ph ph-tag"></i>${highlighted}`;
+            li.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // prevent blur
+                this._acceptSuggestion(key);
+            });
+            this.sugList.appendChild(li);
+        });
+
+        this.sugList.style.display = 'block';
+    }
+
+    _highlightSuggestion(items) {
+        items.forEach((el, i) => el.classList.toggle('active', i === this.activeIdx));
+    }
+
+    _hideSuggestions() {
+        this.sugList.style.display = 'none';
+        this.activeIdx = -1;
+    }
+
+    _acceptSuggestion(tagKey) {
+        this._addTag(tagKey);
+        this.input.value = '';
+        this._hideSuggestions();
+        this.input.focus();
+    }
+
+    _addTag(raw) {
+        if (!raw) return;
+        const key = raw.toLowerCase().trim();
+        if (!key || this.tags.includes(key)) return; // deduplicate
+
+        // Register in global index if new
+        if (!globalKeywordIndex.has(key)) globalKeywordIndex.set(key, raw.trim());
+
+        this.tags.push(key);
+        this._renderChips();
+    }
+
+    _removeTag(idx) {
+        this.tags.splice(idx, 1);
+        this._renderChips();
+    }
+
+    _renderChips() {
+        this.chipsEl.innerHTML = '';
+        this.tags.forEach((tag, i) => {
+            const chip = document.createElement('span');
+            chip.className = 'tag-chip';
+            // Use original casing from index if available
+            const label = globalKeywordIndex.get(tag) || tag;
+            chip.innerHTML = `${label}<button type="button" class="tag-chip-remove" title="Remover"><i class="ph ph-x"></i></button>`;
+            chip.querySelector('.tag-chip-remove').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._removeTag(i);
+            });
+            this.chipsEl.appendChild(chip);
+        });
+    }
+
+    /** Return current tags as array of strings (for saving) */
+    getTags() { return [...this.tags]; }
+
+    /** Load tags from saved record (array of strings) */
+    setTags(arr) {
+        this.tags = arr.map(t => t.toLowerCase().trim()).filter(Boolean);
+        // Register all in index
+        this.tags.forEach(t => { if (!globalKeywordIndex.has(t)) globalKeywordIndex.set(t, t); });
+        this._renderChips();
+    }
+
+    /** Reset */
+    clear() {
+        this.tags = [];
+        this.input.value = '';
+        this._renderChips();
+        this._hideSuggestions();
+    }
+}
+
+let tagManager; // initialized after DOM-dependent code runs
 
 const fetchAll = async () => {
     const q = query(collection(db, "devotionals"), orderBy("date", "desc"));
     const snap = await getDocs(q);
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    updateKeywordsDatalist();
+    buildKeywordIndex();
+    if (!tagManager) tagManager = new TagManager();
     initAutocomplete();
     renderFeed(allRecords);
     renderChart(allRecords);
@@ -318,18 +498,23 @@ const fetchAll = async () => {
 
 const renderFeed = (arr) => {
     const feed = document.getElementById('devotionalsFeed');
-    feed.innerHTML = arr.map(r => `
+    feed.innerHTML = arr.map(r => {
+        const keywordChips = (r.keywords && r.keywords.length)
+            ? `<div class="card-keywords">${r.keywords.map(k => `<span class="card-tag">${globalKeywordIndex.get(k) || k}</span>`).join('')}</div>`
+            : '';
+        return `
         <div class="card">
             <h3 class="card-title">${r.title ? r.title : r.mainPassage}</h3>
             ${r.title ? `<div class="card-passage">${r.mainPassage}</div>` : ''}
             <div class="card-meta">${r.date.split('-').reverse().join('/')} | ${r.recordType}</div>
+            ${keywordChips}
             <div class="card-actions">
                 <button class="btn-card" onclick="viewRecord('${r.id}')" title="Ver"><i class="ph ph-eye"></i></button>
                 <button class="btn-card" onclick="editRecord('${r.id}')" title="Editar"><i class="ph ph-pencil"></i></button>
                 <button class="btn-card btn-delete" onclick="deleteRecord('${r.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 };
 
 // --- CRUD: ACOES DOS CARDS ---
@@ -409,7 +594,7 @@ window.editRecord = (id) => {
     document.getElementById('mainPassage').value = r.mainPassage;
     document.getElementById('recordType').value = r.recordType;
     document.getElementById('author').value = r.author || '';
-    document.getElementById('keywords').value = r.keywords?.join(', ') || '';
+    tagManager.setTags(r.keywords || []);
     
     if(r.recordFormat === 'livre') {
         document.querySelector('[data-type="livre"]').click();

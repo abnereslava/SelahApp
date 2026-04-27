@@ -204,6 +204,31 @@ input:focus, select:focus {
 .btn-card:hover { color: var(--accent-color); }
 .btn-delete:hover { color: var(--accent-red); }
 
+/* Keyword chips on cards */
+.card-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 14px;
+}
+.card-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: var(--primary-color);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.card-tag:hover {
+    background: rgba(212, 175, 55, 0.25);
+    border-color: var(--primary-color);
+}
+
 /* Modals */
 .modal { margin: auto; border: 1px solid var(--border-color); border-radius: var(--radius); width: 90%; max-width: 650px; box-shadow: var(--shadow-lg); background-color: var(--surface-color); color: var(--text-main); }
 .modal::backdrop { background: rgba(28, 21, 17, 0.7); backdrop-filter: blur(4px); }
@@ -244,6 +269,119 @@ input:focus, select:focus {
 
 .tag { display: inline-block; padding: 5px 12px; background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 20px; font-size: 0.8rem; margin: 4px; color: var(--primary-color); text-decoration: none; transition: var(--transition); }
 .tag:hover { background: var(--primary-color); color: #150f0b; }
+
+/* ── Tag Input System ─────────────────────────────────────────────────── */
+.tag-input-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--secondary-color);
+    cursor: text;
+    transition: var(--transition);
+    min-height: 48px;
+}
+.tag-input-wrapper:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+/* Chips inside the wrapper */
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0.1) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    color: var(--primary-color);
+    border-radius: 20px;
+    padding: 3px 10px 3px 12px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    animation: chipIn 0.18s ease;
+    transition: var(--transition);
+}
+.tag-chip:hover {
+    background: linear-gradient(135deg, rgba(212,175,55,0.35) 0%, rgba(212,175,55,0.2) 100%);
+    border-color: var(--primary-color);
+}
+.tag-chip-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--primary-color);
+    opacity: 0.6;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.15s;
+}
+.tag-chip-remove:hover { opacity: 1; color: var(--accent-red); }
+
+@keyframes chipIn {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* Invisible growing input inside the wrapper */
+.tag-input-field {
+    flex: 1;
+    min-width: 120px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 2px 0;
+    box-shadow: none !important;
+}
+.tag-input-field::placeholder { color: var(--text-muted); opacity: 0.7; }
+
+/* Suggestions dropdown */
+.tag-suggestions-list {
+    position: relative;
+    z-index: 1000;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    max-height: 180px;
+    overflow-y: auto;
+    list-style: none;
+    margin-top: 6px;
+    animation: fadeIn 0.15s ease;
+}
+.tag-suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+    font-size: 0.92rem;
+}
+.tag-suggestion-item:last-child { border-bottom: none; }
+.tag-suggestion-item:hover,
+.tag-suggestion-item.active {
+    background: var(--secondary-hover);
+    color: var(--primary-color);
+}
+.tag-suggestion-item i { color: var(--primary-color); font-size: 0.9rem; flex-shrink: 0; }
+.tag-suggestion-item mark {
+    background: transparent;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+/* ─────────────────────────────────────────────────────────────────────── */
 
 .charts-grid { display: flex; flex-wrap: wrap; gap: 20px; }
 .chart-wrapper { flex: 1; min-width: 300px; padding: 20px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius); box-shadow: var(--shadow-sm); }

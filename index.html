@@ -99,11 +99,20 @@
                     <summary><i class="ph ph-bookmarks"></i> Passagens Relacionadas</summary>
                     <div class="details-content"><input type="text" id="relatedPassages" placeholder="Ex: Romanos 5:8"></div>
                 </details>
-                <details class="optional-fields">
+                <details class="optional-fields" id="keywordsSection">
                     <summary><i class="ph ph-tag"></i> Palavras-chave</summary>
                     <div class="details-content">
-                        <input type="text" id="keywords" list="keywordsList" placeholder="Ex: Salvação, Graça, Amor (separadas por vírgula)">
-                        <datalist id="keywordsList"></datalist>
+                        <div class="tag-input-wrapper" id="tagInputWrapper">
+                            <div class="tag-chips" id="tagChips"></div>
+                            <input
+                                type="text"
+                                id="tagInputField"
+                                class="tag-input-field"
+                                placeholder="Adicionar palavra-chave..."
+                                autocomplete="off"
+                            >
+                        </div>
+                        <ul id="tagSuggestions" class="tag-suggestions-list" style="display:none;"></ul>
                     </div>
                 </details>
 
