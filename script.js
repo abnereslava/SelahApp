@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -79,6 +79,41 @@ const resetFormFields = () => {
     renderLists();
     setTodayDate();
     if (tagManager) tagManager.clear(); // Limpa as tags
+};
+
+// --- CUSTOM MODALS (REPLACING ALERT/CONFIRM) ---
+const showAlert = (msg) => {
+    document.getElementById('customAlertMessage').innerText = msg;
+    document.getElementById('customAlertModal').showModal();
+};
+
+const showConfirm = (msg) => {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('customConfirmModal');
+        document.getElementById('customConfirmMessage').innerText = msg;
+        
+        const btnOk = document.getElementById('btnOkConfirm');
+        const btnCancel = document.getElementById('btnCancelConfirm');
+
+        const onOk = () => {
+            modal.close();
+            removeListeners();
+            resolve(true);
+        };
+        const onCancel = () => {
+            modal.close();
+            removeListeners();
+            resolve(false);
+        };
+        const removeListeners = () => {
+            btnOk.removeEventListener('click', onOk);
+            btnCancel.removeEventListener('click', onCancel);
+        };
+
+        btnOk.addEventListener('click', onOk);
+        btnCancel.addEventListener('click', onCancel);
+        modal.showModal();
+    });
 };
 
 // --- EDITORES E PERGUNTAS DINÂMICAS ---
@@ -219,6 +254,7 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
 
     const isLivre = document.querySelector('.btn-toggle.active').dataset.type === 'livre';
     const data = {
+        userId: auth.currentUser.uid,
         title: document.getElementById('title').value,
         date: document.getElementById('date').value,
         continuationOf: document.getElementById('continuationOf').value || null,
@@ -239,11 +275,11 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
     try {
         if(editId) {
             await updateDoc(doc(db, "devotionals", editId), data);
-            alert("Atualizado com sucesso!");
+            showAlert("Atualizado com sucesso!");
         } else {
             data.createdAt = data.updatedAt;
             await addDoc(collection(db, "devotionals"), data);
-            alert("Salvo com sucesso!");
+            showAlert("Salvo com sucesso!");
         }
         
         resetFormFields(); // Limpa o formulário silenciosamente
@@ -251,7 +287,7 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
         
     } catch (err) {
         console.error("Erro ao salvar no Firestore:", err);
-        alert("Ocorreu um erro ao salvar. Verifique o console (F12) para mais detalhes.");
+        showAlert("Ocorreu um erro ao salvar. Verifique o console (F12) para mais detalhes.");
     } finally {
         submitBtn.disabled = false;
     }
@@ -486,10 +522,25 @@ class TagManager {
 let tagManager; // initialized after DOM-dependent code runs
 
 const fetchAll = async () => {
-    const q = query(collection(db, "devotionals"), orderBy("date", "desc"));
+    // Pega o usuário logado atualmente no Firebase Auth
+    const user = auth.currentUser; 
+    
+    // Se por acaso não tiver ninguém logado, cancela a execução para evitar erros
+    if (!user) return; 
+
+    // Busca apenas os registros que pertencem ao userId logado
+    const q = query(
+        collection(db, "devotionals"), 
+        where("userId", "==", user.uid), 
+        orderBy("date", "desc")
+    );
+    
     const snap = await getDocs(q);
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
     buildKeywordIndex();
+    
+    // Inicializa o TagManager e o resto da interface
     if (!tagManager) tagManager = new TagManager();
     initAutocomplete();
     renderFeed(allRecords);
@@ -503,16 +554,11 @@ const renderFeed = (arr) => {
             ? `<div class="card-keywords">${r.keywords.map(k => `<span class="card-tag">${globalKeywordIndex.get(k) || k}</span>`).join('')}</div>`
             : '';
         return `
-        <div class="card">
+        <div class="card" onclick="viewRecord('${r.id}')" style="cursor: pointer; transition: 0.2s;">
             <h3 class="card-title">${r.title ? r.title : r.mainPassage}</h3>
             ${r.title ? `<div class="card-passage">${r.mainPassage}</div>` : ''}
             <div class="card-meta">${r.date.split('-').reverse().join('/')} | ${r.recordType}</div>
             ${keywordChips}
-            <div class="card-actions">
-                <button class="btn-card" onclick="viewRecord('${r.id}')" title="Ver"><i class="ph ph-eye"></i></button>
-                <button class="btn-card" onclick="editRecord('${r.id}')" title="Editar"><i class="ph ph-pencil"></i></button>
-                <button class="btn-card btn-delete" onclick="deleteRecord('${r.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
-            </div>
         </div>`;
     }).join('');
 };
@@ -524,7 +570,7 @@ window.viewRecord = (id) => {
     
     let html = '';
     if(r.title) html += `<p><strong>Passagem:</strong> ${r.mainPassage}</p>`;
-    html += `<p><strong>Tipo:</strong> ${r.recordType} | <strong>Data:</strong> ${r.date}</p>`;
+    html += `<p><strong>Tipo:</strong> ${r.recordType} | <strong>Data:</strong> ${r.date.split('-').reverse().join('/')}</p>`;
     
     // Lógica de Trilha (Chain Logic)
     let chainBack = [], chainForward = [];
@@ -573,10 +619,21 @@ window.viewRecord = (id) => {
     if(r.links?.length) html += `<h4 class="mt-4">Links</h4>` + r.links.map(l => `<a href="${l.url}" target="_blank" class="tag">${l.title}</a>`).join('');
     
     document.getElementById('viewBody').innerHTML = html;
+
+    // Injeta os botões de ação (Lápis e Lixeira) no cabeçalho do modal
+    document.getElementById('viewModalActions').innerHTML = `
+        <button type="button" onclick="editRecord('${r.id}')" class="btn-icon" title="Editar"><i class="ph ph-pencil"></i></button>
+        <button type="button" onclick="deleteRecord('${r.id}')" class="btn-icon text-danger" title="Excluir"><i class="ph ph-trash"></i></button>
+    `;
+
     document.getElementById('viewModal').showModal();
 };
 
 window.editRecord = (id) => {
+    // Fecha o modal de visualização antes de rolar para cima para edição
+    const modal = document.getElementById('viewModal');
+    if (modal.open) modal.close();
+
     const r = allRecords.find(x => x.id === id);
     document.getElementById('editId').value = r.id;
     document.getElementById('formTitle').innerText = "Editando Registro";
@@ -613,12 +670,20 @@ window.editRecord = (id) => {
     renderLists();
     document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-check"></i> Atualizar Registro';
     document.getElementById('btnCancelEdit').style.display = 'block';
+    
+    // Rola até o topo e abre o accordion de Novo Registro caso esteja fechado
+    document.querySelector('.collapsible-section[open]') || document.querySelector('.collapsible-section').setAttribute('open', '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 window.deleteRecord = async (id) => {
-    if(confirm("Deseja realmente excluir este devocional?")) {
+    if(await showConfirm("Deseja realmente excluir este registro?")) {
         await deleteDoc(doc(db, "devotionals", id));
+        
+        // Fecha o modal caso a exclusão seja feita por lá
+        const modal = document.getElementById('viewModal');
+        if (modal.open) modal.close();
+        
         fetchAll();
     }
 };
@@ -690,7 +755,7 @@ document.getElementById('btnApplyFilters').onclick = () => {
 };
 
 document.getElementById('btnRandom').onclick = () => {
-    if(allRecords.length === 0) return alert("Nenhum registro encontrado.");
+    if(allRecords.length === 0) return showAlert("Nenhum registro encontrado.");
     const randomIdx = Math.floor(Math.random() * allRecords.length);
     viewRecord(allRecords[randomIdx].id);
 };

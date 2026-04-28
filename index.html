@@ -259,10 +259,36 @@
         <div class="modal-content">
             <header class="modal-header">
                 <h2 id="viewTitle">Título do Devocional</h2>
-                <button type="button" onclick="this.closest('dialog').close()" class="btn-icon"><i class="ph ph-x"></i></button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <div id="viewModalActions" style="display: flex; gap: 12px; margin-right: 15px;"></div>
+                    <button type="button" onclick="this.closest('dialog').close()" class="btn-icon"><i class="ph ph-x"></i></button>
+                </div>
             </header>
             <div id="viewBody" class="modal-body read-content">
-                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Custom Alert Modal -->
+    <dialog id="customAlertModal" class="modal modal-sm">
+        <div class="modal-content text-center">
+            <i class="ph ph-info alert-icon-main"></i>
+            <p id="customAlertMessage" class="modal-message mt-2"></p>
+            <div class="modal-actions mt-4">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn-primary btn-block">Entendido</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Custom Confirm Modal -->
+    <dialog id="customConfirmModal" class="modal modal-sm">
+        <div class="modal-content text-center">
+            <i class="ph ph-warning-circle alert-icon-warning"></i>
+            <p id="customConfirmMessage" class="modal-message mt-2"></p>
+            <div class="modal-actions mt-4 dual-panel-horizontal">
+                <button type="button" id="btnCancelConfirm" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btnOkConfirm" class="btn-primary">Confirmar</button>
+            </div>
         </div>
     </dialog>
             </div> <!-- End app-container -->
