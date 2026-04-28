@@ -387,6 +387,72 @@ input:focus, select:focus {
 .chart-wrapper { flex: 1; min-width: 300px; padding: 20px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 .chart-title { font-size: 1.1rem; color: var(--primary-color); text-align: center; margin-bottom: 15px; }
 
+/* Collapsible Main Sections */
+.collapsible-section {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 25px;
+    overflow: hidden;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+.collapsible-section[open] {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+.collapsible-summary {
+    padding: 18px 25px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--secondary-color);
+    color: var(--text-main);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    list-style: none;
+    user-select: none;
+    transition: var(--transition);
+}
+.collapsible-summary::-webkit-details-marker { display: none; }
+.collapsible-summary:hover {
+    background: var(--secondary-hover);
+    color: var(--primary-hover);
+}
+.summary-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.summary-content i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+.caret-icon {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+.collapsible-section[open] .caret-icon {
+    transform: rotate(180deg);
+    color: var(--primary-color);
+}
+.collapsible-section[open] .collapsible-summary {
+    border-bottom: 1px solid var(--border-color);
+    background: var(--secondary-color);
+}
+.collapsible-section .form-container, 
+.collapsible-section .data-container,
+.collapsible-section .stats-container {
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    animation: fadeIn 0.4s ease;
+}
+
+
 @media (max-width: 768px) { 
     .action-buttons { flex-direction: column; } 
     .filters-container { flex-direction: column; }

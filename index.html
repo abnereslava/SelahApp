@@ -42,7 +42,7 @@
                 <header class="app-header">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
-                            <h1 id="formTitle">Novo Registro</h1>
+                            <h1 id="formTitle">Registro de Leitura</h1>
                             <p class="header-subtitle">O que o Senhor falou ao seu coração hoje?</p>
                         </div>
                         <div style="display:flex; align-items:center; gap: 12px; flex: none;">
@@ -52,7 +52,15 @@
                     </div>
                 </header>
 
-        <main class="form-container">
+        <details class="collapsible-section" open>
+            <summary class="collapsible-summary">
+                <div class="summary-content">
+                    <i class="ph ph-note-pencil"></i>
+                    <span>Novo Registro</span>
+                </div>
+                <i class="ph ph-caret-down caret-icon"></i>
+            </summary>
+            <main class="form-container">
             <form id="devotionalForm">
                 <input type="hidden" id="editId">
                 
@@ -146,12 +154,17 @@
                 </div>
             </form>
         </main>
+</details>
 
-        <main class="data-container mt-4">
-            <header class="section-header">
-                <h2><i class="ph ph-books"></i> Meus Registros</h2>
-            </header>
-
+        <details class="collapsible-section">
+            <summary class="collapsible-summary">
+                <div class="summary-content">
+                    <i class="ph ph-books"></i>
+                    <span>Meus Registros</span>
+                </div>
+                <i class="ph ph-caret-down caret-icon"></i>
+            </summary>
+            <main class="data-container mt-4">
             <div class="filters-container">
                 <input type="text" id="filterKeyword" placeholder="Buscar termo ou passagem">
                 <select id="filterType">
@@ -176,10 +189,20 @@
             </div>
 
             <div id="devotionalsFeed" class="feed-grid mt-4"></div>
+</main>
+</details>
 
-            <hr class="divider">
-            <header class="section-header mt-4"><h2><i class="ph ph-chart-pie"></i> Estatísticas</h2></header>
-            <div class="charts-grid">
+
+            <details class="collapsible-section">
+                <summary class="collapsible-summary">
+                    <div class="summary-content">
+                        <i class="ph ph-chart-pie"></i>
+                        <span>Estatísticas</span>
+                    </div>
+                    <i class="ph ph-caret-down caret-icon"></i>
+                </summary>
+                <div class="stats-container">
+            <div class="charts-grid mt-4">
                 <div class="chart-wrapper">
                     <h3 class="chart-title">Por Tipo de Registro</h3>
                     <canvas id="devotionalsChart"></canvas>
@@ -189,6 +212,8 @@
                     <canvas id="booksChart"></canvas>
                 </div>
             </div>
+                </div>
+            </details>
         </main>
     </div>
 
