@@ -460,28 +460,75 @@ input:focus, select:focus {
     animation: fadeIn 0.4s ease;
 }
 
-
-/* ── OTIMIZAÇÕES PARA MOBILE E PWA ────────────────────────────────────── */
+/* ── OTIMIZAÇÕES PARA MOBILE E PWA (Ajuste 50%, Cabeçalho, Ellipsis e Login) ────────────────────── */
 @media (max-width: 768px) { 
-    /* Reduz a área horizontal para 70% (30% menor) e centraliza */
-    .app-container, .login-card {
-        width: 70% !important;
-        max-width: none;
+    /* 1. Dashboard ocupa a tela toda com segurança */
+    .app-container {
+        width: 100% !important;
+        max-width: 100%;
         margin: 0 auto;
-        padding-left: 0;
-        padding-right: 0;
+        padding: 20px 15px !important;
+    }
+
+    /* 2. Tela de Login volta a ser um cartão centralizado */
+    .login-card {
+        width: 90% !important;
+        max-width: 400px !important;
+        padding: 35px 20px !important;
+        margin: 0 auto;
     }
 
     .modal {
-        width: 70% !important;
+        width: 95% !important;
         margin: 10px auto;
     }
 
-    /* Aumenta os botões consideravelmente */
+    /* CABEÇALHO CORRIGIDO */
+    .app-header { margin-bottom: 25px; }
+    .app-header h1#formTitle {
+        font-size: 1.8rem !important; 
+        line-height: 1.2;
+    }
+    .app-header p.header-subtitle { font-size: 1rem !important; }
+    .app-header > div {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 15px;
+    }
+    .app-header > div > div:nth-child(2) {
+        display: flex;
+        flex-direction: row !important; 
+        justify-content: space-between;
+        align-items: center;
+        background: var(--secondary-color);
+        padding: 10px 15px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        width: 100%;
+    }
+    .app-header button#btnLogout {
+        width: auto !important;
+        flex: none !important; /* IMPEDE ELE DE ESTICAR */
+        padding: 10px 20px !important;
+        min-height: 44px !important;
+        font-size: 1rem !important;
+        margin: 0;
+    }
+
+    /* TRUNCAR PERGUNTAS (Força o corte com ...) */
+    .truncate-mobile {
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+    }
+
+    /* Botões Gigantes */
     .btn-primary, .btn-secondary, .btn-toggle {
         padding: 18px !important;
         font-size: 1.15rem !important;
         min-height: 60px !important;
+        width: 100%;
+        text-align: center;
     }
 
     .btn-icon {
@@ -489,67 +536,45 @@ input:focus, select:focus {
         padding: 10px;
     }
 
-    /* Ajustes para empilhar itens, já que o espaço ficou mais estreito */
-    .action-buttons { flex-direction: column; } 
-    .filters-container { flex-direction: column; }
+    /* Ajustes estruturais */
+    .action-buttons { flex-direction: column; gap: 15px; } 
+    .filters-container { flex-direction: column; padding: 15px; }
     .filters-container > * { width: 100%; }
     .dual-panel { flex-direction: column; gap: 15px; }
     .mobile-only { display: block; margin: 20px 0; }
     
-    .inline-form { flex-direction: column; align-items: stretch; }
+    .inline-form { flex-direction: column; align-items: stretch; gap: 10px; }
     .inline-form .compact-select, .inline-form .compact-date { max-width: none; width: 100%; }
     .btn-compact { width: 100%; min-height: 60px; }
     
     .feed-grid { grid-template-columns: 1fr; }
     .chart-wrapper { min-width: 100%; }
 
-    /* Impede o zoom automático do iOS e ajusta tamanho de toque */
+    /* Impedir zoom no iOS */
     input, select, textarea, .tag-input-field {
         font-size: 16px !important; 
-        min-height: 48px;
+        min-height: 52px;
+        padding: 12px 15px;
     }
 
-    .modern-item {
-        min-height: 55px;
+    /* Resetar input de pergunta para não ficar gigante */
+    input.question-input {
+        min-height: auto !important;
+        padding: 0 5px !important;
     }
 
-    /* Ajuste do Cabeçalho */
-    .app-header > div {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 15px;
-    }
-    .app-header button#btnLogout {
-        width: 100%;
-        justify-content: center;
-    }
+    .modern-item { min-height: 55px; }
+    .form-container, .data-container, .collapsible-summary { padding: 20px 15px !important; }
 
-    /* Barra de ferramentas do Quill com scroll horizontal suave */
+    /* Barra do editor de texto */
     .ql-toolbar.ql-snow {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding: 12px 8px;
-        scrollbar-width: none; /* Firefox */
+        display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        padding: 12px 8px; scrollbar-width: none;
     }
-    .ql-toolbar.ql-snow::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
-    }
-    .ql-formats {
-        display: inline-flex;
-        flex-shrink: 0;
-        margin-right: 15px !important;
-    }
+    .ql-toolbar.ql-snow::-webkit-scrollbar { display: none; }
+    .ql-formats { display: inline-flex; flex-shrink: 0; margin-right: 15px !important; }
 
-    .modal-content {
-        padding: 20px 15px;
-    }
-    .read-content {
-        max-height: 60vh;
-    }
-    
-    .form-container {
-        padding-bottom: 80px; 
-    }
+    .modal-content { padding: 20px 15px; }
+    .read-content { max-height: 60vh; }
+    .form-container { padding-bottom: 80px; }
 }

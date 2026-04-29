@@ -131,6 +131,24 @@ const defaultQuestions = [
     "Como posso aplicar essa passagem na minha vida?"
 ];
 
+// --- LÓGICA DO MODAL DE PERGUNTAS NO MOBILE ---
+window.handleQuestionClick = (idx, inputEl) => {
+    // Se a tela for pequena (celular), abre o modal. Se for PC, edita direto.
+    if (window.innerWidth <= 768) {
+        inputEl.blur(); // Oculta o teclado do celular
+        const modal = document.getElementById('editQuestionModal');
+        const textarea = document.getElementById('editQuestionTextarea');
+        textarea.value = inputEl.value; // Puxa o texto atual
+        modal.showModal();
+        
+        // Lógica de salvar
+        document.getElementById('btnSaveQuestion').onclick = () => {
+            inputEl.value = textarea.value; // Atualiza o input com o novo texto
+            modal.close();
+        };
+    }
+};
+
 const renderGuidedQuestions = (questionsToRender = defaultQuestions, contents = []) => {
     const container = document.getElementById('dynamicQuestionsContainer');
     container.innerHTML = '';
@@ -142,12 +160,15 @@ const renderGuidedQuestions = (questionsToRender = defaultQuestions, contents = 
         div.innerHTML = `
             <details class="guided-collapse" open>
                 <summary>
-                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap: 8px;">
                         <div class="collapse-toggle" style="cursor:pointer; display:flex; align-items:center; color: var(--text-muted); padding: 5px;" title="Recolher/Expandir">
                             <i class="ph ph-caret-down collapse-icon"></i>
                         </div>
-                        <input type="text" class="question-input" value="${q}" style="flex:1; font-weight:500;" onclick="event.preventDefault();">
-                        <button type="button" class="btn-icon text-danger" onclick="event.preventDefault(); removeGuidedQuestion(${idx});" title="Remover Pergunta"><i class="ph ph-trash"></i></button>
+                        <input type="text" class="question-input truncate-mobile" value="${q}" 
+                            style="flex:1; font-weight:500; min-width:0; padding-right:5px; text-overflow:ellipsis;" 
+                            onclick="handleQuestionClick(${idx}, this)" 
+                            onfocus="if(window.innerWidth <= 768) this.blur();">
+                        <button type="button" class="btn-icon text-danger" style="margin:0; padding:5px;" onclick="event.preventDefault(); removeGuidedQuestion(${idx});" title="Remover Pergunta"><i class="ph ph-trash"></i></button>
                     </div>
                 </summary>
                 <div class="details-content mt-2">
