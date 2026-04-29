@@ -461,6 +461,7 @@ input:focus, select:focus {
 }
 
 
+/* ── OTIMIZAÇÕES PARA MOBILE E PWA ────────────────────────────────────── */
 @media (max-width: 768px) { 
     .action-buttons { flex-direction: column; } 
     .filters-container { flex-direction: column; }
@@ -472,4 +473,60 @@ input:focus, select:focus {
     .btn-compact { width: 100%; }
     .feed-grid { grid-template-columns: 1fr; }
     .chart-wrapper { min-width: 100%; }
+
+    /* Impede o zoom automático do iOS ao focar em inputs (exige exatos 16px) */
+    input, select, textarea, .tag-input-field {
+        font-size: 16px !important; 
+    }
+
+    /* Aumenta a área de toque (Touch Targets) mínimo recomendado pela Apple/Google */
+    input, select, .btn-primary, .btn-secondary, .btn-toggle, .modern-item {
+        min-height: 48px;
+    }
+
+    /* Ajuste do Cabeçalho para não encavalar o botão de Sair */
+    .app-header > div {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 15px;
+    }
+    .app-header button#btnLogout {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Barra de ferramentas do Quill com scroll horizontal suave */
+    .ql-toolbar.ql-snow {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px 8px;
+        scrollbar-width: none; /* Firefox */
+    }
+    .ql-toolbar.ql-snow::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+    .ql-formats {
+        display: inline-flex;
+        flex-shrink: 0;
+        margin-right: 15px !important;
+    }
+
+    /* Ajustes dos Modais para ocupar melhor a tela do celular */
+    .modal {
+        width: 95%;
+        margin: 10px auto;
+    }
+    .modal-content {
+        padding: 20px 15px;
+    }
+    .read-content {
+        max-height: 60vh;
+    }
+    
+    /* Espaçamento extra no final da tela para facilitar a rolagem sobre botões */
+    .form-container {
+        padding-bottom: 80px; 
+    }
 }
