@@ -463,28 +463,57 @@ input:focus, select:focus {
 
 /* ── OTIMIZAÇÕES PARA MOBILE E PWA ────────────────────────────────────── */
 @media (max-width: 768px) { 
+    /* Reduz a área horizontal para 70% (30% menor) e centraliza */
+    .app-container, .login-card {
+        width: 70% !important;
+        max-width: none;
+        margin: 0 auto;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .modal {
+        width: 70% !important;
+        margin: 10px auto;
+    }
+
+    /* Aumenta os botões consideravelmente */
+    .btn-primary, .btn-secondary, .btn-toggle {
+        padding: 18px !important;
+        font-size: 1.15rem !important;
+        min-height: 60px !important;
+    }
+
+    .btn-icon {
+        font-size: 1.8rem !important;
+        padding: 10px;
+    }
+
+    /* Ajustes para empilhar itens, já que o espaço ficou mais estreito */
     .action-buttons { flex-direction: column; } 
     .filters-container { flex-direction: column; }
     .filters-container > * { width: 100%; }
     .dual-panel { flex-direction: column; gap: 15px; }
     .mobile-only { display: block; margin: 20px 0; }
-    .inline-form { flex-wrap: wrap; }
-    .inline-form .compact-select, .inline-form .compact-date { max-width: none; width: calc(50% - 5px); }
-    .btn-compact { width: 100%; }
+    
+    .inline-form { flex-direction: column; align-items: stretch; }
+    .inline-form .compact-select, .inline-form .compact-date { max-width: none; width: 100%; }
+    .btn-compact { width: 100%; min-height: 60px; }
+    
     .feed-grid { grid-template-columns: 1fr; }
     .chart-wrapper { min-width: 100%; }
 
-    /* Impede o zoom automático do iOS ao focar em inputs (exige exatos 16px) */
+    /* Impede o zoom automático do iOS e ajusta tamanho de toque */
     input, select, textarea, .tag-input-field {
         font-size: 16px !important; 
-    }
-
-    /* Aumenta a área de toque (Touch Targets) mínimo recomendado pela Apple/Google */
-    input, select, .btn-primary, .btn-secondary, .btn-toggle, .modern-item {
         min-height: 48px;
     }
 
-    /* Ajuste do Cabeçalho para não encavalar o botão de Sair */
+    .modern-item {
+        min-height: 55px;
+    }
+
+    /* Ajuste do Cabeçalho */
     .app-header > div {
         flex-direction: column;
         align-items: flex-start !important;
@@ -513,11 +542,6 @@ input:focus, select:focus {
         margin-right: 15px !important;
     }
 
-    /* Ajustes dos Modais para ocupar melhor a tela do celular */
-    .modal {
-        width: 95%;
-        margin: 10px auto;
-    }
     .modal-content {
         padding: 20px 15px;
     }
@@ -525,7 +549,6 @@ input:focus, select:focus {
         max-height: 60vh;
     }
     
-    /* Espaçamento extra no final da tela para facilitar a rolagem sobre botões */
     .form-container {
         padding-bottom: 80px; 
     }
