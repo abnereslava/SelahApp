@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-v2';
+const CACHE_NAME = 'selah-pwa-v4'; // Vamos mudar uma última vez para garantir que ele substitua o antigo
 const urlsToCache = [
   './',
   './index.html',
@@ -7,7 +7,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Força o novo Service Worker a assumir imediatamente
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -17,7 +17,6 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  // Apaga as versões antigas do cache (ex: selah-pwa-v1)
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -32,12 +31,21 @@ self.addEventListener('activate', event => {
   );
 });
 
+// --- NOVA ESTRATÉGIA: NETWORK FIRST (Rede Primeiro) ---
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Retorna o cache ou faz a requisição na rede
-        return response || fetch(event.request);
+    fetch(event.request)
+      .then(networkResponse => {
+        // Se a internet funcionou, pega o arquivo novo do GitHub
+        // E já salva uma cópia atualizada no cache silenciosamente
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      })
+      .catch(() => {
+        // Se falhar (você estiver offline), ele puxa da memória do celular
+        return caches.match(event.request);
       })
   );
 });
