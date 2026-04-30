@@ -385,6 +385,11 @@ class TagManager {
     }
 
     _bind() {
+        // Ajuste do placeholder para mobile
+        if (window.innerWidth <= 768) {
+            this.input.placeholder = "Adicionar palavras-chave...";
+        }
+
         // Click on wrapper → focus input
         this.wrapper.addEventListener('click', () => this.input.focus());
 
@@ -491,6 +496,11 @@ class TagManager {
         if (!raw) return;
         const key = raw.toLowerCase().trim();
         if (!key || this.tags.includes(key)) return; // deduplicate
+
+        if (this.tags.length >= 3) {
+            showAlert("Você pode adicionar no máximo 3 palavras-chave.");
+            return;
+        }
 
         // Register in global index if new
         if (!globalKeywordIndex.has(key)) globalKeywordIndex.set(key, raw.trim());

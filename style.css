@@ -191,7 +191,7 @@ input:focus, select:focus {
 .feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
 .card { 
     border: 1px solid var(--border-color); border-radius: var(--radius); padding: 25px; 
-    background: var(--surface-color); transition: var(--transition); box-shadow: var(--shadow-sm);
+    background: var(--secondary-color); transition: var(--transition); box-shadow: var(--shadow-sm);
     display: flex; flex-direction: column;
     word-wrap: break-word; overflow-wrap: break-word; /* Prevents text overflow */
 }
@@ -351,7 +351,7 @@ input:focus, select:focus {
     padding: 2px 0;
     box-shadow: none !important;
 }
-.tag-input-field::placeholder { color: var(--text-muted); opacity: 0.7; }
+.tag-input-field::placeholder { color: #888; opacity: 0.8; }
 
 /* Suggestions dropdown */
 .tag-suggestions-list {
@@ -551,7 +551,7 @@ input:focus, select:focus {
     .chart-wrapper { min-width: 100%; }
 
     /* Impedir zoom no iOS */
-    input, select, textarea, .tag-input-field {
+    input, select, textarea, .tag-input-field, .tag-input-wrapper {
         font-size: 16px !important; 
         min-height: 52px;
         padding: 12px 15px;
@@ -561,6 +561,17 @@ input:focus, select:focus {
     input.question-input {
         min-height: auto !important;
         padding: 0 5px !important;
+    }
+
+    /* Ajuste fino para o wrapper de tags no mobile */
+    .tag-input-wrapper {
+        padding: 0 15px !important;
+        display: flex;
+        align-items: center;
+    }
+    .tag-input-field {
+        min-height: 48px !important;
+        padding: 0 !important;
     }
 
     .modern-item { min-height: 55px; }
