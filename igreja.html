@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Igreja | Selah</title>
+    
+    <meta name="theme-color" content="#2B1E17">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Selah">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="dashboardContainer">
+        <div class="dashboard-wrapper">
+            <nav class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <button type="button" class="sidebar-toggle-btn" id="btnToggleSidebar" title="Recolher Menu">
+                        <i class="ph ph-caret-left"></i>
+                    </button>
+                    <div class="sidebar-brand">
+                        <i class="ph ph-book-bookmark sidebar-logo"></i>
+                        <span class="sidebar-title">Selah</span>
+                    </div>
+                    <button type="button" class="sidebar-close-mobile" id="btnCloseSidebarMobile">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+                <div class="sidebar-nav">
+                    <a href="index.html" class="nav-item">
+                        <i class="ph ph-notebook"></i>
+                        <span>Registros</span>
+                    </a>
+                    <a href="oracoes.html" class="nav-item">
+                        <i class="ph ph-hands-praying"></i>
+                        <span>Orações</span>
+                    </a>
+                    <a href="igreja.html" class="nav-item active">
+                        <i class="ph ph-church"></i>
+                        <span>Igreja</span>
+                    </a>
+                </div>
+            </nav>
+            
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+            <main class="main-content">
+                <div class="app-container">
+                    <header class="app-header">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap: 15px;">
+                                <button type="button" class="sidebar-toggle-mobile" id="btnToggleMobileSidebar">
+                                    <i class="ph ph-list"></i>
+                                </button>
+                                <div>
+                                    <h1>Igreja</h1>
+                                    <p class="header-subtitle">Anotações de cultos e atividades da sua comunidade.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="form-container" style="text-align: center; padding: 100px 20px;">
+                        <i class="ph ph-church" style="font-size: 5rem; color: var(--primary-color); margin-bottom: 20px;"></i>
+                        <h2>Página da Igreja em Desenvolvimento</h2>
+                        <p style="color: var(--text-muted);">Em breve você poderá gerenciar informações da sua igreja aqui.</p>
+                        <a href="index.html" class="btn-primary" style="display: inline-flex; margin-top: 30px; width: auto;">Voltar para Registros</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        // Basic sidebar logic for placeholder pages
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+        const btnToggleMobileSidebar = document.getElementById('btnToggleMobileSidebar');
+        const btnCloseSidebarMobile = document.getElementById('btnCloseSidebarMobile');
+
+        const toggleSidebar = () => {
+            sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed-mode');
+            const icon = btnToggleSidebar.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.classList.remove('ph-caret-left');
+                icon.classList.add('ph-caret-right');
+                btnToggleSidebar.title = "Expandir Menu";
+            } else {
+                icon.classList.remove('ph-caret-right');
+                icon.classList.add('ph-caret-left');
+                btnToggleSidebar.title = "Recolher Menu";
+            }
+        };
+
+        const openMobileSidebar = () => {
+            sidebar.classList.add('active');
+            sidebarOverlay.classList.add('active');
+        };
+
+        const closeMobileSidebar = () => {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        };
+
+        if (btnToggleSidebar) btnToggleSidebar.addEventListener('click', toggleSidebar);
+        if (btnToggleMobileSidebar) btnToggleMobileSidebar.addEventListener('click', openMobileSidebar);
+        if (btnCloseSidebarMobile) btnCloseSidebarMobile.addEventListener('click', closeMobileSidebar);
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeMobileSidebar);
+
+        // Swipe logic (interactive)
+        let touchStartX = 0;
+        let touchMoveX = 0;
+        sidebar.addEventListener('touchstart', e => { 
+            touchStartX = e.touches[0].clientX; 
+            sidebar.style.transition = 'none';
+        }, { passive: true });
+        
+        sidebar.addEventListener('touchmove', e => {
+            touchMoveX = e.touches[0].clientX;
+            let diff = touchMoveX - touchStartX;
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                if (diff < 0) {
+                    sidebar.style.transform = `translateX(${diff}px)`;
+                    const opacity = 0.7 * (1 + diff / 280); 
+                    if (sidebarOverlay) sidebarOverlay.style.opacity = Math.max(0, opacity);
+                }
+            }
+        }, { passive: true });
+
+        sidebar.addEventListener('touchend', e => {
+            sidebar.style.transition = '';
+            sidebar.style.transform = '';
+            if (sidebarOverlay) sidebarOverlay.style.opacity = '';
+            let diff = touchMoveX - touchStartX;
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                if (diff < -100) closeMobileSidebar();
+            }
+            touchStartX = 0;
+            touchMoveX = 0;
+        }, { passive: true });
+    </script>
+</body>
+</html>

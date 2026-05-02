@@ -1,51 +1,6 @@
     Futuramente, quero transformar em um app que gerencia todas as áreas da vida cristã (devocionais, oração, dizimo, ofertas, pregação, escala da igreja, etc).
 
-    Mas no momento, quero começar apenas com a sessão devocional (que será um dos "módulos" desse app).
-
-    Quero desenvolver em html/css/js em formato de página de web, mas responsivo e que possa ser transformado em aplicativo de celular futuramente
-
-    Além disso, quero começar usando um database pessoal (Firebase), porém, futuramente, transformando em um app comercial, migrar para um database comercial (então é necessário que haja, no código essa possibilidade de variação)
-
-    ---------------------
-    -- PONTAPÉ INICIAL --
-    ---------------------
-
-    Estilo: semi-formal, elegante, sem emojis (mas, se possível, utilizar algum recurso para gerar icones)
-
-    Página de devocional:
-
-    > Opções de "Registro (devocional/pregação/mensagem)";
-
-    Campos - Todos os campos devem poder ser ocultados em "collapse", por padrão, os opcionais já aparecem ocultados:
-        1. Data (obrigatório - puxa a data do dia automaticamente, mas permitindo modificação + adicionar campo opcional para marcar início em uma data e fim em outra, ou, multiplas datas)
-        2. Passagem principal (obrigatório)
-        3. Passagens relacionadas (opcional)
-        4. Palavras-chave (opcional - possibilidade de criar "palavras-chave", reutilizar as já criadas em novos devocionais e agrupar (na sessão de acesso aos devocionais) por devocionais que utilizam as mesmas palavra-chave)
-        5. Tipo de registro (obrigatório - Devocional, culto doméstico, aula, EBD, anotações gerais, pregação, outros)
-        6. Autoria (opcional - Nome de quem escreveu o devocional ou do pastor que deu a pregação, por exemplo)
-        7. Registro (obrigatório - Dá duas opções: "registro livre" ou "registro a partir de perguntas orientadoras")
-            • Registro livre: abre um parágrafo para escrita livre (com opções de formatação - título, negrito, itálico, sublinhado, cores de letra, cores de fundo, tamanho e tipo de fonte - será necessário usar alguma biblioteca para o editor de texto).
-            • Registro a partir de perguntas orientadoras (cada uma deve corresponder a um campo de parágrafo próprio, com as mesmas opções de formatações do registro livre):
-                • Qual é o contexto da passagem?
-                • Sobre o que a passagem fala?
-                • O que a passagem revela sobre Deus?
-                • O que a passagem revela sobre o ser humano?
-                • Como posso aplicar essa passagem na minha vida?
-                (Opção de remover - (deste e dos demais devocionais - ou só deste) uma ou mais perguntas orientadoras; ou, acrescentar, por padrão, uma pergunta orientadora customizada).
-        8. Ações:
-            • Abre um modal com a opção de marcar com data (fixa ou período) ações por tipo, as quais, em outra sessão do aplicativo, poderão ser filtradas por: "pedidos de oração", "ações com outras pessoas", "metas espirituais", "lista de gratidão", "jejum", "outros lembretes"
-        9. Links:
-            • Opção de inserir links a partir de um título e da url (que vai virar um "botão" com o nome do título, que ao ser clicado, é encaminhado para a url)
-        
-        Salvamento -> Todas as alterações devem ser feitas na núvem (Firebase)
-
-    > Opção de acessar devocionais registrados;
-        • Sortear (aleatório)
-        • Filtrar por palavras-chave
-        • Filtrar por data
-        • Filtrar por livro (da passagem lida)
-        • Filtrar por autor
-        • Filtrar por tipo de registro
+[GRÁFICOS]
 
     > Gráficos;
         Gráficos que mostram dados de quantidade / de comparação (não sei, não pensei ainda)
@@ -55,5 +10,18 @@
             • Filtrar por autor
             • Filtrar por tipo de registro
 
----
-Tirar o firebase do modo "teste" (fazer o mesmo no app de finanças)
+[LOGIN]
+Add opção de login com Google
+
+Passar pro Vercel
+
+[SUGESTÕES DO FEIJÃO]
+    - Ao fazer login ele expande automaticamente a guia de "Novo Registro", acredito que deveria vir colapsado ou expandido a de "Meus Registros".. pois qual vai ser a proporção maior, inserção ou consulta?
+    - Ele fixa o botão de sair na parte superior, talvez seria interessante criar um botão circular fixo no superior direito do perfil do usuário e clicando nele vem as opções de configuração e logout (ficar o botão de sair toda hora pro usuário parece que vc tá tentando expulsar ele)
+    - A passagem seria bom selecionar em combobox fixos (combobox de livro, capítulo, versículo inicial, versículo final(opcional).. digitar a passagem pode ser moroso e não ter padrão.. o que atrapalharia as estatísticas e o próximo item aqui dessa lista
+    - Seria interessante integrar uma Bíblia.. selecionar a passagem já mostraria o texto (sei que esse ponto teria problema de versão e tals)
+    - Ele salva o registro mesmo se não digitar nenhum texto.. não sei se a ideia é essa.. mas seria melhor colocar essa validação pro usuário não salvar errado
+    - Na parte de perguntas orientadoras ele está ocultando parte da pergunta (seria bom forçar a quebra de linha) 
+    - Nas "ações e links" seria interessante mudar o ícone de mais pra ícone de confirmação.. pois ele não é intuitivo que você vai salvar aquele registro atual em edição 
+    - Esse é um ponto meu.. mas talvez o título do registro deveria ser uma chave primária, não podendo se repetir (validando case insensitive), pro usuário as vezes já saber que fez algum devocional naquele assunto..
+    - Nos meus registros talvez seria legal colapsar aquela guia de filtros.. no celular vc ter que descer ainda mais pra de fato ver os registros não é muito legal.. o usuário expandir ia os filtros somente quando for usar

@@ -23,14 +23,100 @@ const dashboardContainer = document.getElementById('dashboardContainer');
 const btnLogout = document.getElementById('btnLogout');
 const userGreeting = document.getElementById('userGreeting');
 
+// --- SIDEBAR LOGIC ---
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+const btnToggleMobileSidebar = document.getElementById('btnToggleMobileSidebar');
+const btnCloseSidebarMobile = document.getElementById('btnCloseSidebarMobile');
+
+const toggleSidebar = () => {
+    sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed-mode');
+    const icon = btnToggleSidebar.querySelector('i');
+    if (sidebar.classList.contains('collapsed')) {
+        icon.classList.remove('ph-caret-left');
+        icon.classList.add('ph-caret-right');
+        btnToggleSidebar.title = "Expandir Menu";
+    } else {
+        icon.classList.remove('ph-caret-right');
+        icon.classList.add('ph-caret-left');
+        btnToggleSidebar.title = "Recolher Menu";
+    }
+};
+
+const openMobileSidebar = () => {
+    sidebar.classList.add('active');
+    sidebarOverlay.classList.add('active');
+};
+
+const closeMobileSidebar = () => {
+    sidebar.classList.remove('active');
+    sidebarOverlay.classList.remove('active');
+};
+
+if (btnToggleSidebar) btnToggleSidebar.addEventListener('click', toggleSidebar);
+if (btnToggleMobileSidebar) btnToggleMobileSidebar.addEventListener('click', openMobileSidebar);
+if (btnCloseSidebarMobile) btnCloseSidebarMobile.addEventListener('click', closeMobileSidebar);
+if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeMobileSidebar);
+
+// Close mobile sidebar when clicking a link
+document.querySelectorAll('.sidebar-nav .nav-item').forEach(link => {
+    link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            closeMobileSidebar();
+        }
+    });
+});
+
+// Swipe to close logic (interactive)
+let touchStartX = 0;
+let touchMoveX = 0;
+
+if (sidebar) {
+    sidebar.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+        sidebar.style.transition = 'none'; // Desabilita transição durante o arraste
+    }, { passive: true });
+
+    sidebar.addEventListener('touchmove', e => {
+        touchMoveX = e.touches[0].clientX;
+        let diff = touchMoveX - touchStartX;
+        
+        if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+            if (diff < 0) { // Só permite arrastar para a esquerda
+                sidebar.style.transform = `translateX(${diff}px)`;
+                // Efeito de opacidade no overlay proporcional ao arraste
+                const opacity = 0.7 * (1 + diff / 280); 
+                if (sidebarOverlay) sidebarOverlay.style.opacity = Math.max(0, opacity);
+            }
+        }
+    }, { passive: true });
+
+    sidebar.addEventListener('touchend', e => {
+        sidebar.style.transition = ''; // Restaura a transição
+        sidebar.style.transform = '';
+        if (sidebarOverlay) sidebarOverlay.style.opacity = '';
+        
+        let diff = touchMoveX - touchStartX;
+        if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+            if (diff < -100) { // Limiar para fechar
+                closeMobileSidebar();
+            }
+        }
+        touchStartX = 0;
+        touchMoveX = 0;
+    }, { passive: true });
+}
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        loginContainer.style.display = 'none';
+        if (loginContainer) loginContainer.style.display = 'none';
         dashboardContainer.style.display = 'block';
         userGreeting.innerText = `Olá, ${user.email.split('@')[0]}`;
         fetchAll(); // Carrega os dados apenas após o login
     } else {
-        loginContainer.style.display = 'flex';
+        if (loginContainer) loginContainer.style.display = 'flex';
         dashboardContainer.style.display = 'none';
     }
 });
