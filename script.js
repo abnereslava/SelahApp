@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, deleteDoc, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, orderBy, query, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBgD8fxcab5A8jVmedYsoUnuq6fgWKWPUA",
@@ -82,12 +82,12 @@ if (sidebar) {
     sidebar.addEventListener('touchmove', e => {
         touchMoveX = e.touches[0].clientX;
         let diff = touchMoveX - touchStartX;
-        
+
         if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
             if (diff < 0) { // Só permite arrastar para a esquerda
                 sidebar.style.transform = `translateX(${diff}px)`;
                 // Efeito de opacidade no overlay proporcional ao arraste
-                const opacity = 0.7 * (1 + diff / 280); 
+                const opacity = 0.7 * (1 + diff / 280);
                 if (sidebarOverlay) sidebarOverlay.style.opacity = Math.max(0, opacity);
             }
         }
@@ -97,7 +97,7 @@ if (sidebar) {
         sidebar.style.transition = ''; // Restaura a transição
         sidebar.style.transform = '';
         if (sidebarOverlay) sidebarOverlay.style.opacity = '';
-        
+
         let diff = touchMoveX - touchStartX;
         if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
             if (diff < -100) { // Limiar para fechar
@@ -126,7 +126,7 @@ loginForm.addEventListener('submit', async (e) => {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const btn = document.getElementById('btnLogin');
-    
+
     try {
         btn.disabled = true;
         loginError.style.display = 'none';
@@ -156,7 +156,7 @@ const resetFormFields = () => {
     document.getElementById('btnCancelEdit').style.display = 'none';
     document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-floppy-disk"></i> Salvar na Nuvem';
     document.getElementById('formTitle').innerText = "Novo Registro";
-    
+
     // Limpa editores e arrays
     editors.livre.root.innerHTML = "<p><br></p>";
     renderGuidedQuestions(); // Reseta para as perguntas padrão
@@ -177,7 +177,7 @@ const showConfirm = (msg) => {
     return new Promise((resolve) => {
         const modal = document.getElementById('customConfirmModal');
         document.getElementById('customConfirmMessage').innerText = msg;
-        
+
         const btnOk = document.getElementById('btnOkConfirm');
         const btnCancel = document.getElementById('btnCancelConfirm');
 
@@ -226,7 +226,7 @@ window.handleQuestionClick = (idx, inputEl) => {
         const textarea = document.getElementById('editQuestionTextarea');
         textarea.value = inputEl.value; // Puxa o texto atual
         modal.showModal();
-        
+
         // Lógica de salvar
         document.getElementById('btnSaveQuestion').onclick = () => {
             inputEl.value = textarea.value; // Atualiza o input com o novo texto
@@ -239,7 +239,7 @@ const renderGuidedQuestions = (questionsToRender = defaultQuestions, contents = 
     const container = document.getElementById('dynamicQuestionsContainer');
     container.innerHTML = '';
     guidedEditors = [];
-    
+
     questionsToRender.forEach((q, idx) => {
         const div = document.createElement('div');
         div.className = 'guided-question';
@@ -263,9 +263,9 @@ const renderGuidedQuestions = (questionsToRender = defaultQuestions, contents = 
             </details>
         `;
         container.appendChild(div);
-        
+
         const qEditor = new Quill(`#quillGuided_${idx}`, { theme: 'snow', modules: { toolbar } });
-        if(contents[idx]) qEditor.root.innerHTML = contents[idx];
+        if (contents[idx]) qEditor.root.innerHTML = contents[idx];
         guidedEditors.push({ id: idx, editor: qEditor });
     });
 };
@@ -312,7 +312,7 @@ const renderLists = () => {
     const aList = document.getElementById('actionsListDOM');
     const lList = document.getElementById('linksListDOM');
     const iconMap = { pedidos_oracao: 'ph-hands-praying', acoes_pessoas: 'ph-users', metas_espirituais: 'ph-target', gratidao: 'ph-heart', jejum: 'ph-fork-knife', outros: 'ph-push-pin' };
-    
+
     aList.innerHTML = tempActions.map((a, i) => `
         <li class="modern-item">
             <div class="item-info">
@@ -323,7 +323,7 @@ const renderLists = () => {
             <button type="button" class="btn-icon" onclick="removeAction(${i})"><i class="ph ph-trash"></i></button>
         </li>
     `).join('');
-    
+
     lList.innerHTML = tempLinks.map((l, i) => `
         <li class="modern-item">
             <div class="item-info">
@@ -340,14 +340,14 @@ window.removeLink = i => { tempLinks.splice(i, 1); renderLists(); };
 
 document.getElementById('btnAddAction').addEventListener('click', () => {
     const desc = document.getElementById('actionDesc');
-    if(!desc.value) return;
+    if (!desc.value) return;
     tempActions.push({ type: document.getElementById('actionType').value, description: desc.value, date: document.getElementById('actionDate').value });
     desc.value = ''; renderLists();
 });
 
 document.getElementById('btnAddLink').addEventListener('click', () => {
     const t = document.getElementById('linkTitle'), u = document.getElementById('linkUrl');
-    if(!t.value || !u.value) return;
+    if (!t.value || !u.value) return;
     tempLinks.push({ title: t.value, url: u.value });
     t.value = ''; u.value = ''; renderLists();
 });
@@ -380,7 +380,7 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
     };
 
     try {
-        if(editId) {
+        if (editId) {
             await updateDoc(doc(db, "devotionals", editId), data);
             showAlert("Atualizado com sucesso!");
         } else {
@@ -388,10 +388,10 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
             await addDoc(collection(db, "devotionals"), data);
             showAlert("Salvo com sucesso!");
         }
-        
+
         resetFormFields(); // Limpa o formulário silenciosamente
         fetchAll(); // Busca os dados atualizados sem piscar a tela
-        
+
     } catch (err) {
         console.error("Erro ao salvar no Firestore:", err);
         showAlert("Ocorreu um erro ao salvar. Verifique o console (F12) para mais detalhes.");
@@ -411,14 +411,14 @@ const initAutocomplete = () => {
     input.addEventListener('input', () => {
         const val = input.value.toLowerCase();
         dropdown.innerHTML = '';
-        if(!val) { dropdown.style.display = 'none'; hidden.value = ''; return; }
-        
-        const matches = allRecords.filter(r => 
-            (r.title && r.title.toLowerCase().includes(val)) || 
+        if (!val) { dropdown.style.display = 'none'; hidden.value = ''; return; }
+
+        const matches = allRecords.filter(r =>
+            (r.title && r.title.toLowerCase().includes(val)) ||
             (r.mainPassage && r.mainPassage.toLowerCase().includes(val))
         );
-        
-        if(matches.length > 0) {
+
+        if (matches.length > 0) {
             dropdown.style.display = 'block';
             matches.slice(0, 10).forEach(m => {
                 const li = document.createElement('li');
@@ -436,7 +436,7 @@ const initAutocomplete = () => {
     });
 
     document.addEventListener('click', (e) => {
-        if(!e.target.closest('.autocomplete-container')) dropdown.style.display = 'none';
+        if (!e.target.closest('.autocomplete-container')) dropdown.style.display = 'none';
     });
 };
 
@@ -462,10 +462,10 @@ class TagManager {
         this.tags = [];          // array of lowercase strings
         this.activeIdx = -1;     // keyboard selection index in suggestions
 
-        this.wrapper   = document.getElementById('tagInputWrapper');
-        this.chipsEl   = document.getElementById('tagChips');
-        this.input     = document.getElementById('tagInputField');
-        this.sugList   = document.getElementById('tagSuggestions');
+        this.wrapper = document.getElementById('tagInputWrapper');
+        this.chipsEl = document.getElementById('tagChips');
+        this.input = document.getElementById('tagInputField');
+        this.sugList = document.getElementById('tagSuggestions');
 
         this._bind();
     }
@@ -640,23 +640,23 @@ let tagManager; // initialized after DOM-dependent code runs
 
 const fetchAll = async () => {
     // Pega o usuário logado atualmente no Firebase Auth
-    const user = auth.currentUser; 
-    
+    const user = auth.currentUser;
+
     // Se por acaso não tiver ninguém logado, cancela a execução para evitar erros
-    if (!user) return; 
+    if (!user) return;
 
     // Busca apenas os registros que pertencem ao userId logado
     const q = query(
-        collection(db, "devotionals"), 
-        where("userId", "==", user.uid), 
+        collection(db, "devotionals"),
+        where("userId", "==", user.uid),
         orderBy("date", "desc")
     );
-    
+
     const snap = await getDocs(q);
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    
+
     buildKeywordIndex();
-    
+
     // Inicializa o TagManager e o resto da interface
     if (!tagManager) tagManager = new TagManager();
     initAutocomplete();
@@ -684,43 +684,43 @@ const renderFeed = (arr) => {
 window.viewRecord = (id) => {
     const r = allRecords.find(x => x.id === id);
     document.getElementById('viewTitle').innerText = r.title ? r.title : r.mainPassage;
-    
+
     let html = '';
-    if(r.title) html += `<p><strong>Passagem:</strong> ${r.mainPassage}</p>`;
+    if (r.title) html += `<p><strong>Passagem:</strong> ${r.mainPassage}</p>`;
     html += `<p><strong>Tipo:</strong> ${r.recordType} | <strong>Data:</strong> ${r.date.split('-').reverse().join('/')}</p>`;
-    
+
     // Lógica de Trilha (Chain Logic)
     let chainBack = [], chainForward = [];
     let curr = r;
-    while(curr.continuationOf) {
+    while (curr.continuationOf) {
         let parent = allRecords.find(x => x.id === curr.continuationOf);
-        if(!parent) break;
+        if (!parent) break;
         chainBack.unshift(parent);
         curr = parent;
     }
     curr = r;
-    while(true) {
+    while (true) {
         let child = allRecords.find(x => x.continuationOf === curr.id);
-        if(!child) break;
+        if (!child) break;
         chainForward.push(child);
         curr = child;
     }
     const fullChain = [...chainBack, r, ...chainForward];
-    if(fullChain.length > 1) {
+    if (fullChain.length > 1) {
         html += `<div class="chain-container mt-2 mb-4"><strong>Trilha:</strong> `;
-        html += fullChain.map(item => item.id === r.id ? 
-            `<span class="tag" style="background:var(--primary-color);color:white">${item.title || item.mainPassage}</span>` : 
+        html += fullChain.map(item => item.id === r.id ?
+            `<span class="tag" style="background:var(--primary-color);color:white">${item.title || item.mainPassage}</span>` :
             `<a href="#" onclick="viewRecord('${item.id}'); return false;" class="tag">${item.title || item.mainPassage}</a>`
         ).join(' &rarr; ');
         html += `</div>`;
     }
-    
-    if(r.recordFormat === 'livre') {
+
+    if (r.recordFormat === 'livre') {
         html += `<div class="mt-4">${r.content.texto}</div>`;
     } else {
-        if(r.content.questions) {
+        if (r.content.questions) {
             r.content.questions.forEach(q => {
-                if(q.a && q.a !== '<p><br></p>') {
+                if (q.a && q.a !== '<p><br></p>') {
                     html += `<h4>${q.q}</h4><div>${q.a}</div>`;
                 }
             });
@@ -728,13 +728,13 @@ window.viewRecord = (id) => {
             // Legado
             const qs = ["Contexto", "Sobre o que fala", "Revela sobre Deus", "Revela sobre o Homem", "Aplicação"];
             [r.content.c1, r.content.c2, r.content.c3, r.content.c4, r.content.c5].forEach((c, i) => {
-                if(c && c !== '<p><br></p>') html += `<h4>${qs[i]}</h4><div>${c}</div>`;
+                if (c && c !== '<p><br></p>') html += `<h4>${qs[i]}</h4><div>${c}</div>`;
             });
         }
     }
 
-    if(r.links?.length) html += `<h4 class="mt-4">Links</h4>` + r.links.map(l => `<a href="${l.url}" target="_blank" class="tag">${l.title}</a>`).join('');
-    
+    if (r.links?.length) html += `<h4 class="mt-4">Links</h4>` + r.links.map(l => `<a href="${l.url}" target="_blank" class="tag">${l.title}</a>`).join('');
+
     document.getElementById('viewBody').innerHTML = html;
 
     // Injeta os botões de ação (Lápis e Lixeira) no cabeçalho do modal
@@ -756,26 +756,26 @@ window.editRecord = (id) => {
     document.getElementById('formTitle').innerText = "Editando Registro";
     document.getElementById('title').value = r.title || '';
     document.getElementById('date').value = r.date;
-    
+
     document.getElementById('continuationOf').value = r.continuationOf || '';
-    if(r.continuationOf) {
+    if (r.continuationOf) {
         const parent = allRecords.find(x => x.id === r.continuationOf);
-        if(parent) document.getElementById('continuationSearch').value = parent.title || parent.mainPassage;
+        if (parent) document.getElementById('continuationSearch').value = parent.title || parent.mainPassage;
     } else {
         document.getElementById('continuationSearch').value = '';
     }
-    
+
     document.getElementById('mainPassage').value = r.mainPassage;
     document.getElementById('recordType').value = r.recordType;
     document.getElementById('author').value = r.author || '';
     tagManager.setTags(r.keywords || []);
-    
-    if(r.recordFormat === 'livre') {
+
+    if (r.recordFormat === 'livre') {
         document.querySelector('[data-type="livre"]').click();
         editors.livre.root.innerHTML = r.content.texto;
     } else {
         document.querySelector('[data-type="orientado"]').click();
-        if(r.content.questions) {
+        if (r.content.questions) {
             renderGuidedQuestions(r.content.questions.map(q => q.q), r.content.questions.map(q => q.a));
         } else {
             const qs = ["Contexto", "Sobre o que a passagem fala?", "O que a passagem revela sobre Deus?", "O que a passagem revela sobre o ser humano?", "Como posso aplicar essa passagem na minha vida?"];
@@ -787,20 +787,20 @@ window.editRecord = (id) => {
     renderLists();
     document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-check"></i> Atualizar Registro';
     document.getElementById('btnCancelEdit').style.display = 'block';
-    
+
     // Rola até o topo e abre o accordion de Novo Registro caso esteja fechado
     document.querySelector('.collapsible-section[open]') || document.querySelector('.collapsible-section').setAttribute('open', '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 window.deleteRecord = async (id) => {
-    if(await showConfirm("Deseja realmente excluir este registro?")) {
+    if (await showConfirm("Deseja realmente excluir este registro?")) {
         await deleteDoc(doc(db, "devotionals", id));
-        
+
         // Fecha o modal caso a exclusão seja feita por lá
         const modal = document.getElementById('viewModal');
         if (modal.open) modal.close();
-        
+
         fetchAll();
     }
 };
@@ -815,21 +815,21 @@ let typeChart, booksChartInstance;
 
 const extractBibleBook = (passage) => {
     const match = passage.trim().match(/^(\d?\s*[A-Za-zÀ-ÿ]+(?:[\s-][A-Za-zÀ-ÿ]+)*)/);
-    if(match) return match[1].trim();
+    if (match) return match[1].trim();
     return "Outros";
 };
 
 const renderChart = (arr) => {
     const typeCounts = arr.reduce((acc, r) => { acc[r.recordType] = (acc[r.recordType] || 0) + 1; return acc; }, {});
     const bookCounts = arr.reduce((acc, r) => {
-        if(r.mainPassage) {
+        if (r.mainPassage) {
             const b = extractBibleBook(r.mainPassage);
             acc[b] = (acc[b] || 0) + 1;
         }
         return acc;
     }, {});
 
-    if(typeChart) typeChart.destroy();
+    if (typeChart) typeChart.destroy();
     typeChart = new Chart(document.getElementById('devotionalsChart'), {
         type: 'doughnut',
         data: {
@@ -838,9 +838,9 @@ const renderChart = (arr) => {
         },
         options: { plugins: { legend: { position: 'bottom' } } }
     });
-    
-    if(booksChartInstance) booksChartInstance.destroy();
-    const sortedBooks = Object.entries(bookCounts).sort((a,b) => b[1] - a[1]).slice(0, 10);
+
+    if (booksChartInstance) booksChartInstance.destroy();
+    const sortedBooks = Object.entries(bookCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     booksChartInstance = new Chart(document.getElementById('booksChart'), {
         type: 'bar',
         data: {
@@ -861,18 +861,18 @@ document.getElementById('btnApplyFilters').onclick = () => {
 
     const filtered = allRecords.filter(r => {
         let match = true;
-        if(t && r.recordType !== t) match = false;
-        if(k && !(r.mainPassage.toLowerCase().includes(k) || (r.title && r.title.toLowerCase().includes(k)) || r.keywords?.some(kw => kw.includes(k)))) match = false;
-        if(author && (!r.author || !r.author.toLowerCase().includes(author))) match = false;
-        if(dStart && r.date < dStart) match = false;
-        if(dEnd && r.date > dEnd) match = false;
+        if (t && r.recordType !== t) match = false;
+        if (k && !(r.mainPassage.toLowerCase().includes(k) || (r.title && r.title.toLowerCase().includes(k)) || r.keywords?.some(kw => kw.includes(k)))) match = false;
+        if (author && (!r.author || !r.author.toLowerCase().includes(author))) match = false;
+        if (dStart && r.date < dStart) match = false;
+        if (dEnd && r.date > dEnd) match = false;
         return match;
     });
     renderFeed(filtered);
 };
 
 document.getElementById('btnRandom').onclick = () => {
-    if(allRecords.length === 0) return showAlert("Nenhum registro encontrado.");
+    if (allRecords.length === 0) return showAlert("Nenhum registro encontrado.");
     const randomIdx = Math.floor(Math.random() * allRecords.length);
     viewRecord(allRecords[randomIdx].id);
 };

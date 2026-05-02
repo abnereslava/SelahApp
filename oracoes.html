@@ -1,23 +1,27 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Orações | Selah</title>
-    
+
     <meta name="theme-color" content="#2B1E17">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Selah">
-    
+
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
+
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="dashboardContainer">
         <div class="dashboard-wrapper">
@@ -49,7 +53,7 @@
                     </a>
                 </div>
             </nav>
-            
+
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
             <main class="main-content">
@@ -69,10 +73,13 @@
                     </header>
 
                     <div class="form-container" style="text-align: center; padding: 100px 20px;">
-                        <i class="ph ph-hands-praying" style="font-size: 5rem; color: var(--primary-color); margin-bottom: 20px;"></i>
+                        <i class="ph ph-hands-praying"
+                            style="font-size: 5rem; color: var(--primary-color); margin-bottom: 20px;"></i>
                         <h2>Página de Orações em Desenvolvimento</h2>
-                        <p style="color: var(--text-muted);">Em breve você poderá gerenciar seus pedidos de oração aqui.</p>
-                        <a href="index.html" class="btn-primary" style="display: inline-flex; margin-top: 30px; width: auto;">Voltar para Registros</a>
+                        <p style="color: var(--text-muted);">Em breve você poderá gerenciar seus pedidos de oração aqui.
+                        </p>
+                        <a href="index.html" class="btn-primary"
+                            style="display: inline-flex; margin-top: 30px; width: auto;">Voltar para Registros</a>
                     </div>
                 </div>
             </main>
@@ -120,18 +127,18 @@
         // Swipe logic (interactive)
         let touchStartX = 0;
         let touchMoveX = 0;
-        sidebar.addEventListener('touchstart', e => { 
-            touchStartX = e.touches[0].clientX; 
+        sidebar.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
             sidebar.style.transition = 'none';
         }, { passive: true });
-        
+
         sidebar.addEventListener('touchmove', e => {
             touchMoveX = e.touches[0].clientX;
             let diff = touchMoveX - touchStartX;
             if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
                 if (diff < 0) {
                     sidebar.style.transform = `translateX(${diff}px)`;
-                    const opacity = 0.7 * (1 + diff / 280); 
+                    const opacity = 0.7 * (1 + diff / 280);
                     if (sidebarOverlay) sidebarOverlay.style.opacity = Math.max(0, opacity);
                 }
             }
@@ -150,4 +157,5 @@
         }, { passive: true });
     </script>
 </body>
+
 </html>
