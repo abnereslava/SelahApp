@@ -434,6 +434,22 @@ select:focus {
     margin-bottom: 40px;
 }
 
+.header-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.header-brand-mobile {
+    display: none; /* Hidden on desktop */
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .app-header h1 {
     font-size: 2.2rem;
     color: var(--primary-color);
@@ -443,6 +459,12 @@ select:focus {
 .header-subtitle {
     color: var(--text-muted);
     font-size: 1.1rem;
+}
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .form-container {
@@ -1427,24 +1449,42 @@ select:focus {
         margin-bottom: 25px;
     }
 
-    .app-header h1#formTitle {
-        font-size: 1.8rem !important;
-        line-height: 1.2;
-    }
-
-    .app-header p.header-subtitle {
-        font-size: 1rem !important;
-    }
-
-    .app-header>div {
-        flex-direction: column;
-        align-items: stretch !important;
+    .header-container {
         gap: 15px;
     }
 
-    .app-header>div>div:nth-child(2) {
+    .header-brand-mobile {
         display: flex;
-        flex-direction: row !important;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        order: 1;
+    }
+
+    .brand-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-wrapper i {
+        font-size: 1.8rem;
+        color: var(--primary-color);
+    }
+
+    .brand-wrapper span {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .header-content {
+        display: contents; /* Allows children to be direct flex items of .header-container */
+    }
+
+    .header-user {
+        display: flex;
         justify-content: space-between;
         align-items: center;
         background: var(--secondary-color);
@@ -1452,6 +1492,21 @@ select:focus {
         border-radius: var(--radius);
         border: 1px solid var(--border-color);
         width: 100%;
+        order: 2;
+    }
+
+    .header-titles {
+        order: 3;
+    }
+
+    .app-header h1#formTitle,
+    .app-header h1 {
+        font-size: 1.8rem !important;
+        line-height: 1.2;
+    }
+
+    .app-header p.header-subtitle {
+        font-size: 1rem !important;
     }
 
     .app-header button#btnLogout {

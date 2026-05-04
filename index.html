@@ -83,25 +83,32 @@
                 <div class="app-container">
 
                     <header class="app-header">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center; gap: 15px;">
+                        <div class="header-container">
+                            <div class="header-brand-mobile">
                                 <button type="button" class="sidebar-toggle-mobile" id="btnToggleMobileSidebar">
                                     <i class="ph ph-list"></i>
                                 </button>
-                                <div>
+                                <div class="brand-wrapper">
+                                    <i class="ph ph-book-bookmark"></i>
+                                    <span>Selah</span>
+                                </div>
+                                <div style="width: 44px;"></div>
+                            </div>
+                            <div class="header-content">
+                                <div class="header-titles">
                                     <h1 id="formTitle">Registro de Leitura</h1>
                                     <p class="header-subtitle">O que o Senhor falou ao seu coração hoje?</p>
                                 </div>
-                            </div>
-                            <div style="display:flex; align-items:center; gap: 12px; flex: none;">
-                                <span id="userGreeting" style="font-size: 0.875rem; color: var(--text-muted);"></span>
-                                <button type="button" id="btnLogout" class="btn-secondary"
-                                    style="padding: 8px 15px; width: auto;"><i class="ph ph-sign-out"></i> Sair</button>
+                                <div class="header-user">
+                                    <span id="userGreeting" style="font-size: 0.875rem; color: var(--text-muted);"></span>
+                                    <button type="button" id="btnLogout" class="btn-secondary"
+                                        style="padding: 8px 15px; width: auto;"><i class="ph ph-sign-out"></i> Sair</button>
+                                </div>
                             </div>
                         </div>
                     </header>
 
-                    <details class="collapsible-section" open>
+                    <details class="collapsible-section">
                         <summary class="collapsible-summary">
                             <div class="summary-content">
                                 <i class="ph ph-note-pencil"></i>
