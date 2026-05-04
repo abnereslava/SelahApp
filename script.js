@@ -158,13 +158,15 @@ const resetFormFields = () => {
     document.getElementById('formTitle').innerText = "Novo Registro";
 
     // Limpa editores e arrays
-    editors.livre.root.innerHTML = "<p><br></p>";
+    const draft = localStorage.getItem('selah_draft_livre');
+    editors.livre.root.innerHTML = draft ? draft : "<p><br></p>";
     renderGuidedQuestions(); // Reseta para as perguntas padrão
     tempActions = [];
     tempLinks = [];
     renderLists();
     setTodayDate();
-    if (tagManager) tagManager.clear(); // Limpa as tags
+    if (tagManager) tagManager.clear();
+    if (authorManager) authorManager.clear();
 };
 
 // --- CUSTOM MODALS (REPLACING ALERT/CONFIRM) ---
@@ -203,10 +205,120 @@ const showConfirm = (msg) => {
 };
 
 // --- EDITORES E PERGUNTAS DINÂMICAS ---
-const toolbar = [['bold', 'italic', 'underline'], [{ 'color': [] }], [{ 'header': [1, 2, false] }], ['clean']];
+const customColors = [
+    false, 
+    '#e60000', 
+    '#ff9900', 
+    '#d4af37', 
+    '#008a00', 
+    '#0066cc', 
+    '#9933ff'
+];
+const toolbar = [['bold', 'italic', 'underline'], [{ 'color': customColors }], [{ 'header': [1, 2, false] }], ['clean']];
 const editors = {
     livre: new Quill('#quillEditorLivre', { theme: 'snow', modules: { toolbar } })
 };
+
+const savedDraft = localStorage.getItem('selah_draft_livre');
+if (savedDraft) editors.livre.root.innerHTML = savedDraft;
+
+editors.livre.on('text-change', () => {
+    if (!document.getElementById('editId').value) {
+        localStorage.setItem('selah_draft_livre', editors.livre.root.innerHTML);
+    }
+});
+
+// --- MOBILE FLOATING TOOLBAR LOGIC ---
+const mobileToolbar = document.getElementById('mobileQuillToolbar');
+editors.livre.on('selection-change', (range) => {
+    
+    if (range && range.length > 0) {
+        const bounds = editors.livre.getBounds(range.index, range.length);
+        if(mobileToolbar) {
+            mobileToolbar.style.display = 'flex';
+            const containerRect = editors.livre.container.getBoundingClientRect();
+            const tbWidth = mobileToolbar.offsetWidth || 250; 
+            
+            let leftPos = containerRect.left + bounds.left + window.scrollX;
+            if (leftPos + tbWidth > window.innerWidth) {
+                leftPos = window.innerWidth - tbWidth - 10;
+            }
+            
+            mobileToolbar.style.left = Math.max(0, leftPos) + 'px';
+            const tbHeight = mobileToolbar.offsetHeight || 40;
+            
+            let topPos = containerRect.top + bounds.top + window.scrollY - tbHeight - 10;
+            if (topPos < window.scrollY) {
+                topPos = containerRect.top + bounds.bottom + window.scrollY + 10;
+            }
+            mobileToolbar.style.top = topPos + 'px';
+            
+            const format = editors.livre.getFormat(range);
+            mobileToolbar.querySelectorAll('button').forEach(btn => {
+                const f = btn.dataset.format;
+                const v = btn.dataset.value;
+                if (f === 'clean') return;
+                let isActive = false;
+                if (v) isActive = (format[f] == v);
+                else isActive = format[f];
+                btn.classList.toggle('active-format', !!isActive);
+            });
+        }
+    } else {
+        if(mobileToolbar) {
+            mobileToolbar.style.display = 'none';
+            document.getElementById('ftColorGroup').style.display = 'none';
+            document.getElementById('ftMainGroup').style.display = 'flex';
+        }
+    }
+});
+
+const handleFormatBtn = (e, btn) => {
+    e.preventDefault(); 
+    const f = btn.dataset.format;
+    const v = btn.dataset.value;
+    const range = editors.livre.getSelection();
+    if (!range) return;
+    
+    if (f === 'clean') {
+        editors.livre.removeFormat(range.index, range.length);
+    } else {
+        const currentFormat = editors.livre.getFormat(range);
+        if (v) {
+            editors.livre.format(f, currentFormat[f] == v ? false : v);
+        } else {
+            editors.livre.format(f, !currentFormat[f]);
+        }
+    }
+    
+    if (f === 'color') {
+        document.getElementById('ftColorGroup').style.display = 'none';
+        document.getElementById('ftMainGroup').style.display = 'flex';
+    }
+};
+
+if(mobileToolbar) {
+    const ftMainGroup = document.getElementById('ftMainGroup');
+    const ftColorGroup = document.getElementById('ftColorGroup');
+
+    mobileToolbar.querySelectorAll('button').forEach(btn => {
+        if (btn.id === 'ftBtnColorToggle') {
+            const toggle = (e) => { e.preventDefault(); ftMainGroup.style.display = 'none'; ftColorGroup.style.display = 'flex'; };
+            btn.addEventListener('mousedown', toggle);
+            btn.addEventListener('touchstart', toggle);
+            return;
+        }
+        if (btn.id === 'ftBtnColorBack') {
+            const back = (e) => { e.preventDefault(); ftColorGroup.style.display = 'none'; ftMainGroup.style.display = 'flex'; };
+            btn.addEventListener('mousedown', back);
+            btn.addEventListener('touchstart', back);
+            return;
+        }
+
+        btn.addEventListener('mousedown', (e) => handleFormatBtn(e, btn));
+        btn.addEventListener('touchstart', (e) => handleFormatBtn(e, btn));
+    });
+}
 
 let guidedEditors = [];
 const defaultQuestions = [
@@ -367,7 +479,7 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
         continuationOf: document.getElementById('continuationOf').value || null,
         mainPassage: document.getElementById('mainPassage').value,
         recordType: document.getElementById('recordType').value,
-        author: document.getElementById('author').value,
+        author: authorManager.getTags(),
         relatedPassages: document.getElementById('relatedPassages').value,
         keywords: tagManager.getTags(),
         recordFormat: isLivre ? 'livre' : 'orientado',
@@ -387,6 +499,7 @@ document.getElementById('devotionalForm').addEventListener('submit', async (e) =
             data.createdAt = data.updatedAt;
             await addDoc(collection(db, "devotionals"), data);
             showAlert("Salvo com sucesso!");
+            localStorage.removeItem('selah_draft_livre');
         }
 
         resetFormFields(); // Limpa o formulário silenciosamente
@@ -442,9 +555,11 @@ const initAutocomplete = () => {
 
 // Global keyword index: maps lowercase key → original casing (first seen)
 const globalKeywordIndex = new Map();
+const globalAuthorIndex = new Map();
 
-const buildKeywordIndex = () => {
+const buildIndices = () => {
     globalKeywordIndex.clear();
+    globalAuthorIndex.clear();
     allRecords.forEach(r => {
         if (r.keywords) {
             r.keywords.forEach(k => {
@@ -453,47 +568,61 @@ const buildKeywordIndex = () => {
                 }
             });
         }
+        if (r.author) {
+            if (typeof r.author === 'string' && r.author.trim() !== '') {
+                const a = r.author.trim();
+                if (!globalAuthorIndex.has(a.toLowerCase())) globalAuthorIndex.set(a.toLowerCase(), a);
+            } else if (Array.isArray(r.author)) {
+                r.author.forEach(a => {
+                    if (a && !globalAuthorIndex.has(a.toLowerCase())) globalAuthorIndex.set(a.toLowerCase(), a);
+                });
+            }
+        }
     });
 };
 
 // ── TagManager ──────────────────────────────────────────────────────────
 class TagManager {
-    constructor() {
+    constructor(config) {
         this.tags = [];          // array of lowercase strings
         this.activeIdx = -1;     // keyboard selection index in suggestions
 
-        this.wrapper = document.getElementById('tagInputWrapper');
-        this.chipsEl = document.getElementById('tagChips');
-        this.input = document.getElementById('tagInputField');
-        this.sugList = document.getElementById('tagSuggestions');
+        this.config = Object.assign({
+            wrapperId: 'tagInputWrapper',
+            chipsId: 'tagChips',
+            inputId: 'tagInputField',
+            sugListId: 'tagSuggestions',
+            sectionId: 'keywordsSection',
+            maxTags: 3,
+            maxTagsMsg: "Você pode adicionar no máximo 3 palavras-chave.",
+            indexMap: globalKeywordIndex,
+            iconClass: 'ph-tag',
+            placeholderMobile: "Adicionar palavras-chave..."
+        }, config || {});
+
+        this.wrapper = document.getElementById(this.config.wrapperId);
+        this.chipsEl = document.getElementById(this.config.chipsId);
+        this.input = document.getElementById(this.config.inputId);
+        this.sugList = document.getElementById(this.config.sugListId);
 
         this._bind();
     }
 
     _bind() {
-        // Ajuste do placeholder para mobile
-        if (window.innerWidth <= 768) {
-            this.input.placeholder = "Adicionar palavras-chave...";
+        if (window.innerWidth <= 768 && this.config.placeholderMobile) {
+            this.input.placeholder = this.config.placeholderMobile;
         }
 
-        // Click on wrapper → focus input
         this.wrapper.addEventListener('click', () => this.input.focus());
-
-        // Typing
         this.input.addEventListener('input', () => this._onInput());
-
-        // Keyboard: Enter / comma add tag; Backspace removes last; Arrow keys navigate
         this.input.addEventListener('keydown', (e) => this._onKeydown(e));
-
-        // Hide suggestions on outside click
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('#keywordsSection')) this._hideSuggestions();
+            if (!e.target.closest(`#${this.config.sectionId}`)) this._hideSuggestions();
         });
     }
 
     _onInput() {
         const raw = this.input.value;
-        // If user typed a comma, treat everything before it as a tag
         if (raw.includes(',')) {
             const parts = raw.split(',');
             parts.slice(0, -1).forEach(p => this._addTag(p.trim()));
@@ -536,7 +665,7 @@ class TagManager {
         if (!query) { this._hideSuggestions(); return; }
 
         const q = query.toLowerCase();
-        const matches = Array.from(globalKeywordIndex.entries())
+        const matches = Array.from(this.config.indexMap.entries())
             .filter(([key]) => key.includes(q) && !this.tags.includes(key))
             .slice(0, 8);
 
@@ -546,14 +675,13 @@ class TagManager {
             const li = document.createElement('li');
             li.className = 'tag-suggestion-item';
             li.dataset.tag = key;
-            // Highlight matching portion
             const highlighted = label.replace(
                 new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
                 '<mark>$1</mark>'
             );
-            li.innerHTML = `<i class="ph ph-tag"></i>${highlighted}`;
+            li.innerHTML = `<i class="ph ${this.config.iconClass}"></i>${highlighted}`;
             li.addEventListener('mousedown', (e) => {
-                e.preventDefault(); // prevent blur
+                e.preventDefault();
                 this._acceptSuggestion(key);
             });
             this.sugList.appendChild(li);
@@ -581,15 +709,14 @@ class TagManager {
     _addTag(raw) {
         if (!raw) return;
         const key = raw.toLowerCase().trim();
-        if (!key || this.tags.includes(key)) return; // deduplicate
+        if (!key || this.tags.includes(key)) return;
 
-        if (this.tags.length >= 3) {
-            showAlert("Você pode adicionar no máximo 3 palavras-chave.");
+        if (this.tags.length >= this.config.maxTags) {
+            showAlert(this.config.maxTagsMsg);
             return;
         }
 
-        // Register in global index if new
-        if (!globalKeywordIndex.has(key)) globalKeywordIndex.set(key, raw.trim());
+        if (!this.config.indexMap.has(key)) this.config.indexMap.set(key, raw.trim());
 
         this.tags.push(key);
         this._renderChips();
@@ -605,8 +732,7 @@ class TagManager {
         this.tags.forEach((tag, i) => {
             const chip = document.createElement('span');
             chip.className = 'tag-chip';
-            // Use original casing from index if available
-            const label = globalKeywordIndex.get(tag) || tag;
+            const label = this.config.indexMap.get(tag) || tag;
             chip.innerHTML = `${label}<button type="button" class="tag-chip-remove" title="Remover"><i class="ph ph-x"></i></button>`;
             chip.querySelector('.tag-chip-remove').addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -616,18 +742,14 @@ class TagManager {
         });
     }
 
-    /** Return current tags as array of strings (for saving) */
     getTags() { return [...this.tags]; }
 
-    /** Load tags from saved record (array of strings) */
     setTags(arr) {
         this.tags = arr.map(t => t.toLowerCase().trim()).filter(Boolean);
-        // Register all in index
-        this.tags.forEach(t => { if (!globalKeywordIndex.has(t)) globalKeywordIndex.set(t, t); });
+        this.tags.forEach(t => { if (!this.config.indexMap.has(t)) this.config.indexMap.set(t, t); });
         this._renderChips();
     }
 
-    /** Reset */
     clear() {
         this.tags = [];
         this.input.value = '';
@@ -636,7 +758,8 @@ class TagManager {
     }
 }
 
-let tagManager; // initialized after DOM-dependent code runs
+let tagManager;
+let authorManager;
 
 const fetchAll = async () => {
     // Pega o usuário logado atualmente no Firebase Auth
@@ -655,10 +778,21 @@ const fetchAll = async () => {
     const snap = await getDocs(q);
     allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    buildKeywordIndex();
+    buildIndices();
 
-    // Inicializa o TagManager e o resto da interface
     if (!tagManager) tagManager = new TagManager();
+    if (!authorManager) authorManager = new TagManager({
+        wrapperId: 'authorTagWrapper',
+        chipsId: 'authorTagChips',
+        inputId: 'authorInputField',
+        sugListId: 'authorSuggestions',
+        sectionId: 'authorSection',
+        maxTags: 5,
+        maxTagsMsg: "Você pode adicionar no máximo 5 autores.",
+        indexMap: globalAuthorIndex,
+        iconClass: 'ph-user',
+        placeholderMobile: "Adicionar autores..."
+    });
     initAutocomplete();
     renderFeed(allRecords);
     renderChart(allRecords);
@@ -685,9 +819,32 @@ window.viewRecord = (id) => {
     const r = allRecords.find(x => x.id === id);
     document.getElementById('viewTitle').innerText = r.title ? r.title : r.mainPassage;
 
-    let html = '';
-    if (r.title) html += `<p><strong>Passagem:</strong> ${r.mainPassage}</p>`;
-    html += `<p><strong>Tipo:</strong> ${r.recordType} | <strong>Data:</strong> ${r.date.split('-').reverse().join('/')}</p>`;
+    let html = '<div class="view-meta-grid">';
+    
+    html += `<div class="meta-item"><span class="meta-label">Data</span><span class="meta-value">${r.date.split('-').reverse().join('/')}</span></div>`;
+    html += `<div class="meta-item"><span class="meta-label">Tipo</span><span class="meta-value tag uppercase">${r.recordType}</span></div>`;
+    
+    if (r.author) {
+        const authorsArr = Array.isArray(r.author) ? r.author.map(a => globalAuthorIndex.get(a) || a) : [r.author];
+        if (authorsArr.length > 0 && authorsArr[0] !== '') {
+            html += `<div class="meta-item full-width"><span class="meta-label">Autor(es)</span><span class="meta-value capitalize">${authorsArr.join(', ')}</span></div>`;
+        }
+    }
+    
+    if (r.title && r.mainPassage) {
+        html += `<div class="meta-item full-width"><span class="meta-label">Passagem</span><span class="meta-value capitalize">${r.mainPassage}</span></div>`;
+    }
+    
+    if (r.relatedPassages) {
+        html += `<div class="meta-item full-width"><span class="meta-label">Passagens Relacionadas</span><span class="meta-value capitalize">${r.relatedPassages}</span></div>`;
+    }
+
+    if (r.keywords && r.keywords.length > 0) {
+        const keywordHtml = r.keywords.map(k => `<span class="meta-value tag capitalize">${globalKeywordIndex.get(k) || k}</span>`).join('');
+        html += `<div class="meta-item full-width"><span class="meta-label">Palavras-chave</span><div style="display:flex; gap:5px; flex-wrap:wrap;">${keywordHtml}</div></div>`;
+    }
+    
+    html += '</div>';
 
     // Lógica de Trilha (Chain Logic)
     let chainBack = [], chainForward = [];
@@ -715,8 +872,9 @@ window.viewRecord = (id) => {
         html += `</div>`;
     }
 
+    html += '<div class="view-content-area">';
     if (r.recordFormat === 'livre') {
-        html += `<div class="mt-4">${r.content.texto}</div>`;
+        html += `<div>${r.content.texto}</div>`;
     } else {
         if (r.content.questions) {
             r.content.questions.forEach(q => {
@@ -734,6 +892,7 @@ window.viewRecord = (id) => {
     }
 
     if (r.links?.length) html += `<h4 class="mt-4">Links</h4>` + r.links.map(l => `<a href="${l.url}" target="_blank" class="tag">${l.title}</a>`).join('');
+    html += '</div>';
 
     document.getElementById('viewBody').innerHTML = html;
 
@@ -767,7 +926,16 @@ window.editRecord = (id) => {
 
     document.getElementById('mainPassage').value = r.mainPassage;
     document.getElementById('recordType').value = r.recordType;
-    document.getElementById('author').value = r.author || '';
+    document.getElementById('relatedPassages').value = r.relatedPassages || '';
+
+    let authorsArr = [];
+    if (Array.isArray(r.author)) {
+        authorsArr = r.author;
+    } else if (typeof r.author === 'string' && r.author.trim() !== '') {
+        authorsArr = [r.author.trim()];
+    }
+    authorManager.setTags(authorsArr);
+    
     tagManager.setTags(r.keywords || []);
 
     if (r.recordFormat === 'livre') {

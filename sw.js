@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-v4'; // Vamos mudar uma última vez para garantir que ele substitua o antigo
+const CACHE_NAME = 'selah-pwa-v9'; // Fix bolinhas e posição acima do texto
 const urlsToCache = [
   './',
   './index.html',

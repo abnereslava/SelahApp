@@ -321,6 +321,10 @@ select {
     color: var(--text-main);
 }
 
+body:has(dialog[open]) {
+    overflow: hidden;
+}
+
 input:focus,
 select:focus {
     border-color: var(--primary-color);
@@ -600,9 +604,50 @@ select:focus {
 
 .ql-toolbar.ql-snow .ql-picker-label,
 .ql-toolbar.ql-snow .ql-picker-options {
-    color: var(--text-main);
-    background: var(--surface-color);
+    background-color: var(--surface-color);
     border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#e60000"] { background-color: #e60000; }
+.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#ff9900"] { background-color: #ff9900; }
+.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#d4af37"] { background-color: #d4af37; }
+.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#008a00"] { background-color: #008a00; }
+.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#0066cc"] { background-color: #0066cc; }
+.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#9933ff"] { background-color: #9933ff; }
+
+.mobile-floating-toolbar {
+    position: absolute;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 6px;
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    transition: top 0.2s, left 0.2s;
+}
+.mobile-floating-toolbar button {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.mobile-floating-toolbar button:active {
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--primary-color);
+}
+.mobile-floating-toolbar button.active-format {
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--primary-color);
 }
 
 .ql-toolbar.ql-snow .ql-stroke {
@@ -928,6 +973,8 @@ select:focus {
     border-radius: var(--radius);
     width: 90%;
     max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: var(--shadow-lg);
     background-color: var(--surface-color);
     color: var(--text-main);
@@ -980,14 +1027,79 @@ select:focus {
 .modal-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 20px;
+    gap: 15px;
 }
 
 .modal-header h2 {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     color: var(--primary-color);
+    margin: 0;
+    line-height: 1.3;
+    word-break: break-word;
 }
+
+/* View Modal UX & Styling */
+.view-meta-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: rgba(0,0,0,0.15);
+    padding: 12px 15px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+}
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+}
+.meta-item.full-width {
+    grid-column: 1 / -1;
+}
+.meta-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.meta-value {
+    font-size: 1rem;
+    color: var(--text-main);
+    font-weight: 500;
+}
+.meta-value.tag {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 2px 8px;
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--primary-color);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+}
+.view-content-area {
+    line-height: 1.7;
+    font-size: 1.05rem;
+}
+.view-content-area p {
+    margin-bottom: 0.4em;
+}
+.view-content-area p:last-child {
+    margin-bottom: 0;
+}
+.view-content-area h4 {
+    color: var(--primary-color);
+    margin: 25px 0 10px 0;
+    font-size: 1.15rem;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 5px;
+}
+
+.uppercase { text-transform: uppercase; }
+.capitalize { text-transform: capitalize; }
 
 .btn-icon {
     background: transparent;
@@ -1442,7 +1554,6 @@ select:focus {
 
     .modal {
         width: 95% !important;
-        margin: 10px auto;
     }
 
     .app-header {
