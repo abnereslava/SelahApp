@@ -868,7 +868,7 @@ window.viewRecord = (id) => {
         <details class="chain-details mt-2 mb-4">
             <summary>
                 <i class="ph ph-caret-down"></i>
-                <span>Trilha de Devocionais (${fullChain.length})</span>
+                <span>Trilha de Registros (${fullChain.length})</span>
             </summary>
             <div class="chain-list">
                 ${fullChain.map((item, idx) => {
