@@ -815,7 +815,10 @@ const renderFeed = (arr) => {
 };
 
 // --- CRUD: ACOES DOS CARDS ---
-window.viewRecord = (id) => {
+window.viewRecord = (id, fromTrail = false) => {
+    const prevDetails = document.querySelector('.chain-details');
+    const wasOpen = fromTrail && prevDetails ? prevDetails.hasAttribute('open') : false;
+
     const r = allRecords.find(x => x.id === id);
     document.getElementById('viewTitle').innerText = r.title ? r.title : r.mainPassage;
 
@@ -865,7 +868,7 @@ window.viewRecord = (id) => {
     const fullChain = [...chainBack, r, ...chainForward];
     if (fullChain.length > 1) {
         html += `
-        <details class="chain-details mt-2 mb-4">
+        <details class="chain-details mt-2 mb-4" ${wasOpen ? 'open' : ''}>
             <summary>
                 <i class="ph ph-caret-down"></i>
                 <span>Trilha de Registros (${fullChain.length})</span>
@@ -875,7 +878,7 @@ window.viewRecord = (id) => {
                     const isCurrent = item.id === r.id;
                     const tagHtml = isCurrent ?
                         `<span class="tag" style="background:var(--primary-color);color:var(--bg-color);font-weight:600;">${item.title || item.mainPassage}</span>` :
-                        `<a href="#" onclick="viewRecord('${item.id}'); return false;" class="tag">${item.title || item.mainPassage}</a>`;
+                        `<a href="#" onclick="viewRecord('${item.id}', true); return false;" class="tag">${item.title || item.mainPassage}</a>`;
                     
                     return `
                     <div class="chain-item">
