@@ -864,12 +864,27 @@ window.viewRecord = (id) => {
     }
     const fullChain = [...chainBack, r, ...chainForward];
     if (fullChain.length > 1) {
-        html += `<div class="chain-container mt-2 mb-4"><strong>Trilha:</strong> `;
-        html += fullChain.map(item => item.id === r.id ?
-            `<span class="tag" style="background:var(--primary-color);color:white">${item.title || item.mainPassage}</span>` :
-            `<a href="#" onclick="viewRecord('${item.id}'); return false;" class="tag">${item.title || item.mainPassage}</a>`
-        ).join(' &rarr; ');
-        html += `</div>`;
+        html += `
+        <details class="chain-details mt-2 mb-4">
+            <summary>
+                <i class="ph ph-caret-down"></i>
+                <span>Trilha de Devocionais (${fullChain.length})</span>
+            </summary>
+            <div class="chain-list">
+                ${fullChain.map((item, idx) => {
+                    const isCurrent = item.id === r.id;
+                    const tagHtml = isCurrent ?
+                        `<span class="tag" style="background:var(--primary-color);color:var(--bg-color);font-weight:600;">${item.title || item.mainPassage}</span>` :
+                        `<a href="#" onclick="viewRecord('${item.id}'); return false;" class="tag">${item.title || item.mainPassage}</a>`;
+                    
+                    return `
+                    <div class="chain-item">
+                        <span class="chain-number">${idx + 1}.</span>
+                        ${tagHtml}
+                    </div>`;
+                }).join('')}
+            </div>
+        </details>`;
     }
 
     html += '<div class="view-content-area">';

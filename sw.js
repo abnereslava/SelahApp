@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-v9'; // Fix bolinhas e posição acima do texto
+const CACHE_NAME = 'selah-pwa-v10'; // Trilha numerada e vertical
 const urlsToCache = [
   './',
   './index.html',

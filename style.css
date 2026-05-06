@@ -1080,6 +1080,72 @@ select:focus {
     font-size: 0.8rem;
     border: 1px solid rgba(212, 175, 55, 0.2);
 }
+
+/* Chain (Trilha) Visualization */
+.chain-details {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius);
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+}
+
+.chain-details summary {
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--primary-color);
+    list-style: none;
+    user-select: none;
+}
+
+.chain-details summary i {
+    transition: transform 0.2s ease;
+    font-size: 1.1rem;
+}
+
+.chain-details[open] summary i.ph-caret-down {
+    transform: rotate(180deg);
+}
+
+.chain-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
+    padding-left: 5px;
+}
+
+.chain-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chain-number {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    min-width: 25px;
+}
+
+.chain-item .tag {
+    margin: 0;
+    max-width: calc(100% - 40px);
+    white-space: normal;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    text-align: left;
+    transition: var(--transition);
+}
+
+.chain-item a.tag:hover {
+    transform: translateX(4px);
+    background: var(--primary-color);
+    color: var(--bg-color);
+}
 .view-content-area {
     line-height: 1.7;
     font-size: 1.05rem;
