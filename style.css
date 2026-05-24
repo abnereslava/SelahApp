@@ -1,20 +1,25 @@
 :root {
-    --bg-color: #2B1E17;
-    --surface-color: #3E2B21;
-    --text-main: #F5E7B1;
-    --text-muted: #D4AF37;
-    --border-color: #5A3E2D;
-    --primary-color: #D4AF37;
-    --primary-hover: #F5E7B1;
-    --secondary-color: #1E1510;
-    --secondary-hover: #5A3E2D;
+    --bg-color: #120A07;           /* Fundo terroso ultra escuro */
+    --surface-color: #1E120D;      /* Superfície escura de cartões */
+    --surface-glass: rgba(30, 18, 13, 0.7); /* Vidro fosco para inputs e nav */
+    --border-color: #362118;       /* Borda terrosa sutil */
+    --text-main: #FBF7EB;          /* Creme quente para leitura confortável */
+    --text-muted: #D4AF37;         /* Dourado para metadados e subtítulos */
+    --primary-color: #D4AF37;      /* Dourado principal */
+    --primary-hover: #F2C94C;      /* Dourado claro */
+    --secondary-color: #1A0F0A;    /* Fundo de inputs / painéis mais profundos */
+    --secondary-hover: #2B1E17;
     --accent-color: #D4AF37;
-    --accent-red: #ef4444;
-    --radius: 12px;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
-    --transition: all 0.2s ease-in-out;
+    --accent-red: #E85D44;         /* Vermelho elegante para alertas/exclusão */
+    --radius: 16px;                /* Cantos mais arredondados */
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.6);
+    --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --backdrop-blur: blur(12px);
     --sidebar-width: 280px;
     --sidebar-collapsed-width: 85px;
 }
@@ -399,6 +404,34 @@ select:focus {
     color: var(--text-main);
 }
 
+.btn-google-login {
+    background: var(--secondary-color);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 14px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-google-login:hover {
+    background: var(--secondary-hover);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.google-logo {
+    flex-shrink: 0;
+}
+
 /* Toggles */
 .toggle-group {
     display: flex;
@@ -617,34 +650,55 @@ select:focus {
 .ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#9933ff"] { background-color: #9933ff; }
 
 .mobile-floating-toolbar {
-    position: absolute;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    padding: 6px;
-    box-shadow: var(--shadow-lg);
-    z-index: 50;
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    transition: top 0.2s, left 0.2s;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    background: var(--surface-color) !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+    padding: 8px 16px !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4) !important;
+    z-index: 1000 !important;
+    display: none; /* Controlled by display: flex/none in JS */
+    gap: 12px !important;
+    align-items: center !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
 }
+
+.mobile-floating-toolbar::-webkit-scrollbar {
+    display: none !important;
+}
+
 .mobile-floating-toolbar button {
     background: transparent;
     border: none;
     color: var(--text-main);
     font-size: 1.2rem;
     cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    display: flex;
+    padding: 8px;
+    border-radius: 8px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    min-width: 40px;
+    min-height: 40px;
+    transition: var(--transition);
 }
+
 .mobile-floating-toolbar button:active {
     background: rgba(212, 175, 55, 0.2);
     color: var(--primary-color);
 }
+
 .mobile-floating-toolbar button.active-format {
     background: rgba(212, 175, 55, 0.2);
     color: var(--primary-color);
@@ -1856,4 +1910,79 @@ select:focus {
         transform: scale(1);
     }
 }
+
+/* ==========================================
+   MOBILE BOTTOM NAVIGATION SYSTEM
+   ========================================== */
+@media (min-width: 769px) {
+    .mobile-bottom-nav {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar,
+    .sidebar-overlay,
+    .sidebar-toggle-mobile,
+    .sidebar-toggle-btn,
+    .sidebar-close-mobile,
+    #sidebarOverlay,
+    #btnToggleMobileSidebar {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding-bottom: 85px !important; /* Evita que a bottom nav cubra o conteúdo */
+        width: 100% !important;
+    }
+
+    .app-container {
+        padding: 20px 15px 40px 15px !important;
+    }
+
+    /* Fixed Bottom Nav bar */
+    .mobile-bottom-nav {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 68px !important;
+        background: var(--surface-glass) !important;
+        backdrop-filter: var(--backdrop-blur) !important;
+        -webkit-backdrop-filter: var(--backdrop-blur) !important;
+        border-top: 1px solid var(--border-color) !important;
+        display: flex !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        z-index: 999 !important;
+        padding: 5px 12px 10px 12px !important; /* Espaço para notch no iOS */
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .mobile-bottom-nav .nav-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: var(--text-muted) !important;
+        text-decoration: none !important;
+        font-size: 0.72rem !important;
+        gap: 3px !important;
+        transition: var(--transition) !important;
+        flex: 1 !important;
+        opacity: 0.7;
+    }
+
+    .mobile-bottom-nav .nav-item i {
+        font-size: 1.4rem !important;
+    }
+
+    .mobile-bottom-nav .nav-item.active {
+        color: var(--text-main) !important;
+        opacity: 1 !important;
+        font-weight: 600 !important;
+    }
+}
+
 

@@ -1,9 +1,13 @@
-const CACHE_NAME = 'selah-pwa-v10'; // Trilha numerada e vertical
+const CACHE_NAME = 'selah-pwa-spa-v1'; // Arquitetura SPA Modular
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
-  './script.js'
+  './script.js',
+  './modules/registros.js',
+  './modules/oracoes.js',
+  './modules/igreja.js',
+  './modules/bencaos.js'
 ];
 
 self.addEventListener('install', event => {

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Painel Admin | Selah</title>
+
+    <meta name="theme-color" content="#120A07">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Selah">
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Estilos adicionais para a administração com Design System Premium */
+        .admin-table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            border-bottom: 2px solid rgba(212, 175, 55, 0.1);
+        }
+        
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        
+        .admin-table th, .admin-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .admin-table th {
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: rgba(0, 0, 0, 0.25);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .admin-table td {
+            color: var(--text-main);
+            font-size: 0.92rem;
+            vertical-align: middle;
+        }
+        
+        .admin-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .admin-table tr:hover td {
+            background: rgba(212, 175, 55, 0.02);
+        }
+        
+        .badge-admin {
+            background: rgba(212, 175, 55, 0.12);
+            color: var(--primary-color);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .badge-invited {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .main-content {
+            margin-left: 0 !important;
+            padding-top: 20px;
+            width: 100%;
+        }
+        
+        .app-container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* Badges de Permissão Premium e Interativos */
+        .badge-perm {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+            user-select: none;
+            border: 1px solid transparent;
+        }
+        
+        .badge-perm.chip-active {
+            background: rgba(212, 175, 55, 0.08);
+            color: var(--primary-color);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+        }
+        
+        .badge-perm.chip-inactive {
+            background: rgba(0, 0, 0, 0.35);
+            color: rgba(245, 231, 177, 0.25);
+            border: 1px dashed var(--border-color);
+            opacity: 0.7;
+        }
+        
+        .badge-perm:hover {
+            transform: translateY(-1.5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        }
+        
+        .badge-perm.chip-active:hover {
+            background: rgba(232, 93, 68, 0.12);
+            color: var(--accent-red);
+            border-color: rgba(232, 93, 68, 0.4);
+        }
+
+        .badge-perm.chip-inactive:hover {
+            background: rgba(212, 175, 55, 0.15);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-style: solid;
+            opacity: 1;
+        }
+        
+        .perm-chips-wrapper {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* Custom Checkbox Chips */
+        .perm-checkbox-chip {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .perm-checkbox-chip input[type="checkbox"],
+        .perm-checkbox-chip input[type="radio"] {
+            display: none !important;
+        }
+
+        .perm-checkbox-chip .chip-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--secondary-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 20px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .perm-checkbox-chip:hover .chip-label {
+            border-color: var(--primary-color);
+            color: var(--text-main);
+        }
+
+        .perm-checkbox-chip input[type="checkbox"]:checked + .chip-label,
+        .perm-checkbox-chip input[type="radio"]:checked + .chip-label {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
+            font-weight: 600;
+        }
+
+        /* Focus outline effect */
+        input:focus {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important;
+        }
+
+        /* Premium hover zoom on main buttons */
+        .btn-invite-premium {
+            background: linear-gradient(135deg, var(--primary-color), #f3d47d) !important;
+            color: #120A07 !important;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2) !important;
+            transition: var(--transition) !important;
+        }
+
+        .btn-invite-premium:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35) !important;
+        }
+
+        /* Layout Responsivo: Mobile vs Desktop */
+        .desktop-only {
+            display: block;
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        .admin-mobile-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+
+        .admin-mobile-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none !important;
+            }
+
+            .mobile-only {
+                display: block !important;
+            }
+
+            .app-container {
+                padding: 20px 15px !important;
+            }
+
+            .admin-table-container {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="dashboardContainer" style="display: none;">
+        <div class="dashboard-wrapper">
+            <main class="main-content">
+                <div class="app-container">
+
+                    <header class="app-header" style="margin-bottom: 40px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 15px; width: 100%;">
+                            <div style="display:flex; align-items:center; gap: 15px;">
+                                <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(212, 175, 55, 0.1); display: flex; align-items: center; justify-content: center;">
+                                    <i class="ph ph-shield-check" style="font-size: 2.2rem; color: var(--primary-color);"></i>
+                                </div>
+                                <div>
+                                    <h1 style="margin: 0; font-size: 2rem; letter-spacing: -0.02em;">Painel Admin</h1>
+                                    <p class="header-subtitle" style="margin: 0; color: var(--text-muted);">Controle de acessos e convites de convidados</p>
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap: 12px; flex-wrap: wrap;">
+                                <button type="button" id="btnLogout" class="btn-secondary text-danger" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; width: auto; display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                    <i class="ph ph-sign-out"></i> Sair
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main class="form-container" style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 30px; box-shadow: var(--shadow-lg); margin-bottom: 40px; border-bottom: 2px solid rgba(212, 175, 55, 0.1);">
+                        <h2 style="font-size: 1.4rem; color: var(--text-main); margin-top: 0; margin-bottom: 25px; display:flex; align-items:center; gap: 10px; font-family: 'Playfair Display', serif;">
+                            <i class="ph ph-user-plus" style="color: var(--primary-color);"></i> Convidar Novo Usuário
+                        </h2>
+                        <form id="inviteForm" style="display: flex; flex-direction: column; gap: 20px;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%; align-items: center;">
+                                <div style="position: relative; flex: 2; min-width: 260px;">
+                                    <i class="ph ph-envelope" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1.25rem; pointer-events: none;"></i>
+                                    <input type="email" id="inviteEmail" placeholder="Digite o e-mail Google do convidado..." required style="padding: 14px 16px 14px 48px; border-radius: var(--radius-md); background: var(--secondary-color); border: 1px solid var(--border-color); color: var(--text-main); font-size: 1rem; width: 100%; outline: none; transition: var(--transition);">
+                                </div>
+                                <button type="submit" class="btn-primary btn-invite-premium" id="btnInvite" style="flex: 1; min-width: 150px; padding: 14px 25px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; height: 50px;">
+                                    <i class="ph ph-paper-plane-tilt"></i> Convidar
+                                </button>
+                            </div>
+
+                            <div style="background: rgba(0, 0, 0, 0.15); border: 1px solid var(--border-color); padding: 20px; border-radius: var(--radius-md);">
+                                <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                                    <i class="ph ph-identification-badge" style="color: var(--primary-color);"></i> Tipo de Perfil
+                                </span>
+                                <div class="permission-chips-container" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                                    <label class="perm-checkbox-chip">
+                                        <input type="radio" name="inviteRole" id="roleUser" value="user" checked>
+                                        <span class="chip-label">
+                                            <i class="ph ph-user"></i> Usuario
+                                        </span>
+                                    </label>
+                                    <label class="perm-checkbox-chip">
+                                        <input type="radio" name="inviteRole" id="roleAdmin" value="admin">
+                                        <span class="chip-label">
+                                            <i class="ph ph-shield-check"></i> Admin
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div style="background: rgba(0, 0, 0, 0.15); border: 1px solid var(--border-color); padding: 20px; border-radius: var(--radius-md);">
+                                <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                                    <i class="ph ph-sliders" style="color: var(--primary-color);"></i> Selecionar Permissões (Acesso a quais abas?)
+                                </span>
+                                <div class="permission-chips-container" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                                    <label class="perm-checkbox-chip">
+                                        <input type="checkbox" id="permRegistros" value="registros" checked>
+                                        <span class="chip-label">
+                                            <i class="ph ph-notebook"></i> Registros
+                                        </span>
+                                    </label>
+                                    <label class="perm-checkbox-chip">
+                                        <input type="checkbox" id="permOracoes" value="oracoes" checked>
+                                        <span class="chip-label">
+                                            <i class="ph ph-hands-praying"></i> Orações
+                                        </span>
+                                    </label>
+                                    <label class="perm-checkbox-chip">
+                                        <input type="checkbox" id="permIgreja" value="igreja" checked>
+                                        <span class="chip-label">
+                                            <i class="ph ph-church"></i> Igreja
+                                        </span>
+                                    </label>
+                                    <label class="perm-checkbox-chip">
+                                        <input type="checkbox" id="permBencaos" value="bencaos" checked>
+                                        <span class="chip-label">
+                                            <i class="ph ph-gift"></i> Bênçãos (Diário)
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </form>
+                    </main>
+
+                    <section class="data-container">
+                        <div class="records-header" style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <h2 class="records-title" style="display:flex; align-items:center; gap: 10px; margin: 0; font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--text-main);">
+                                <i class="ph ph-users" style="color: var(--primary-color);"></i> E-mails Convidados (<span id="invitedCount">0</span>)
+                            </h2>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                                <div style="position: relative; width: 320px; max-width: 100%;">
+                                    <i class="ph ph-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1.1rem; pointer-events: none;"></i>
+                                    <input type="text" id="searchInvited" placeholder="Pesquisar e-mail convidado..." style="padding: 10px 14px 10px 42px; font-size: 0.9rem; border-radius: 24px; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); width: 100%; outline: none; transition: var(--transition);">
+                                </div>
+                                <div style="position: relative; width: 190px; max-width: 100%;">
+                                    <i class="ph ph-funnel" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1.1rem; pointer-events: none;"></i>
+                                    <select id="profileFilter" style="padding: 10px 14px 10px 42px; font-size: 0.9rem; border-radius: 24px; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); width: 100%; outline: none; transition: var(--transition); appearance: none;">
+                                        <option value="all">Todos</option>
+                                        <option value="admin">Admins</option>
+                                        <option value="user">Usuarios</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabela para Desktop -->
+                        <div class="admin-table-container desktop-only">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>E-mail</th>
+                                        <th>Data do Convite</th>
+                                        <th>Permissões (Abas)</th>
+                                        <th>Tipo</th>
+                                        <th style="text-align: right;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invitedEmailsList">
+                                    <!-- Carregado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Cartões para Mobile (<= 768px) -->
+                        <div class="admin-cards-container mobile-only" id="invitedEmailsCards" style="display: none;">
+                            <!-- Carregado via JS -->
+                        </div>
+                    </section>
+
+                    <!-- INÍCIO DA ÁREA DE MIGRAÇÃO TEMPORÁRIA -->
+                    <section class="data-container" id="migrationContainer" style="margin-top: 30px; border-top: 2px dashed rgba(212, 175, 55, 0.2); padding-top: 30px;">
+                        <div class="records-header" style="margin-bottom: 20px;">
+                            <h2 class="records-title" style="display:flex; align-items:center; gap: 10px; margin: 0; font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--text-main);">
+                                <i class="ph ph-database" style="color: var(--primary-color);"></i> Migração de Dados (Legado &rarr; Google Auth)
+                            </h2>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 6px;">
+                                Esta é uma ferramenta temporária para associar seus devocionais e bênçãos do sistema legado ao seu novo login do Google. <strong>Após realizar a migração com sucesso, remova este bloco de código.</strong>
+                            </p>
+                        </div>
+
+                        <div class="form-container" style="background: rgba(212, 175, 55, 0.02); border: 1px dashed rgba(212, 175, 55, 0.3); border-radius: var(--radius); padding: 25px; display: flex; flex-direction: column; gap: 20px;">
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                                <div class="form-group" style="flex: 1; min-width: 250px; margin-bottom: 0;">
+                                    <label for="legacyUidInput" style="display:block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary-color);">UID do Usuário Legado (Antigo)</label>
+                                    <input type="text" id="legacyUidInput" placeholder="Ex: 5dF6y9Hg3..." style="padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); width: 100%;">
+                                </div>
+                                <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+                                    <button type="button" id="btnDetectLegacyUid" class="btn-secondary" style="height: 48px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; padding: 0 20px;">
+                                        <i class="ph ph-magnifying-glass"></i> Detectar UID Antigo
+                                    </button>
+                                    <button type="button" id="btnRunMigration" class="btn-primary" style="height: 48px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; padding: 0 20px;">
+                                        <i class="ph ph-play"></i> Iniciar Migração
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="detectedUidsContainer" style="display: none; padding: 12px; background: rgba(0,0,0,0.25); border-radius: 8px; font-size: 0.88rem; border: 1px solid var(--border-color);">
+                                <span style="color: var(--text-muted); font-weight: 500; margin-right: 10px;">UIDs antigos encontrados:</span>
+                                <span id="detectedUidsList" style="display: inline-flex; gap: 8px; flex-wrap: wrap;"></span>
+                            </div>
+
+                            <div style="background: rgba(0, 0, 0, 0.4); border-radius: var(--radius-md); padding: 15px; border: 1px solid var(--border-color);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Console de Progresso da Migração</span>
+                                    <button type="button" id="btnClearMigrationLogs" style="background:none; border:none; color: var(--primary-color); font-size: 0.8rem; cursor:pointer;">Limpar Logs</button>
+                                </div>
+                                <div id="migrationLogs" style="max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; color: #a5d6a7; line-height: 1.5; white-space: pre-wrap; padding-right: 5px;">
+[Console pronto para início de migração. Clique em "Detectar UID Antigo" ou digite o UID para começar...]</div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- FIM DA ÁREA DE MIGRAÇÃO TEMPORÁRIA -->
+
+                </div>
+            </main>
+        </div>
+
+        <dialog id="permissionConfigModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h2 style="display: flex; align-items: center; gap: 8px;"><i class="ph ph-sliders"></i> Configurar Permissoes</h2>
+                        <p id="permissionConfigEmail" style="margin: 6px 0 0; color: var(--text-muted); font-size: 0.95rem; word-break: break-all;"></p>
+                    </div>
+                    <button type="button" id="btnClosePermissionConfig" class="btn-icon" style="border: none; background: transparent; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+
+                <div id="permissionConfigBody" style="display: flex; flex-direction: column; gap: 18px;">
+                    <div id="permissionAdminNotice" style="display: none; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: rgba(0,0,0,0.18); color: var(--text-muted); line-height: 1.5;">
+                        Administradores acessam somente o Hub Admin. Permissoes de abas do app comum nao se aplicam a este perfil.
+                    </div>
+
+                    <div id="permissionUserControls" style="display: flex; flex-direction: column; gap: 12px;">
+                        <span style="font-size: 0.82rem; font-weight: 700; color: var(--primary-color); text-transform: uppercase; letter-spacing: 0.05em;">
+                            <i class="ph ph-sliders-horizontal"></i> Abas liberadas
+                        </span>
+                        <div class="permission-chips-container" style="display: flex; flex-wrap: wrap; gap: 12px;">
+                            <label class="perm-checkbox-chip">
+                                <input type="checkbox" id="configPermRegistros" value="registros">
+                                <span class="chip-label"><i class="ph ph-notebook"></i> Registros</span>
+                            </label>
+                            <label class="perm-checkbox-chip">
+                                <input type="checkbox" id="configPermOracoes" value="oracoes">
+                                <span class="chip-label"><i class="ph ph-hands-praying"></i> Oracoes</span>
+                            </label>
+                            <label class="perm-checkbox-chip">
+                                <input type="checkbox" id="configPermIgreja" value="igreja">
+                                <span class="chip-label"><i class="ph ph-church"></i> Igreja</span>
+                            </label>
+                            <label class="perm-checkbox-chip">
+                                <input type="checkbox" id="configPermBencaos" value="bencaos">
+                                <span class="chip-label"><i class="ph ph-gift"></i> Bencaos</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions mt-4 dual-panel-horizontal">
+                    <button type="button" id="btnCancelPermissionConfig" class="btn-secondary">Cancelar</button>
+                    <button type="button" id="btnSavePermissionConfig" class="btn-primary">
+                        <i class="ph ph-floppy-disk"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </dialog>
+
+        <dialog id="customAlertModal" class="modal modal-sm">
+            <div class="modal-content text-center">
+                <i class="ph ph-info alert-icon-main"></i>
+                <p id="customAlertMessage" class="modal-message mt-2"></p>
+                <div class="modal-actions mt-4">
+                    <button type="button" onclick="this.closest('dialog').close()"
+                        class="btn-primary btn-block">Entendido</button>
+                </div>
+            </div>
+        </dialog>
+
+        <dialog id="customConfirmModal" class="modal modal-sm">
+            <div class="modal-content text-center">
+                <i class="ph ph-warning-circle alert-icon-warning"></i>
+                <p id="customConfirmMessage" class="modal-message mt-2"></p>
+                <div class="modal-actions mt-4 dual-panel-horizontal">
+                    <button type="button" id="btnCancelConfirm" class="btn-secondary">Cancelar</button>
+                    <button type="button" id="btnOkConfirm" class="btn-primary">Confirmar</button>
+                </div>
+            </div>
+        </dialog>
+
+    </div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+
+</html>

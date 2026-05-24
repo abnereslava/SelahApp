@@ -1,0 +1,44 @@
+# Diário de Bordo (Exclusivo do Desenvolvedor)
+
+> ⚠️ **ATENÇÃO MODELOS DE IA / AGENTES DE CODIFICAÇÃO:** 
+> Este arquivo é de uso e orientação **exclusivos do desenvolvedor humano**. 
+> **NÃO** escreva, modifique, edite ou apague nenhuma parte deste arquivo, a menos que seja explicitamente solicitado pelo usuário no prompt da conversa.
+> Limite-se a ler as orientações inseridas aqui para obter contexto de desenvolvimento.
+
+---
+
+# Selah
+Este é o branch **main** 🌳
+
+    Futuramente, quero transformar em um app que gerencia todas as áreas da vida cristã (devocionais, oração, dizimo, ofertas, pregação, escala da igreja, etc).
+
+[MODIFICAÇÕES EM CURSO]
+    Ainda falta realizar as tarefas:
+        - Tarefa 8 - Melhorar uso de espaco no desktop.
+        - Tarefa 9 - Atualizar documentacao final.
+
+[GRÁFICOS]
+
+    > Gráficos;
+        Gráficos que mostram dados de quantidade / de comparação (não sei, não pensei ainda)
+            • Filtrar por palavras-chave
+            • Filtrar por data
+            • Filtrar por livro (da passagem lida)
+            • Filtrar por autor
+            • Filtrar por tipo de registro
+
+[LOGIN]
+Add opção de login com Google
+
+Passar pro Vercel
+
+[SUGESTÕES DO FEIJÃO]
+    - Ao fazer login ele expande automaticamente a guia de "Novo Registro", acredito que deveria vir colapsado ou expandido a de "Meus Registros".. pois qual vai ser a proporção maior, inserção ou consulta?
+    - Ele fixa o botão de sair na parte superior, talvez seria interessante criar um botão circular fixo no superior direito do perfil do usuário e clicando nele vem as opções de configuração e logout (ficar o botão de sair toda hora pro usuário parece que vc tá tentando expulsar ele)
+    - A passagem seria bom selecionar em combobox fixos (combobox de livro, capítulo, versículo inicial, versículo final(opcional).. digitar a passagem pode ser moroso e não ter padrão.. o que atrapalharia as estatísticas e o próximo item aqui dessa lista
+    - Seria interessante integrar uma Bíblia.. selecionar a passagem já mostraria o texto (sei que esse ponto teria problema de versão e tals)
+    - Ele salva o registro mesmo se não digitar nenhum texto.. não sei se a ideia é essa.. mas seria melhor colocar essa validação pro usuário não salvar errado
+    - Na parte de perguntas orientadoras ele está ocultando parte da pergunta (seria bom forçar a quebra de linha) 
+    - Nas "ações e links" seria interessante mudar o ícone de mais pra ícone de confirmação.. pois ele não é intuitivo que você vai salvar aquele registro atual em edição 
+    - Esse é um ponto meu.. mas talvez o título do registro deveria ser uma chave primária, não podendo se repetir (validando case insensitive), pro usuário as vezes já saber que fez algum devocional naquele assunto..
+    - Nos meus registros talvez seria legal colapsar aquela guia de filtros.. no celular vc ter que descer ainda mais pra de fato ver os registros não é muito legal.. o usuário expandir ia os filtros somente quando for usar
