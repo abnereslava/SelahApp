@@ -5,6 +5,9 @@ let auth;
 
 export function render(container) {
     container.innerHTML = `
+        <div class="tab-page-header">
+            <h2 class="tab-page-title"><i class="ph ph-gift"></i> Bênçãos</h2>
+        </div>
         <!-- Stats Card -->
         <div class="stats-card" id="statsCardBencaos">
             <div class="stats-card-header" id="statsCardBencaosHeader">
@@ -542,7 +545,7 @@ export function init(firebaseDb, firebaseAuth) {
                     </div>
                     <div class="record-card-info">
                         <div class="record-card-title">${b.title}</div>
-                        <div class="record-card-chip">
+                        <div class="record-card-meta">
                             <span class="record-type-chip chip-devocional"><i class="ph ph-gift" style="margin-right:3px;"></i>${firstTag || 'Bênção'}</span>
                         </div>
                     </div>
@@ -866,7 +869,7 @@ export function init(firebaseDb, firebaseAuth) {
         btnRandom.onclick = () => {
             if (allBlessings.length === 0) return showAlert("Registre algumas bênçãos antes de sortear!");
             const randomIdx = Math.floor(Math.random() * allBlessings.length);
-            window.viewBlessing(allBlessings[randomIdx].id);
+            window.openBlessingReadingMode(allBlessings[randomIdx].id);
         };
     }
 

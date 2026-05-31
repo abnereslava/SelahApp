@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v5'; // fixes: chip abaixo do título, toolbar quill, overlay close, stats, nav labels
+const CACHE_NAME = 'selah-pwa-spa-v6'; // título por aba, stats centralizado, meta flex, modal aleatório
 const urlsToCache = [
   './',
   './index.html',

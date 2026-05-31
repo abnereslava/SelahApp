@@ -5,6 +5,9 @@ let auth;
 
 export function render(container) {
     container.innerHTML = `
+        <div class="tab-page-header">
+            <h2 class="tab-page-title"><i class="ph ph-notebook"></i> Registros</h2>
+        </div>
         <!-- Stats Card -->
         <div class="stats-card" id="statsCardRegistros">
             <div class="stats-card-header" id="statsCardRegistrosHeader">
@@ -961,8 +964,8 @@ export function init(firebaseDb, firebaseAuth) {
                     </div>
                     <div class="record-card-info">
                         <div class="record-card-title">${r.title || r.mainPassage}</div>
-                        ${r.title ? `<div class="record-card-passage">${r.mainPassage}</div>` : ''}
-                        <div class="record-card-chip">
+                        <div class="record-card-meta">
+                            ${r.title ? `<span class="record-card-passage">${r.mainPassage}</span>` : ''}
                             <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
                         </div>
                     </div>
@@ -1465,7 +1468,7 @@ export function init(firebaseDb, firebaseAuth) {
         btnRandom.onclick = () => {
             if (allRecords.length === 0) return showAlert("Nenhum registro encontrado.");
             const randomIdx = Math.floor(Math.random() * allRecords.length);
-            viewRecord(allRecords[randomIdx].id);
+            window.openReadingMode(allRecords[randomIdx].id);
         };
     }
 

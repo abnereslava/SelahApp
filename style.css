@@ -1991,14 +1991,6 @@ select:focus {
     .mobile-bottom-nav .nav-item span {
         display: none;
     }
-    .mobile-bottom-nav .nav-item.active span {
-        display: block;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-weight: 600;
-    }
 
     .mobile-bottom-nav .nav-item i {
         font-size: 1.35rem !important;
@@ -2144,9 +2136,9 @@ select:focus {
 .record-card-meta {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 6px 10px;
+    gap: 8px;
     margin-top: 6px;
+    overflow: hidden;
 }
 .record-card-passage {
     font-size: 0.78rem;
@@ -2154,12 +2146,8 @@ select:focus {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
-    display: block;
-    margin-top: 4px;
-}
-.record-card-chip {
-    margin-top: 6px;
+    flex: 1;
+    min-width: 0;
 }
 .record-card-right {
     display: flex;
@@ -2605,6 +2593,28 @@ select:focus {
     }
 }
 
+
+/* ============================================================
+   TAB PAGE HEADER
+   ============================================================ */
+.tab-page-header {
+    margin-bottom: 16px;
+}
+.tab-page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+.tab-page-title i {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
 /* Stats Card (expandable at top of tab) */
 .stats-card {
     background: var(--surface-color);
@@ -2630,6 +2640,7 @@ select:focus {
     gap: 20px;
     flex: 1;
     flex-wrap: wrap;
+    justify-content: center;
 }
 
 .stats-quick-item {
