@@ -952,10 +952,30 @@ export function init(firebaseDb, firebaseAuth) {
     let tagManager;
     let authorManager;
 
+    const feedSkeletonHTML = `
+        <div class="records-feed mt-2">
+            ${[0,1,2].map(()=>`
+            <div class="record-card" style="margin-bottom:10px;">
+                <div class="record-card-header" style="pointer-events:none;">
+                    <div class="record-card-date"><span class="skeleton-bar sk-meta" style="width:36px;height:40px;border-radius:4px;"></span></div>
+                    <div class="record-card-info" style="gap:6px;display:flex;flex-direction:column;">
+                        <div class="skeleton-bar sk-title"></div>
+                        <div class="skeleton-bar sk-meta"></div>
+                    </div>
+                    <div style="width:60px;"><div class="skeleton-bar sk-meta" style="width:60px;"></div></div>
+                </div>
+            </div>`).join('')}
+        </div>`;
+
     const fetchAll = async () => {
         try {
             const user = auth.currentUser;
             if (!user) return;
+
+            const feed = document.getElementById('devotionalsFeed');
+            if (feed && !feed.dataset.loaded) {
+                feed.innerHTML = feedSkeletonHTML;
+            }
 
             const q = query(
                 collection(db, "devotionals"),
@@ -965,6 +985,7 @@ export function init(firebaseDb, firebaseAuth) {
 
             const snap = await getDocs(q);
             allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (feed) feed.dataset.loaded = '1';
 
             buildIndices();
 
@@ -989,21 +1010,134 @@ export function init(firebaseDb, firebaseAuth) {
         }
     };
 
+    const RECORD_TYPE_LABELS = {
+        devocional: 'Devocional', culto_domestico: 'Culto Dom.', aula: 'Aula',
+        ebd: 'EBD', pregacao: 'Pregação', anotacoes_gerais: 'Anotações', outros: 'Outros'
+    };
+
+    const formatDateParts = (dateStr) => {
+        const [y, m, d] = dateStr.split('-');
+        const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        return { day: d, month: months[parseInt(m,10)-1], year: y };
+    };
+
     const renderFeed = (arr) => {
         const feed = document.getElementById('devotionalsFeed');
         if (!feed) return;
+
+        if (arr.length === 0) {
+            feed.innerHTML = `
+                <div class="records-empty-state">
+                    <i class="ph ph-book-open"></i>
+                    <p>Comece seu diário espiritual.<br>Registre o que o Senhor falou ao seu coração hoje.</p>
+                </div>`;
+            return;
+        }
+
+        feed.className = 'records-feed mt-2';
         feed.innerHTML = arr.map(r => {
+            const dp = formatDateParts(r.date);
+            const typeLabel = RECORD_TYPE_LABELS[r.recordType] || r.recordType;
             const keywordChips = (r.keywords && r.keywords.length)
-                ? `<div class="card-keywords">${r.keywords.map(k => `<span class="card-tag">${globalKeywordIndex.get(k) || k}</span>`).join('')}</div>`
+                ? `<div class="record-card-keywords">${r.keywords.map(k => `<span class="card-tag">${globalKeywordIndex.get(k) || k}</span>`).join('')}</div>`
                 : '';
             return `
-            <div class="card" onclick="viewRecord('${r.id}')" style="cursor: pointer; transition: 0.2s;">
-                <h3 class="card-title">${r.title ? r.title : r.mainPassage}</h3>
-                ${r.title ? `<div class="card-passage">${r.mainPassage}</div>` : ''}
-                <div class="card-meta">${r.date.split('-').reverse().join('/')} | ${r.recordType}</div>
-                ${keywordChips}
+            <div class="record-card" id="rc-${r.id}">
+                <div class="record-card-header" onclick="window.toggleRecordCard('${r.id}')">
+                    <div class="record-card-date">
+                        <span class="rc-day">${dp.day}</span>
+                        <span class="rc-month">${dp.month}</span>
+                        <span class="rc-year">${dp.year}</span>
+                    </div>
+                    <div class="record-card-info">
+                        <div class="record-card-title">${r.title || r.mainPassage}</div>
+                        ${r.title ? `<div class="record-card-passage">${r.mainPassage}</div>` : ''}
+                    </div>
+                    <div class="record-card-right">
+                        <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
+                        <i class="ph ph-caret-down record-card-chevron"></i>
+                    </div>
+                </div>
+                <div class="record-card-body">
+                    <div class="record-card-body-inner">
+                        <div class="record-card-content">
+                            <div class="record-card-text">
+                                ${r.recordFormat === 'livre'
+                                    ? (r.content?.texto || '')
+                                    : (r.content?.questions
+                                        ? r.content.questions.map(q => q.a && q.a !== '<p><br></p>' ? `<strong>${q.q}</strong><div>${q.a}</div>` : '').join('')
+                                        : '')}
+                            </div>
+                            ${keywordChips}
+                            <div class="record-card-actions">
+                                <button class="rc-btn rc-btn-read" onclick="window.openReadingMode('${r.id}')"><i class="ph ph-book-open-text"></i> Ler</button>
+                                <button class="rc-btn" onclick="editRecord('${r.id}')"><i class="ph ph-pencil"></i> Editar</button>
+                                <button class="rc-btn rc-btn-delete" onclick="deleteRecord('${r.id}')"><i class="ph ph-trash"></i> Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>`;
         }).join('');
+    };
+
+    window.toggleRecordCard = (id) => {
+        const card = document.getElementById(`rc-${id}`);
+        if (card) card.classList.toggle('expanded');
+    };
+
+    window.openReadingMode = (id) => {
+        const r = allRecords.find(x => x.id === id);
+        if (!r) return;
+
+        const dp = formatDateParts(r.date);
+        const typeLabel = RECORD_TYPE_LABELS[r.recordType] || r.recordType;
+
+        let bodyHtml = '';
+        if (r.recordFormat === 'livre') {
+            bodyHtml = r.content?.texto || '';
+        } else if (r.content?.questions) {
+            bodyHtml = r.content.questions
+                .filter(q => q.a && q.a !== '<p><br></p>')
+                .map(q => `<h4>${q.q}</h4><div>${q.a}</div>`)
+                .join('');
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'reading-overlay';
+        overlay.id = 'readingOverlay';
+        overlay.innerHTML = `
+            <div class="reading-toolbar">
+                <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
+                <div class="reading-actions-row">
+                    <button class="rc-btn" onclick="editRecord('${r.id}'); document.getElementById('readingOverlay')?.remove()"><i class="ph ph-pencil"></i> Editar</button>
+                </div>
+            </div>
+            <div class="reading-scroll">
+                <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
+                <h1 class="reading-title">${r.title || r.mainPassage}</h1>
+                ${r.title ? `<div class="reading-passage">${r.mainPassage}</div>` : ''}
+                <span class="record-type-chip chip-${r.recordType} reading-type-chip">${typeLabel}</span>
+                <hr class="reading-divider">
+                <div class="reading-body">${bodyHtml}</div>
+                ${r.links?.length ? `<hr class="reading-divider"><h4>Links</h4>${r.links.map(l=>`<a href="${l.url}" target="_blank" class="tag">${l.title}</a>`).join(' ')}` : ''}
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        const close = () => {
+            overlay.classList.add('closing');
+            setTimeout(() => overlay.remove(), 200);
+        };
+
+        document.getElementById('readingCloseBtn').addEventListener('click', close);
+        overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+        overlay.focus?.();
+
+        document.addEventListener('keydown', function onEsc(e) {
+            if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
+        });
     };
 
     // --- CRUD: ACOES DOS CARDS ---

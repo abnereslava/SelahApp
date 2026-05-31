@@ -538,10 +538,30 @@ export function init(firebaseDb, firebaseAuth) {
     const tagManager = new TagManager();
 
     // --- CRUD OPERATING SYSTEM ---
+    const feedSkeletonHTML = `
+        <div class="records-feed mt-2">
+            ${[0,1,2].map(()=>`
+            <div class="record-card" style="margin-bottom:10px;">
+                <div class="record-card-header" style="pointer-events:none;">
+                    <div class="record-card-date"><span class="skeleton-bar sk-meta" style="width:36px;height:40px;border-radius:4px;"></span></div>
+                    <div class="record-card-info" style="gap:6px;display:flex;flex-direction:column;">
+                        <div class="skeleton-bar sk-title"></div>
+                        <div class="skeleton-bar sk-meta"></div>
+                    </div>
+                    <div style="width:30px;"><div class="skeleton-bar sk-meta" style="width:30px;height:30px;border-radius:50%;"></div></div>
+                </div>
+            </div>`).join('')}
+        </div>`;
+
     const fetchBlessings = async () => {
         try {
             const user = auth.currentUser;
             if (!user) return;
+
+            const feed = document.getElementById('blessingsFeed');
+            if (feed && !feed.dataset.loaded) {
+                feed.innerHTML = feedSkeletonHTML;
+            }
 
             const q = query(
                 collection(db, "blessings"),
@@ -551,6 +571,7 @@ export function init(firebaseDb, firebaseAuth) {
 
             const snap = await getDocs(q);
             allBlessings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (feed) feed.dataset.loaded = '1';
 
             buildTagIndex();
             renderStats();
@@ -560,34 +581,107 @@ export function init(firebaseDb, firebaseAuth) {
         }
     };
 
+    const formatDateParts = (dateStr) => {
+        const [y, m, d] = dateStr.split('-');
+        const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        return { day: d, month: months[parseInt(m,10)-1], year: y };
+    };
+
     const renderFeed = (arr) => {
         const feed = document.getElementById('blessingsFeed');
         if (!feed) return;
 
         if (arr.length === 0) {
             feed.innerHTML = `
-                <div class="text-center" style="grid-column: 1 / -1; padding: 40px 20px; color: var(--text-muted);">
-                    <i class="ph ph-sparkles" style="font-size: 2.5rem; margin-bottom: 10px; opacity: 0.5;"></i>
-                    <p>Nenhuma bênção registrada. Comece a registrar e recordar a bondade de Deus!</p>
-                </div>
-            `;
+                <div class="records-empty-state">
+                    <i class="ph ph-hands-praying"></i>
+                    <p>Registre as bênçãos que o Senhor derramou sobre você.<br>A gratidão transforma o coração.</p>
+                </div>`;
             return;
         }
 
+        feed.className = 'records-feed mt-2';
         feed.innerHTML = arr.map(b => {
+            const dp = formatDateParts(b.date);
             const tagChips = (b.tags && b.tags.length)
-                ? `<div class="card-keywords">${b.tags.map(t => `<span class="card-tag" style="background: rgba(212, 175, 55, 0.15); color: var(--primary-color);">${globalBlessingTagIndex.get(t) || t}</span>`).join('')}</div>`
+                ? `<div class="record-card-keywords">${b.tags.map(t => `<span class="card-tag">${globalBlessingTagIndex.get(t) || t}</span>`).join('')}</div>`
                 : '';
             return `
-            <div class="card" onclick="viewBlessing('${b.id}')" style="cursor: pointer; transition: var(--transition); border-left: 3px solid var(--primary-color); position: relative; overflow: hidden;">
-                <div style="position: absolute; top: 12px; right: 12px; color: var(--primary-color); opacity: 0.3;">
-                    <i class="ph ph-gift" style="font-size: 1.5rem;"></i>
+            <div class="record-card" id="bc-${b.id}">
+                <div class="record-card-header" onclick="window.toggleBlessingCard('${b.id}')">
+                    <div class="record-card-date">
+                        <span class="rc-day">${dp.day}</span>
+                        <span class="rc-month">${dp.month}</span>
+                        <span class="rc-year">${dp.year}</span>
+                    </div>
+                    <div class="record-card-info">
+                        <div class="record-card-title">${b.title}</div>
+                    </div>
+                    <div class="record-card-right">
+                        <i class="ph ph-gift" style="color:var(--primary-color);opacity:0.7;font-size:1.1rem;"></i>
+                        <i class="ph ph-caret-down record-card-chevron"></i>
+                    </div>
                 </div>
-                <h3 class="card-title" style="padding-right: 25px;">${b.title}</h3>
-                <div class="card-meta">${b.date.split('-').reverse().join('/')}</div>
-                ${tagChips}
+                <div class="record-card-body">
+                    <div class="record-card-body-inner">
+                        <div class="record-card-content">
+                            <div class="record-card-text">${b.description || ''}</div>
+                            ${tagChips}
+                            <div class="record-card-actions">
+                                <button class="rc-btn rc-btn-read" onclick="window.openBlessingReadingMode('${b.id}')"><i class="ph ph-book-open-text"></i> Ler</button>
+                                <button class="rc-btn" onclick="editBlessing('${b.id}')"><i class="ph ph-pencil"></i> Editar</button>
+                                <button class="rc-btn rc-btn-delete" onclick="deleteBlessing('${b.id}')"><i class="ph ph-trash"></i> Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>`;
         }).join('');
+    };
+
+    window.toggleBlessingCard = (id) => {
+        const card = document.getElementById(`bc-${id}`);
+        if (card) card.classList.toggle('expanded');
+    };
+
+    window.openBlessingReadingMode = (id) => {
+        const b = allBlessings.find(x => x.id === id);
+        if (!b) return;
+        const dp = formatDateParts(b.date);
+        const tagChips = (b.tags && b.tags.length)
+            ? b.tags.map(t => `<span class="card-tag">${globalBlessingTagIndex.get(t) || t}</span>`).join(' ')
+            : '';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'reading-overlay';
+        overlay.id = 'readingOverlayBencaos';
+        overlay.innerHTML = `
+            <div class="reading-toolbar">
+                <button class="reading-close-btn" id="readingCloseBencaos"><i class="ph ph-arrow-left"></i></button>
+                <div class="reading-actions-row">
+                    <button class="rc-btn" onclick="editBlessing('${b.id}'); document.getElementById('readingOverlayBencaos')?.remove()"><i class="ph ph-pencil"></i> Editar</button>
+                </div>
+            </div>
+            <div class="reading-scroll">
+                <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
+                <h1 class="reading-title">${b.title}</h1>
+                ${tagChips ? `<div style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:6px;">${tagChips}</div>` : ''}
+                <hr class="reading-divider">
+                <div class="reading-body">${b.description || ''}</div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        const close = () => {
+            overlay.classList.add('closing');
+            setTimeout(() => overlay.remove(), 200);
+        };
+
+        document.getElementById('readingCloseBencaos').addEventListener('click', close);
+        document.addEventListener('keydown', function onEsc(e) {
+            if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
+        });
     };
 
     const renderStats = () => {

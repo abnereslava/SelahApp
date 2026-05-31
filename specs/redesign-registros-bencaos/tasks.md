@@ -8,7 +8,7 @@
 
 ## Tarefa 1 — CSS base: formulário underline, cards, overlay, skeleton, empty state
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -51,7 +51,7 @@ DevTools: aplicar classes no HTML existente para verificar efeitos visuais.
 
 ## Tarefa 2 — Redesenho do formulário em registros.js
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -90,7 +90,7 @@ Tarefa 1 concluída.
 
 ## Tarefa 3 — Redesenho da lista de registros em registros.js
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -131,7 +131,7 @@ Tarefa 2 concluída.
 
 ## Tarefa 4 — Modo leitura dedicado em registros.js
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -170,7 +170,7 @@ Tarefa 3 concluída.
 
 ## Tarefa 5 — Skeleton loader e estado vazio em registros.js
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -203,7 +203,7 @@ Tarefas 3 e 4 concluídas.
 
 ## Tarefa 6 — Replicar redesign em bencaos.js
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 

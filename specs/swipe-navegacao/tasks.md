@@ -8,7 +8,7 @@ Implementar em 5 tarefas sequenciais: primeiro a infra CSS de animação, depois
 
 ## Tarefa 1 — CSS de animação de slide e skeleton loader
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -41,7 +41,7 @@ Abrir o app no browser, abrir DevTools, selecionar o `#mainContent` e aplicar as
 
 ## Tarefa 2 — Refatorar handleRouteChange para suportar animação direcional
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -72,7 +72,7 @@ No console do browser, executar `window.location.hash = '#oracoes'` e verificar 
 
 ## Tarefa 3 — Detector de swipe (touch events)
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -113,7 +113,7 @@ Testar no celular físico ou no DevTools com modo mobile ativado:
 
 ## Tarefa 4 — Placeholder skeleton durante carregamento de módulo
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -143,7 +143,7 @@ Forçar um delay artificial no carregamento (ou simular conexão lenta no DevToo
 
 ## Tarefa 5 — Vibração háptica ao confirmar troca de aba
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 

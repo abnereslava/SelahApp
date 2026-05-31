@@ -110,6 +110,8 @@ if (sidebar) {
 
 // --- ROTEADOR CLIENT-SIDE SPA ---
 let currentUserFeatures = [];
+let isNavigating = false;
+const loadedModules = new Set();
 
 const adjustSidebarMenu = (allowedFeatures) => {
     // Sidebar Desktop
@@ -135,13 +137,29 @@ const adjustSidebarMenu = (allowedFeatures) => {
     }
 };
 
-const handleRouteChange = async () => {
+const skeletonHTML = `
+    <div class="swipe-skeleton">
+        ${[0,1,2].map(() => `
+        <div class="swipe-skeleton-card">
+            <div class="skeleton-bar sk-title"></div>
+            <div class="skeleton-bar sk-meta"></div>
+            <div class="skeleton-bar sk-body"></div>
+            <div class="skeleton-bar sk-body-sm"></div>
+        </div>`).join('')}
+    </div>`;
+
+const updateNavActive = (hash) => {
+    document.querySelectorAll('.sidebar-nav a.nav-item, #mobileBottomNav a.nav-item').forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${hash}`);
+    });
+};
+
+const handleRouteChange = async (direction = null) => {
     const user = auth.currentUser;
     if (!user) return;
 
     const hash = window.location.hash.substring(1) || 'registros';
-    
-    // Proteção de Rota Client-side
+
     if (!currentUserFeatures.includes(hash)) {
         if (currentUserFeatures.length > 0) {
             window.location.hash = currentUserFeatures[0];
@@ -151,62 +169,147 @@ const handleRouteChange = async () => {
         return;
     }
 
-    // Atualização visual do link ativo na sidebar desktop
-    const sidebarNav = document.querySelector('.sidebar-nav');
-    if (sidebarNav) {
-        sidebarNav.querySelectorAll('a.nav-item').forEach(link => {
-            const href = link.getAttribute('href');
-            link.classList.toggle('active', href === `#${hash}`);
-        });
-    }
+    updateNavActive(hash);
 
-    // Atualização visual do link ativo na bottom nav mobile
-    const bottomNav = document.getElementById('mobileBottomNav');
-    if (bottomNav) {
-        bottomNav.querySelectorAll('a.nav-item').forEach(link => {
-            const href = link.getAttribute('href');
-            link.classList.toggle('active', href === `#${hash}`);
-        });
-    }
+    if (window.innerWidth <= 768) closeMobileSidebar();
 
-    // Fechar barra lateral mobile se aberta
-    if (window.innerWidth <= 768) {
-        closeMobileSidebar();
-    }
-
-    // Montagem dinâmica do conteúdo da aba
     const spaContent = document.getElementById('spaContent');
-    if (spaContent) {
-        // Mensagem de Carregando com ícone animado elegante
+    if (!spaContent) return;
+
+    const isFirstLoad = !loadedModules.has(hash);
+
+    const applyAnim = (el, cls, durationMs) => new Promise(resolve => {
+        el.classList.remove('anim-slide-in-right','anim-slide-in-left','anim-slide-out-left','anim-slide-out-right','anim-snap-back');
+        void el.offsetWidth;
+        el.classList.add(cls);
+        setTimeout(() => { el.classList.remove(cls); resolve(); }, durationMs);
+    });
+
+    if (direction && !isFirstLoad) {
+        const outCls = direction === 'left' ? 'anim-slide-out-left' : 'anim-slide-out-right';
+        await applyAnim(spaContent, outCls, 180);
+    }
+
+    if (isFirstLoad) {
+        spaContent.innerHTML = skeletonHTML;
+    }
+
+    try {
+        const module = await import(`./modules/${hash}.js`);
+        loadedModules.add(hash);
+        module.render(spaContent);
+        module.init(db, auth);
+
+        if (direction) {
+            const inCls = direction === 'left' ? 'anim-slide-in-right' : 'anim-slide-in-left';
+            applyAnim(spaContent, inCls, 280);
+        }
+    } catch (err) {
+        console.error(`Erro ao carregar o módulo SPA (${hash}):`, err);
         spaContent.innerHTML = `
-            <div class="text-center" style="padding: 100px 20px; color: var(--text-muted);">
-                <i class="ph ph-spinner loading-icon" style="font-size: 3rem; display: inline-block; animation: spin 1s linear infinite;"></i>
-                <p style="margin-top: 15px; font-weight: 500;">Carregando página...</p>
+            <div class="form-container text-center" style="padding: 60px 24px; border: 1px solid var(--border-color); background: var(--secondary-color); border-radius: var(--radius);">
+                <i class="ph ph-warning-circle text-danger" style="font-size: 4rem; margin-bottom: 20px;"></i>
+                <h2 style="font-size: 1.5rem; color: var(--text-main);">Falha ao carregar a página</h2>
+                <p style="color: var(--text-muted); margin-top: 10px;">Verifique sua conexão ou tente recarregar.</p>
             </div>
         `;
-
-        try {
-            const modulePath = `./modules/${hash}.js`;
-            const module = await import(modulePath);
-
-            // Renderização do HTML e vinculação lógica
-            module.render(spaContent);
-            module.init(db, auth);
-        } catch (err) {
-            console.error(`Erro ao carregar o módulo SPA (${hash}):`, err);
-            spaContent.innerHTML = `
-                <div class="form-container text-center" style="padding: 60px 24px; border: 1px solid var(--border-color); background: var(--secondary-color); border-radius: var(--radius);">
-                    <i class="ph ph-warning-circle text-danger" style="font-size: 4rem; margin-bottom: 20px;"></i>
-                    <h2 style="font-size: 1.5rem; color: var(--text-main);">Falha ao carregar a página</h2>
-                    <p style="color: var(--text-muted); margin-top: 10px;">Verifique sua conexão ou tente recarregar.</p>
-                </div>
-            `;
-        }
     }
 };
 
-// Escuta às mudanças da Hash do Roteador
-window.addEventListener('hashchange', handleRouteChange);
+// Escuta às mudanças da Hash do Roteador com detecção de direção
+let _prevHash = '';
+window.addEventListener('hashchange', (e) => {
+    const prev = _prevHash || new URL(e.oldURL).hash.substring(1) || (currentUserFeatures[0] ?? '');
+    const next = window.location.hash.substring(1);
+    const pi = currentUserFeatures.indexOf(prev);
+    const ni = currentUserFeatures.indexOf(next);
+    let dir = null;
+    if (pi !== -1 && ni !== -1 && pi !== ni) dir = ni > pi ? 'left' : 'right';
+    _prevHash = next;
+    handleRouteChange(dir);
+});
+
+// --- SWIPE NAVIGATION (mobile only) ---
+const initSwipeNavigation = () => {
+    const spaContent = document.getElementById('spaContent');
+    if (!spaContent) return;
+
+    let tStartX = 0, tStartY = 0, tCurrX = 0, tCurrY = 0;
+    let dragging = false;
+
+    const getHash = () => window.location.hash.substring(1) || currentUserFeatures[0];
+
+    spaContent.addEventListener('touchstart', (e) => {
+        if (window.innerWidth > 768) return;
+        if (isNavigating) return;
+        if (e.target.closest('.ql-editor, .autocomplete-list, .tag-suggestions-list, select, input, textarea')) return;
+        tStartX = e.touches[0].clientX;
+        tStartY = e.touches[0].clientY;
+        tCurrX = tStartX;
+        tCurrY = tStartY;
+        dragging = true;
+    }, { passive: true });
+
+    spaContent.addEventListener('touchmove', (e) => {
+        if (!dragging || window.innerWidth > 768) return;
+        tCurrX = e.touches[0].clientX;
+        tCurrY = e.touches[0].clientY;
+        const dx = tCurrX - tStartX;
+        const dy = tCurrY - tStartY;
+        if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        const features = currentUserFeatures;
+        const idx = features.indexOf(getHash());
+        const atStart = idx === 0 && dx > 0;
+        const atEnd   = idx === features.length - 1 && dx < 0;
+        const factor  = (atStart || atEnd) ? 0.25 : 1;
+        requestAnimationFrame(() => {
+            spaContent.style.transform = `translateX(${dx * factor}px)`;
+            spaContent.style.transition = 'none';
+        });
+    }, { passive: true });
+
+    spaContent.addEventListener('touchend', () => {
+        if (!dragging || window.innerWidth > 768) { dragging = false; return; }
+        dragging = false;
+
+        const dx = tCurrX - tStartX;
+        const dy = tCurrY - tStartY;
+        if (Math.abs(dx) < Math.abs(dy) * 1.5) {
+            spaContent.style.transform = '';
+            spaContent.style.transition = '';
+            return;
+        }
+
+        const threshold = window.innerWidth * 0.28;
+        const features = currentUserFeatures;
+        const idx = features.indexOf(getHash());
+
+        spaContent.style.transform = '';
+        spaContent.style.transition = '';
+
+        if (Math.abs(dx) < threshold) {
+            spaContent.style.setProperty('--swipe-offset', `${dx}px`);
+            spaContent.classList.add('anim-snap-back');
+            setTimeout(() => {
+                spaContent.classList.remove('anim-snap-back');
+                spaContent.style.removeProperty('--swipe-offset');
+            }, 220);
+            return;
+        }
+
+        let nextIdx = -1;
+        if (dx < 0 && idx < features.length - 1) nextIdx = idx + 1;
+        if (dx > 0 && idx > 0) nextIdx = idx - 1;
+
+        if (nextIdx === -1) return;
+
+        if (navigator.vibrate) navigator.vibrate(20);
+        isNavigating = true;
+        _prevHash = features[idx];
+        window.location.hash = features[nextIdx];
+        setTimeout(() => { isNavigating = false; }, 400);
+    }, { passive: true });
+};
 
 // --- AUTENTICAÇÃO E WHITELIST ---
 const provider = new GoogleAuthProvider();
@@ -267,8 +370,12 @@ onAuthStateChanged(auth, async (user) => {
                 // Configura sidebar com as abas permitidas
                 adjustSidebarMenu(userFeatures);
 
+                // Inicializa navegação por swipe
+                initSwipeNavigation();
+
                 // Executa rota inicial
                 const currentHash = window.location.hash.substring(1);
+                _prevHash = currentHash || userFeatures[0];
                 if (!currentHash || !userFeatures.includes(currentHash)) {
                     window.location.hash = userFeatures[0];
                 } else {
