@@ -1,110 +1,62 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, orderBy, query, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, limit, orderBy, query, startAfter, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 let db;
 let auth;
 
 export function render(container) {
     container.innerHTML = `
-        <details class="collapsible-section" open>
-            <summary class="collapsible-summary">
-                <div class="summary-content">
-                    <i class="ph ph-gift"></i>
-                    <span>Nova Bênção</span>
+        <!-- Stats Card -->
+        <div class="stats-card" id="statsCardBencaos">
+            <div class="stats-card-header" id="statsCardBencaosHeader">
+                <div class="stats-quick">
+                    <div class="stats-quick-item">
+                        <span class="stats-quick-number" id="statsTotalBlessings">0</span>
+                        <span class="stats-quick-label">Total</span>
+                    </div>
+                    <div class="stats-quick-item">
+                        <span class="stats-quick-number" id="statsMonthBlessings">0</span>
+                        <span class="stats-quick-label">Este mês</span>
+                    </div>
+                    <div class="stats-quick-item">
+                        <span class="stats-quick-number stats-quick-type" id="statsTopTag">–</span>
+                        <span class="stats-quick-label">Tag top</span>
+                    </div>
                 </div>
-                <i class="ph ph-caret-down caret-icon"></i>
-            </summary>
-            <main class="form-container">
-                <form id="blessingForm">
-                    <input type="hidden" id="editBlessingId">
+                <i class="ph ph-caret-down stats-card-chevron"></i>
+            </div>
+            <div class="stats-card-body">
+                <div class="stats-card-body-inner">
+                    <p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">
+                        Expanda para ver o resumo das suas bênçãos registradas.
+                    </p>
+                </div>
+            </div>
+        </div>
 
-                    <div class="form-group">
-                        <label for="blessingTitle"><i class="ph ph-text-t"></i> Título da Bênção</label>
-                        <input type="text" id="blessingTitle" placeholder="Ex: Provisão de Trabalho / Cura da Família" required>
-                    </div>
-
-                    <div class="form-group date-group">
-                        <label for="blessingDate"><i class="ph ph-calendar-blank"></i> Data do Acontecimento</label>
-                        <input type="date" id="blessingDate" required>
-                    </div>
-
-                    <details class="optional-fields" id="blessingKeywordsSection" open style="border: 1px solid var(--border-color); border-radius: var(--radius); margin-bottom: 20px;">
-                        <summary style="font-weight: 600;"><i class="ph ph-tag"></i> Tags / Palavras-chave</summary>
-                        <div class="details-content" style="padding: 15px;">
-                            <div class="tag-input-wrapper" id="blessingTagWrapper">
-                                <div class="tag-chips" id="blessingTagChips"></div>
-                                <input type="text" id="blessingTagInputField" class="tag-input-field"
-                                    placeholder="Adicione tags separadas por vírgula..."
-                                    autocomplete="off">
-                            </div>
-                            <ul id="blessingTagSuggestions" class="tag-suggestions-list" style="display:none;"></ul>
+        <!-- Filtros + Feed -->
+        <div class="data-container mt-4">
+            <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0; background: var(--secondary-color);">
+                    <summary style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; color: var(--text-muted);"><i class="ph ph-funnel"></i> Filtrar Bênçãos</summary>
+                    <div class="details-content" style="padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
+                        <input type="text" id="filterBlessingKeyword" placeholder="Buscar no diário de bênçãos..." style="width: 100%;">
+                        <div class="filter-dates" style="display: flex; gap: 10px; width: 100%;">
+                            <input type="date" id="filterBlessingDateStart" title="Data Inicial" style="flex: 1;">
+                            <input type="date" id="filterBlessingDateEnd" title="Data Final" style="flex: 1;">
                         </div>
-                    </details>
-
-                    <div class="form-group">
-                        <label><i class="ph ph-pen-nib"></i> Relato e Testemunho</label>
-                        <div class="guided-question mt-2">
-                            <div id="quillEditorBencaos" class="editor-container" style="min-height: 200px;"></div>
-                        </div>
+                        <button type="button" id="btnApplyBlessingFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
                     </div>
+                </details>
+                <button type="button" id="btnRandomBlessing" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Recordar Bênção Aleatória">
+                    <i class="ph ph-shuffle"></i> Recordar Bênção
+                </button>
+            </div>
 
-                    <div class="action-buttons mt-4">
-                        <button type="submit" class="btn-primary" id="btnSubmitBlessing"><i
-                                class="ph ph-floppy-disk"></i> Registrar Gratidão</button>
-                        <button type="button" class="btn-secondary" id="btnCancelBlessingEdit"
-                            style="display: none;">Cancelar Edição</button>
-                    </div>
-                </form>
-            </main>
-        </details>
+            <div id="blessingsFeed" class="feed-grid mt-4"></div>
+            <div id="blessingsSentinel"></div>
+        </div>
 
-        <details class="collapsible-section">
-            <summary class="collapsible-summary">
-                <div class="summary-content">
-                    <i class="ph ph-heart"></i>
-                    <span>Minhas Bênçãos (Diário)</span>
-                </div>
-                <i class="ph ph-caret-down caret-icon"></i>
-            </summary>
-            <main class="data-container mt-4">
-                <!-- Painel de Estatísticas de Gratidão -->
-                <div class="charts-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div class="chart-wrapper text-center" style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-                        <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase;">Total de Bênçãos</span>
-                        <h2 id="statsTotalBlessings" style="font-size: 2.5rem; color: var(--text-main); margin: 0; font-family: 'Playfair Display', serif;">0</h2>
-                    </div>
-                    <div class="chart-wrapper text-center" style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-                        <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase;">Este Mês</span>
-                        <h2 id="statsMonthBlessings" style="font-size: 2.5rem; color: var(--text-main); margin: 0; font-family: 'Playfair Display', serif;">0</h2>
-                    </div>
-                    <div class="chart-wrapper text-center" style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-                        <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase;">Tag Principal</span>
-                        <h2 id="statsTopTag" style="font-size: 1.25rem; color: var(--text-main); margin: 0; font-weight: 600; text-transform: capitalize;">Nenhuma</h2>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                    <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0; background: var(--secondary-color);">
-                        <summary style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; color: var(--text-muted);"><i class="ph ph-funnel"></i> Filtrar Bênçãos</summary>
-                        <div class="details-content" style="padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
-                            <input type="text" id="filterBlessingKeyword" placeholder="Buscar no diário de bênçãos..." style="width: 100%;">
-                            <div class="filter-dates" style="display: flex; gap: 10px; width: 100%;">
-                                <input type="date" id="filterBlessingDateStart" title="Data Inicial" style="flex: 1;">
-                                <input type="date" id="filterBlessingDateEnd" title="Data Final" style="flex: 1;">
-                            </div>
-                            <button type="button" id="btnApplyBlessingFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
-                        </div>
-                    </details>
-                    <button type="button" id="btnRandomBlessing" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Recordar Bênção Aleatória">
-                        <i class="ph ph-shuffle"></i> Recordar Bênção
-                    </button>
-                </div>
-
-                <!-- Feed do Diário de Bênçãos (Estilo Timeline Premium) -->
-                <div id="blessingsFeed" class="feed-grid mt-4"></div>
-            </main>
-        </details>
-
-        <!-- Modais da tela de bênçãos -->
+        <!-- Modal de visualização -->
         <dialog id="viewBlessingModal" class="modal view-modal">
             <div class="modal-content">
                 <header class="modal-header" style="flex-direction: column; align-items: stretch;">
@@ -117,6 +69,56 @@ export function render(container) {
                 <div id="viewBlessingBody" class="modal-body read-content"></div>
             </div>
         </dialog>
+
+        <!-- Create / Edit Overlay -->
+        <div class="create-overlay" id="createBencaosOverlay">
+            <div class="create-overlay-header">
+                <button type="button" class="create-overlay-close" id="btnCloseCreateBencaos">
+                    <i class="ph ph-arrow-left"></i>
+                </button>
+                <h2 id="createBencaosTitleLabel">Nova Bênção</h2>
+            </div>
+            <div class="create-overlay-scroll">
+                <main class="form-container">
+                    <form id="blessingForm">
+                        <input type="hidden" id="editBlessingId">
+
+                        <div class="form-group">
+                            <label for="blessingTitle"><i class="ph ph-text-t"></i> Título da Bênção</label>
+                            <input type="text" id="blessingTitle" placeholder="Ex: Provisão de Trabalho / Cura da Família" required>
+                        </div>
+
+                        <div class="form-group date-group">
+                            <label for="blessingDate"><i class="ph ph-calendar-blank"></i> Data do Acontecimento</label>
+                            <input type="date" id="blessingDate" required>
+                        </div>
+
+                        <details class="optional-fields" id="blessingKeywordsSection" open style="border: 1px solid var(--border-color); border-radius: var(--radius); margin-bottom: 20px;">
+                            <summary style="font-weight: 600;"><i class="ph ph-tag"></i> Tags / Palavras-chave</summary>
+                            <div class="details-content" style="padding: 15px;">
+                                <div class="tag-input-wrapper" id="blessingTagWrapper">
+                                    <div class="tag-chips" id="blessingTagChips"></div>
+                                    <input type="text" id="blessingTagInputField" class="tag-input-field" placeholder="Adicione tags separadas por vírgula..." autocomplete="off">
+                                </div>
+                                <ul id="blessingTagSuggestions" class="tag-suggestions-list" style="display:none;"></ul>
+                            </div>
+                        </details>
+
+                        <div class="form-group">
+                            <label><i class="ph ph-pen-nib"></i> Relato e Testemunho</label>
+                            <div class="guided-question mt-2">
+                                <div id="quillEditorBencaos" class="editor-container" style="min-height: 200px;"></div>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons mt-4">
+                            <button type="submit" class="btn-primary" id="btnSubmitBlessing"><i class="ph ph-floppy-disk"></i> Registrar Gratidão</button>
+                            <button type="button" class="btn-secondary" id="btnCancelBlessingEdit" style="display: none;">Cancelar Edição</button>
+                        </div>
+                    </form>
+                </main>
+            </div>
+        </div>
     `;
 }
 
@@ -147,16 +149,8 @@ export function init(firebaseDb, firebaseAuth) {
             const btnOk = document.getElementById('btnOkConfirm');
             const btnCancel = document.getElementById('btnCancelConfirm');
 
-            const onOk = () => {
-                modal.close();
-                removeListeners();
-                resolve(true);
-            };
-            const onCancel = () => {
-                modal.close();
-                removeListeners();
-                resolve(false);
-            };
+            const onOk = () => { modal.close(); removeListeners(); resolve(true); };
+            const onCancel = () => { modal.close(); removeListeners(); resolve(false); };
             const removeListeners = () => {
                 btnOk.removeEventListener('click', onOk);
                 btnCancel.removeEventListener('click', onCancel);
@@ -170,11 +164,36 @@ export function init(firebaseDb, firebaseAuth) {
 
     const setTodayDate = () => {
         const dateInput = document.getElementById('blessingDate');
-        if (dateInput) {
-            dateInput.valueAsDate = new Date();
-        }
+        if (dateInput) dateInput.valueAsDate = new Date();
     };
     setTodayDate();
+
+    // --- OVERLAY OPEN/CLOSE ---
+    window.openCreateBencaosOverlay = () => {
+        const overlay = document.getElementById('createBencaosOverlay');
+        if (overlay) overlay.classList.add('open');
+    };
+
+    window.closeCreateBencaosOverlay = () => {
+        const overlay = document.getElementById('createBencaosOverlay');
+        if (overlay) overlay.classList.remove('open');
+    };
+
+    const btnCloseCreate = document.getElementById('btnCloseCreateBencaos');
+    if (btnCloseCreate) {
+        btnCloseCreate.addEventListener('click', () => {
+            window.closeCreateBencaosOverlay();
+            resetFormFields();
+        });
+    }
+
+    // --- STATS CARD ---
+    const statsHeader = document.getElementById('statsCardBencaosHeader');
+    if (statsHeader) {
+        statsHeader.addEventListener('click', () => {
+            document.getElementById('statsCardBencaos').classList.toggle('expanded');
+        });
+    }
 
     const resetFormFields = () => {
         const form = document.getElementById('blessingForm');
@@ -183,82 +202,57 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('editBlessingId').value = "";
         document.getElementById('btnCancelBlessingEdit').style.display = 'none';
         document.getElementById('btnSubmitBlessing').innerHTML = '<i class="ph ph-floppy-disk"></i> Registrar Gratidão';
+        document.getElementById('createBencaosTitleLabel').innerText = "Nova Bênção";
 
         const draft = localStorage.getItem('selah_draft_bencaos');
-        if (editor) {
-            editor.root.innerHTML = draft ? draft : "<p><br></p>";
-        }
+        if (editor) editor.root.innerHTML = draft ? draft : "<p><br></p>";
         setTodayDate();
         if (tagManager) tagManager.clear();
     };
 
     // --- EDITOR QUILL INDEPENDENTE ---
-    const customColors = [
-        false, 
-        '#e60000', 
-        '#ff9900', 
-        '#d4af37', 
-        '#008a00', 
-        '#0066cc', 
-        '#9933ff'
-    ];
+    const customColors = [false, '#e60000', '#ff9900', '#d4af37', '#008a00', '#0066cc', '#9933ff'];
     const toolbar = [['bold', 'italic', 'underline'], [{ 'color': customColors }], [{ 'header': [1, 2, false] }], ['clean']];
     const editor = new Quill('#quillEditorBencaos', { theme: 'snow', modules: { toolbar } });
 
     const savedDraft = localStorage.getItem('selah_draft_bencaos');
-    if (savedDraft && editor) {
-        editor.root.innerHTML = savedDraft;
-    }
+    if (savedDraft && editor) editor.root.innerHTML = savedDraft;
 
     if (editor) {
         editor.on('text-change', () => {
             const editId = document.getElementById('editBlessingId');
-            if (editId && !editId.value) {
-                localStorage.setItem('selah_draft_bencaos', editor.root.innerHTML);
-            }
+            if (editId && !editId.value) localStorage.setItem('selah_draft_bencaos', editor.root.innerHTML);
         });
     }
 
     // --- MOBILE DOCKED TOOLBAR INTEGRATION ---
     const mobileToolbar = document.getElementById('mobileQuillToolbar');
-    
+
     if (editor && mobileToolbar) {
         editor.on('selection-change', (range) => {
-            if (window.innerWidth > 768) return; // only for mobile!
+            if (window.innerWidth > 768) return;
 
             if (range) {
-                // Editor gained focus
                 window.activeQuillEditor = editor;
-                
-                // Hide bottom nav to avoid clashing
                 const bottomNav = document.getElementById('mobileBottomNav');
                 if (bottomNav) bottomNav.style.display = 'none';
-                
-                // Show mobile toolbar docked at bottom
                 mobileToolbar.style.display = 'flex';
-                
-                // Update button format states
+
                 const format = editor.getFormat(range);
                 mobileToolbar.querySelectorAll('button').forEach(btn => {
                     const f = btn.dataset.format;
                     const v = btn.dataset.value;
                     if (f === 'clean') return;
-                    let isActive = false;
-                    if (v) isActive = (format[f] == v);
-                    else isActive = format[f];
+                    let isActive = v ? (format[f] == v) : format[f];
                     btn.classList.toggle('active-format', !!isActive);
                 });
             } else {
-                // Editor lost focus (blur)
                 setTimeout(() => {
-                    // Check if another editor took focus, or if we really lost focus
                     if (window.activeQuillEditor === editor && !editor.hasFocus()) {
                         mobileToolbar.style.display = 'none';
                         const bottomNav = document.getElementById('mobileBottomNav');
                         if (bottomNav) bottomNav.style.display = 'flex';
                         window.activeQuillEditor = null;
-                        
-                        // Also reset color toggle groups
                         const ftColorGroup = document.getElementById('ftColorGroup');
                         const ftMainGroup = document.getElementById('ftMainGroup');
                         if (ftColorGroup) ftColorGroup.style.display = 'none';
@@ -275,18 +269,16 @@ export function init(firebaseDb, firebaseAuth) {
         const ftColorGroup = document.getElementById('ftColorGroup');
 
         const handleFormatBtn = (e, btn) => {
-            e.preventDefault(); 
+            e.preventDefault();
             if (!window.activeQuillEditor) return;
             const activeEditor = window.activeQuillEditor;
-            
-            // Retain focus on editor
             activeEditor.focus();
-            
+
             const f = btn.dataset.format;
             const v = btn.dataset.value;
             const range = activeEditor.getSelection();
             if (!range) return;
-            
+
             if (f === 'clean') {
                 activeEditor.removeFormat(range.index, range.length);
             } else {
@@ -297,13 +289,12 @@ export function init(firebaseDb, firebaseAuth) {
                     activeEditor.format(f, !currentFormat[f]);
                 }
             }
-            
+
             if (f === 'color') {
                 ftColorGroup.style.display = 'none';
                 ftMainGroup.style.display = 'flex';
             }
-            
-            // Update button active states
+
             setTimeout(() => {
                 const newRange = activeEditor.getSelection();
                 if (newRange) {
@@ -312,9 +303,7 @@ export function init(firebaseDb, firebaseAuth) {
                         const bf = b.dataset.format;
                         const bv = b.dataset.value;
                         if (bf === 'clean') return;
-                        let isActive = false;
-                        if (bv) isActive = (format[bf] == bv);
-                        else isActive = format[bf];
+                        let isActive = bv ? (format[bf] == bv) : format[bf];
                         b.classList.toggle('active-format', !!isActive);
                     });
                 }
@@ -334,7 +323,6 @@ export function init(firebaseDb, firebaseAuth) {
                 btn.addEventListener('touchstart', back);
                 return;
             }
-
             btn.addEventListener('mousedown', (e) => handleFormatBtn(e, btn));
             btn.addEventListener('touchstart', (e) => handleFormatBtn(e, btn));
         });
@@ -343,15 +331,18 @@ export function init(firebaseDb, firebaseAuth) {
     // --- TAGS INDEX & TAGMANAGER ---
     const globalBlessingTagIndex = new Map();
     let allBlessings = [];
+    let lastDoc = null;
+    let allLoaded = false;
+    let isFetching = false;
+    let sentinelObserver = null;
+    const PAGE_SIZE = 15;
 
     const buildTagIndex = () => {
         globalBlessingTagIndex.clear();
         allBlessings.forEach(b => {
             if (b.tags) {
                 b.tags.forEach(t => {
-                    if (t && !globalBlessingTagIndex.has(t.toLowerCase())) {
-                        globalBlessingTagIndex.set(t.toLowerCase(), t);
-                    }
+                    if (t && !globalBlessingTagIndex.has(t.toLowerCase())) globalBlessingTagIndex.set(t.toLowerCase(), t);
                 });
             }
         });
@@ -361,7 +352,6 @@ export function init(firebaseDb, firebaseAuth) {
         constructor(config) {
             this.tags = [];
             this.activeIdx = -1;
-
             this.config = Object.assign({
                 wrapperId: 'blessingTagWrapper',
                 chipsId: 'blessingTagChips',
@@ -380,16 +370,13 @@ export function init(firebaseDb, firebaseAuth) {
             this.input = document.getElementById(this.config.inputId);
             this.sugList = document.getElementById(this.config.sugListId);
 
-            if (this.wrapper && this.input) {
-                this._bind();
-            }
+            if (this.wrapper && this.input) this._bind();
         }
 
         _bind() {
             if (window.innerWidth <= 768 && this.config.placeholderMobile) {
                 this.input.placeholder = this.config.placeholderMobile;
             }
-
             this.wrapper.addEventListener('click', () => this.input.focus());
             this.input.addEventListener('input', () => this._onInput());
             this.input.addEventListener('keydown', (e) => this._onKeydown(e));
@@ -411,15 +398,12 @@ export function init(firebaseDb, firebaseAuth) {
         _onKeydown(e) {
             const val = this.input.value.trim();
             const items = this.sugList.querySelectorAll('.tag-suggestion-item');
-
             if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault();
                 if (this.activeIdx >= 0 && items[this.activeIdx]) {
                     this._acceptSuggestion(items[this.activeIdx].dataset.tag);
                 } else if (val) {
-                    this._addTag(val);
-                    this.input.value = '';
-                    this._hideSuggestions();
+                    this._addTag(val); this.input.value = ''; this._hideSuggestions();
                 }
             } else if (e.key === 'Backspace' && val === '' && this.tags.length) {
                 this._removeTag(this.tags.length - 1);
@@ -440,14 +424,11 @@ export function init(firebaseDb, firebaseAuth) {
             this.sugList.innerHTML = '';
             this.activeIdx = -1;
             if (!query) { this._hideSuggestions(); return; }
-
             const q = query.toLowerCase();
             const matches = Array.from(this.config.indexMap.entries())
                 .filter(([key]) => key.includes(q) && !this.tags.includes(key))
                 .slice(0, 8);
-
             if (matches.length === 0) { this._hideSuggestions(); return; }
-
             matches.forEach(([key, label]) => {
                 const li = document.createElement('li');
                 li.className = 'tag-suggestion-item';
@@ -457,52 +438,27 @@ export function init(firebaseDb, firebaseAuth) {
                     '<mark>$1</mark>'
                 );
                 li.innerHTML = `<i class="ph ${this.config.iconClass}"></i>${highlighted}`;
-                li.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    this._acceptSuggestion(key);
-                });
+                li.addEventListener('mousedown', (e) => { e.preventDefault(); this._acceptSuggestion(key); });
                 this.sugList.appendChild(li);
             });
-
             this.sugList.style.display = 'block';
         }
 
-        _highlightSuggestion(items) {
-            items.forEach((el, i) => el.classList.toggle('active', i === this.activeIdx));
-        }
-
-        _hideSuggestions() {
-            this.sugList.style.display = 'none';
-            this.activeIdx = -1;
-        }
-
-        _acceptSuggestion(tagKey) {
-            this._addTag(tagKey);
-            this.input.value = '';
-            this._hideSuggestions();
-            this.input.focus();
-        }
+        _highlightSuggestion(items) { items.forEach((el, i) => el.classList.toggle('active', i === this.activeIdx)); }
+        _hideSuggestions() { this.sugList.style.display = 'none'; this.activeIdx = -1; }
+        _acceptSuggestion(tagKey) { this._addTag(tagKey); this.input.value = ''; this._hideSuggestions(); this.input.focus(); }
 
         _addTag(raw) {
             if (!raw) return;
             const key = raw.toLowerCase().trim();
             if (!key || this.tags.includes(key)) return;
-
-            if (this.tags.length >= this.config.maxTags) {
-                showAlert(this.config.maxTagsMsg);
-                return;
-            }
-
+            if (this.tags.length >= this.config.maxTags) { showAlert(this.config.maxTagsMsg); return; }
             if (!this.config.indexMap.has(key)) this.config.indexMap.set(key, raw.trim());
-
             this.tags.push(key);
             this._renderChips();
         }
 
-        _removeTag(idx) {
-            this.tags.splice(idx, 1);
-            this._renderChips();
-        }
+        _removeTag(idx) { this.tags.splice(idx, 1); this._renderChips(); }
 
         _renderChips() {
             this.chipsEl.innerHTML = '';
@@ -512,32 +468,24 @@ export function init(firebaseDb, firebaseAuth) {
                 const label = this.config.indexMap.get(tag) || tag;
                 chip.innerHTML = `${label}<button type="button" class="tag-chip-remove" title="Remover"><i class="ph ph-x"></i></button>`;
                 chip.querySelector('.tag-chip-remove').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this._removeTag(i);
+                    e.stopPropagation(); this._removeTag(i);
                 });
                 this.chipsEl.appendChild(chip);
             });
         }
 
         getTags() { return [...this.tags]; }
-
         setTags(arr) {
             this.tags = arr.map(t => t.toLowerCase().trim()).filter(Boolean);
             this.tags.forEach(t => { if (!this.config.indexMap.has(t)) this.config.indexMap.set(t, t); });
             this._renderChips();
         }
-
-        clear() {
-            this.tags = [];
-            this.input.value = '';
-            this._renderChips();
-            this._hideSuggestions();
-        }
+        clear() { this.tags = []; this.input.value = ''; this._renderChips(); this._hideSuggestions(); }
     }
 
     const tagManager = new TagManager();
 
-    // --- CRUD OPERATING SYSTEM ---
+    // --- FEED SKELETON ---
     const feedSkeletonHTML = `
         <div class="records-feed mt-2">
             ${[0,1,2].map(()=>`
@@ -553,55 +501,26 @@ export function init(firebaseDb, firebaseAuth) {
             </div>`).join('')}
         </div>`;
 
-    const fetchBlessings = async () => {
-        try {
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const feed = document.getElementById('blessingsFeed');
-            if (feed && !feed.dataset.loaded) {
-                feed.innerHTML = feedSkeletonHTML;
-            }
-
-            const q = query(
-                collection(db, "blessings"),
-                where("userId", "==", user.uid),
-                orderBy("date", "desc")
-            );
-
-            const snap = await getDocs(q);
-            allBlessings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (feed) feed.dataset.loaded = '1';
-
-            buildTagIndex();
-            renderStats();
-            renderFeed(allBlessings);
-        } catch (err) {
-            console.error("Erro ao carregar diário de bênçãos:", err);
-        }
-    };
-
     const formatDateParts = (dateStr) => {
         const [y, m, d] = dateStr.split('-');
         const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
         return { day: d, month: months[parseInt(m,10)-1], year: y };
     };
 
-    const renderFeed = (arr) => {
+    const renderFeed = (arr, replace = true) => {
         const feed = document.getElementById('blessingsFeed');
         if (!feed) return;
 
-        if (arr.length === 0) {
+        if (replace && arr.length === 0) {
             feed.innerHTML = `
                 <div class="records-empty-state">
                     <i class="ph ph-hands-praying"></i>
-                    <p>Registre as bênçãos que o Senhor derramou sobre você.<br>A gratidão transforma o coração.</p>
+                    <p>Registre as bênçãos que o Senhor derramou sobre você.<br>Toque no <strong>+</strong> para começar.</p>
                 </div>`;
             return;
         }
 
-        feed.className = 'records-feed mt-2';
-        feed.innerHTML = arr.map(b => {
+        const html = arr.map(b => {
             const dp = formatDateParts(b.date);
             const tagChips = (b.tags && b.tags.length)
                 ? `<div class="record-card-keywords">${b.tags.map(t => `<span class="card-tag">${globalBlessingTagIndex.get(t) || t}</span>`).join('')}</div>`
@@ -637,6 +556,13 @@ export function init(firebaseDb, firebaseAuth) {
                 </div>
             </div>`;
         }).join('');
+
+        if (replace) {
+            feed.className = 'records-feed mt-2';
+            feed.innerHTML = html;
+        } else {
+            feed.insertAdjacentHTML('beforeend', html);
+        }
     };
 
     window.toggleBlessingCard = (id) => {
@@ -659,7 +585,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-toolbar">
                 <button class="reading-close-btn" id="readingCloseBencaos"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
-                    <button class="rc-btn" onclick="editBlessing('${b.id}'); document.getElementById('readingOverlayBencaos')?.remove()"><i class="ph ph-pencil"></i> Editar</button>
+                    <button class="rc-btn" id="readingEditBencaos"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
             </div>
             <div class="reading-scroll">
@@ -679,6 +605,10 @@ export function init(firebaseDb, firebaseAuth) {
         };
 
         document.getElementById('readingCloseBencaos').addEventListener('click', close);
+        document.getElementById('readingEditBencaos').addEventListener('click', () => {
+            close();
+            setTimeout(() => editBlessing(b.id), 210);
+        });
         document.addEventListener('keydown', function onEsc(e) {
             if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
         });
@@ -686,37 +616,128 @@ export function init(firebaseDb, firebaseAuth) {
 
     const renderStats = () => {
         const total = allBlessings.length;
-        document.getElementById('statsTotalBlessings').innerText = total;
+        const elTotal = document.getElementById('statsTotalBlessings');
+        if (elTotal) elTotal.innerText = total;
 
-        // Bênçãos no mês atual
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const monthPrefix = `${year}-${month}`;
-
+        const monthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
         const monthCount = allBlessings.filter(b => b.date.startsWith(monthPrefix)).length;
-        document.getElementById('statsMonthBlessings').innerText = monthCount;
+        const elMonth = document.getElementById('statsMonthBlessings');
+        if (elMonth) elMonth.innerText = monthCount;
 
-        // Tag mais frequente
         const tagCounts = {};
         allBlessings.forEach(b => {
-            if (b.tags) {
-                b.tags.forEach(t => {
-                    tagCounts[t] = (tagCounts[t] || 0) + 1;
-                });
-            }
+            if (b.tags) b.tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
         });
 
         const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
-        const statsTopTagEl = document.getElementById('statsTopTag');
-        if (sortedTags.length > 0) {
-            const topTag = globalBlessingTagIndex.get(sortedTags[0][0]) || sortedTags[0][0];
-            statsTopTagEl.innerText = `${topTag} (${sortedTags[0][1]}x)`;
-            statsTopTagEl.style.color = "var(--text-main)";
-        } else {
-            statsTopTagEl.innerText = "Nenhuma";
-            statsTopTagEl.style.color = "var(--text-muted)";
+        const elTopTag = document.getElementById('statsTopTag');
+        if (elTopTag) {
+            if (sortedTags.length > 0) {
+                const topTag = globalBlessingTagIndex.get(sortedTags[0][0]) || sortedTags[0][0];
+                elTopTag.innerText = `${topTag}`;
+                elTopTag.style.color = "var(--primary-color)";
+            } else {
+                elTopTag.innerText = "–";
+            }
         }
+    };
+
+    // --- PAGINAÇÃO ---
+    const initSentinelObserver = () => {
+        if (sentinelObserver) sentinelObserver.disconnect();
+        const sentinel = document.getElementById('blessingsSentinel');
+        if (!sentinel) return;
+
+        sentinelObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isFetching && !allLoaded) {
+                fetchPage(false);
+            }
+        }, { rootMargin: '0px 0px 200px 0px' });
+
+        sentinelObserver.observe(sentinel);
+    };
+
+    const fetchPage = async (isFirst = false) => {
+        if (isFetching || (!isFirst && allLoaded)) return;
+        const user = auth.currentUser;
+        if (!user) return;
+        isFetching = true;
+
+        const feed = document.getElementById('blessingsFeed');
+        const sentinel = document.getElementById('blessingsSentinel');
+
+        if (isFirst && feed && !feed.dataset.loaded) {
+            feed.innerHTML = feedSkeletonHTML;
+        } else if (!isFirst && sentinel) {
+            sentinel.innerHTML = `<div class="load-more-sentinel"><i class="ph ph-circle-notch ph-spin"></i> Carregando mais...</div>`;
+        }
+
+        try {
+            let q;
+            if (isFirst) {
+                q = query(
+                    collection(db, "blessings"),
+                    where("userId", "==", user.uid),
+                    orderBy("date", "desc"),
+                    limit(PAGE_SIZE)
+                );
+            } else {
+                q = query(
+                    collection(db, "blessings"),
+                    where("userId", "==", user.uid),
+                    orderBy("date", "desc"),
+                    startAfter(lastDoc),
+                    limit(PAGE_SIZE)
+                );
+            }
+
+            const snap = await getDocs(q);
+            const newBlessings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            if (isFirst) {
+                allBlessings = newBlessings;
+                if (feed) feed.dataset.loaded = '1';
+            } else {
+                allBlessings = [...allBlessings, ...newBlessings];
+            }
+
+            if (snap.docs.length > 0) lastDoc = snap.docs[snap.docs.length - 1];
+            if (snap.docs.length < PAGE_SIZE) allLoaded = true;
+
+            buildTagIndex();
+
+            if (isFirst) {
+                renderFeed(newBlessings, true);
+            } else {
+                renderFeed(newBlessings, false);
+            }
+            renderStats();
+
+            if (sentinel) {
+                if (allLoaded) {
+                    sentinel.innerHTML = `<div class="list-end-msg"><i class="ph ph-check-circle"></i> Você chegou ao início do seu diário.</div>`;
+                    if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+                } else {
+                    sentinel.innerHTML = '';
+                    initSentinelObserver();
+                }
+            }
+        } catch (err) {
+            console.error("Erro ao carregar bênçãos:", err);
+            if (sentinel) sentinel.innerHTML = '';
+        } finally {
+            isFetching = false;
+        }
+    };
+
+    const fetchBlessings = async () => {
+        if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+        lastDoc = null;
+        allLoaded = false;
+        isFetching = false;
+        allBlessings = [];
+        await fetchPage(true);
     };
 
     // --- FORM SUBMIT (CREATE & UPDATE) ---
@@ -748,6 +769,7 @@ export function init(firebaseDb, firebaseAuth) {
                     localStorage.removeItem('selah_draft_bencaos');
                 }
 
+                window.closeCreateBencaosOverlay();
                 resetFormFields();
                 fetchBlessings();
             } catch (err) {
@@ -768,22 +790,19 @@ export function init(firebaseDb, firebaseAuth) {
 
         let html = '<div class="view-meta-grid" style="margin-bottom: 20px;">';
         html += `<div class="meta-item"><span class="meta-label">Data</span><span class="meta-value">${b.date.split('-').reverse().join('/')}</span></div>`;
-        
+
         if (b.tags && b.tags.length > 0) {
             const tagHtml = b.tags.map(t => `<span class="meta-value tag capitalize" style="background: rgba(212, 175, 55, 0.15); color: var(--primary-color); border: 1px solid var(--border-color);">${globalBlessingTagIndex.get(t) || t}</span>`).join('');
             html += `<div class="meta-item full-width"><span class="meta-label">Tags</span><div style="display:flex; gap:5px; flex-wrap:wrap;">${tagHtml}</div></div>`;
         }
         html += '</div>';
-
         html += `<div class="view-content-area" style="border-top: 1px solid var(--border-color); padding-top: 15px;">${b.description}</div>`;
 
         document.getElementById('viewBlessingBody').innerHTML = html;
-
         document.getElementById('viewBlessingModalActions').innerHTML = `
             <button type="button" onclick="editBlessing('${b.id}')" class="btn-icon" title="Editar Bênção"><i class="ph ph-pencil"></i></button>
             <button type="button" onclick="deleteBlessing('${b.id}')" class="btn-icon text-danger" title="Excluir Bênção"><i class="ph ph-trash"></i></button>
         `;
-
         document.getElementById('viewBlessingModal').showModal();
     };
 
@@ -802,22 +821,16 @@ export function init(firebaseDb, firebaseAuth) {
 
         document.getElementById('btnSubmitBlessing').innerHTML = '<i class="ph ph-check"></i> Atualizar Gratidão';
         document.getElementById('btnCancelBlessingEdit').style.display = 'block';
+        document.getElementById('createBencaosTitleLabel').innerText = "Editando Bênção";
 
-        // Rolagem e abertura do formulário
-        const coll = document.querySelector('.collapsible-section');
-        if (coll && !coll.hasAttribute('open')) {
-            coll.setAttribute('open', '');
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.openCreateBencaosOverlay();
     };
 
     window.deleteBlessing = async (id) => {
-        if (await showConfirm("Tem certeza de que deseja apagar este registro de bênção permanentemente? Recordar a bondade de Deus fortalece nossa fé!")) {
+        if (await showConfirm("Tem certeza de que deseja apagar este registro de bênção?")) {
             await deleteDoc(doc(db, "blessings", id));
-
             const modal = document.getElementById('viewBlessingModal');
             if (modal && modal.open) modal.close();
-
             fetchBlessings();
         }
     };
@@ -826,11 +839,11 @@ export function init(firebaseDb, firebaseAuth) {
     if (btnCancelBlessingEdit) {
         btnCancelBlessingEdit.onclick = () => {
             resetFormFields();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.closeCreateBencaosOverlay();
         };
     }
 
-    // --- FILTERS & RECORDING (RANDOM) ---
+    // --- FILTERS & RANDOM ---
     const btnApplyFilters = document.getElementById('btnApplyBlessingFilters');
     if (btnApplyFilters) {
         btnApplyFilters.onclick = () => {
@@ -845,8 +858,7 @@ export function init(firebaseDb, firebaseAuth) {
                 if (dEnd && b.date > dEnd) match = false;
                 return match;
             });
-
-            renderFeed(filtered);
+            renderFeed(filtered, true);
         };
     }
 
@@ -859,6 +871,5 @@ export function init(firebaseDb, firebaseAuth) {
         };
     }
 
-    // Carregar bênçãos na inicialização
     fetchBlessings();
 }

@@ -108,6 +108,51 @@ if (sidebar) {
     }, { passive: true });
 }
 
+// --- FAB / BOTTOM SHEET ---
+const fabSheet = document.getElementById('fabSheet');
+const fabSheetOverlay = document.getElementById('fabSheetOverlay');
+const btnFab = document.getElementById('btnFab');
+const btnDesktopFab = document.getElementById('btnDesktopFab');
+
+const openFabSheet = () => {
+    if (!fabSheet) return;
+    // Visibility based on features (will be applied after auth)
+    const hasReg = currentUserFeatures.includes('registros');
+    const hasBen = currentUserFeatures.includes('bencaos');
+    const optReg = document.getElementById('fabOptRegistros');
+    const optBen = document.getElementById('fabOptBencaos');
+    if (optReg) optReg.style.display = hasReg ? '' : 'none';
+    if (optBen) optBen.style.display = hasBen ? '' : 'none';
+
+    // If only one feature available, skip sheet and open directly
+    if (hasReg && !hasBen) { window.openCreateOverlay('registros'); return; }
+    if (!hasReg && hasBen) { window.openCreateOverlay('bencaos'); return; }
+
+    fabSheet.classList.add('visible');
+    fabSheetOverlay.classList.add('visible');
+};
+
+const closeFabSheet = () => {
+    if (!fabSheet) return;
+    fabSheet.classList.remove('visible');
+    fabSheetOverlay.classList.remove('visible');
+};
+
+window.openCreateOverlay = (type) => {
+    closeFabSheet();
+    const fn = type === 'registros' ? window.openCreateRegistrosOverlay : window.openCreateBencaosOverlay;
+    if (fn) {
+        fn();
+    } else {
+        window._pendingCreateOverlay = type;
+        window.location.hash = type;
+    }
+};
+
+if (btnFab) btnFab.addEventListener('click', openFabSheet);
+if (btnDesktopFab) btnDesktopFab.addEventListener('click', openFabSheet);
+if (fabSheetOverlay) fabSheetOverlay.addEventListener('click', closeFabSheet);
+
 // --- ROTEADOR CLIENT-SIDE SPA ---
 let currentUserFeatures = [];
 let isNavigating = false;
@@ -120,7 +165,7 @@ const adjustSidebarMenu = (allowedFeatures) => {
         const links = sidebarNav.querySelectorAll('a.nav-item');
         links.forEach(link => {
             const href = link.getAttribute('href');
-            const feature = href.substring(1); // Remove o caractere '#'
+            const feature = href.substring(1);
             link.style.display = allowedFeatures.includes(feature) ? 'flex' : 'none';
         });
     }
@@ -131,10 +176,15 @@ const adjustSidebarMenu = (allowedFeatures) => {
         const links = bottomNav.querySelectorAll('a.nav-item');
         links.forEach(link => {
             const href = link.getAttribute('href');
-            const feature = href.substring(1); // Remove o caractere '#'
+            const feature = href.substring(1);
             link.style.display = allowedFeatures.includes(feature) ? 'flex' : 'none';
         });
     }
+
+    // FAB visibility: hide if neither registros nor bencaos is available
+    const hasFabFeature = allowedFeatures.includes('registros') || allowedFeatures.includes('bencaos');
+    if (btnFab) btnFab.style.display = hasFabFeature ? '' : 'none';
+    if (btnDesktopFab) btnDesktopFab.style.display = hasFabFeature ? '' : 'none';
 };
 
 const skeletonHTML = `
@@ -199,6 +249,15 @@ const handleRouteChange = async (direction = null) => {
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);
+
+        if (window._pendingCreateOverlay === hash) {
+            const type = window._pendingCreateOverlay;
+            window._pendingCreateOverlay = null;
+            setTimeout(() => {
+                const fn = type === 'registros' ? window.openCreateRegistrosOverlay : window.openCreateBencaosOverlay;
+                if (fn) fn();
+            }, 80);
+        }
 
         if (direction) {
             const inCls = direction === 'left' ? 'anim-slide-in-right' : 'anim-slide-in-left';

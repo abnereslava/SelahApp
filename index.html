@@ -151,6 +151,9 @@
                 <i class="ph ph-gift"></i>
                 <span>Bênçãos</span>
             </a>
+            <button type="button" class="nav-fab" id="btnFab" aria-label="Criar novo item">
+                <i class="ph ph-plus"></i>
+            </button>
             <a href="#oracoes" class="nav-item">
                 <i class="ph ph-hands-praying"></i>
                 <span>Orações</span>
@@ -160,6 +163,26 @@
                 <span>Igreja</span>
             </a>
         </nav>
+
+        <!-- FAB Bottom Sheet -->
+        <div class="fab-sheet-overlay" id="fabSheetOverlay"></div>
+        <div class="fab-sheet" id="fabSheet">
+            <div class="fab-sheet-handle"></div>
+            <p class="fab-sheet-title">O que deseja registrar?</p>
+            <button type="button" class="fab-sheet-option" id="fabOptRegistros" onclick="window.openCreateOverlay('registros')">
+                <i class="ph ph-notebook"></i>
+                <span>Novo Registro</span>
+            </button>
+            <button type="button" class="fab-sheet-option" id="fabOptBencaos" onclick="window.openCreateOverlay('bencaos')">
+                <i class="ph ph-gift"></i>
+                <span>Nova Bênção</span>
+            </button>
+        </div>
+
+        <!-- Desktop FAB (botão flutuante) -->
+        <button type="button" class="desktop-fab" id="btnDesktopFab" aria-label="Criar novo item">
+            <i class="ph ph-plus"></i>
+        </button>
     </div>
 
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
