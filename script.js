@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { collection, getDocs, getFirestore, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, getFirestore, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBgD8fxcab5A8jVmedYsoUnuq6fgWKWPUA",
@@ -211,7 +211,18 @@ window.addEventListener('hashchange', handleRouteChange);
 // --- AUTENTICAÇÃO E WHITELIST ---
 const provider = new GoogleAuthProvider();
 const ADMIN_EMAIL = 'abner.eslava@gmail.com';
-const DEFAULT_USER_FEATURES = ['registros', 'oracoes', 'igreja'];
+const DEFAULT_USER_FEATURES = ['registros', 'oracoes', 'igreja', 'bencaos'];
+
+const getWhitelistEntryByEmail = async (email) => {
+    const directSnap = await getDoc(doc(db, "whitelisted_emails", email));
+    if (directSnap.exists()) {
+        return directSnap.data();
+    }
+
+    const legacyQuery = query(collection(db, "whitelisted_emails"), where("email", "==", email));
+    const legacySnap = await getDocs(legacyQuery);
+    return legacySnap.empty ? null : legacySnap.docs[0].data();
+};
 
 onAuthStateChanged(auth, async (user) => {
     try {
@@ -219,6 +230,7 @@ onAuthStateChanged(auth, async (user) => {
             const userEmail = user.email ? user.email.toLowerCase().trim() : '';
             let isAuthorized = false;
             let userFeatures = DEFAULT_USER_FEATURES;
+            let whitelistError = null;
 
             let userRole = 'user';
 
@@ -227,16 +239,15 @@ onAuthStateChanged(auth, async (user) => {
                 userRole = 'admin';
             } else if (userEmail) {
                 try {
-                    const q = query(collection(db, "whitelisted_emails"), where("email", "==", userEmail));
-                    const snap = await getDocs(q);
-                    if (!snap.empty) {
+                    const docData = await getWhitelistEntryByEmail(userEmail);
+                    if (docData) {
                         isAuthorized = true;
-                        const docData = snap.docs[0].data();
                         userRole = docData.role || 'user';
                         userFeatures = docData.features || DEFAULT_USER_FEATURES;
                     }
                 } catch (err) {
                     console.error("Erro ao verificar whitelist no Firestore:", err);
+                    whitelistError = err;
                 }
             }
 
@@ -267,7 +278,9 @@ onAuthStateChanged(auth, async (user) => {
                 await signOut(auth);
                 if (loginContainer) loginContainer.style.display = 'flex';
                 dashboardContainer.style.display = 'none';
-                loginError.innerText = "Acesso recusado. Este e-mail não consta na lista de convidados autorizados. Entre em contato com o administrador.";
+                loginError.innerText = whitelistError
+                    ? "Nao foi possivel verificar seu convite agora. Verifique as regras do Firestore/conexao e tente novamente."
+                    : "Acesso recusado. Este e-mail não consta na lista de convidados autorizados. Entre em contato com o administrador.";
                 loginError.style.display = 'block';
             }
         } else {

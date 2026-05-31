@@ -16,6 +16,17 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const ADMIN_EMAIL = 'abner.eslava@gmail.com';
 
+const getWhitelistEntryByEmail = async (email) => {
+    const directSnap = await getDoc(doc(db, "whitelisted_emails", email));
+    if (directSnap.exists()) {
+        return directSnap.data();
+    }
+
+    const legacyQuery = query(collection(db, "whitelisted_emails"), where("email", "==", email));
+    const legacySnap = await getDocs(legacyQuery);
+    return legacySnap.empty ? null : legacySnap.docs[0].data();
+};
+
 // --- PROTEÇÃO DE ROTA & CONTROLES ---
 const dashboardContainer = document.getElementById('dashboardContainer');
 
@@ -30,9 +41,7 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         try {
-            const q = query(collection(db, "whitelisted_emails"), where("email", "==", email));
-            const snap = await getDocs(q);
-            const docData = snap.empty ? null : snap.docs[0].data();
+            const docData = await getWhitelistEntryByEmail(email);
 
             if (docData && docData.role === 'admin') {
                 dashboardContainer.style.display = 'block';
@@ -94,6 +103,7 @@ let invitedEmails = [];
 let permissionConfigDocId = null;
 
 const getProfileRole = (item) => item.role || 'user';
+const getKnownUid = (item) => item.uid || item.lastKnownUid || item.userId || '';
 const DEFAULT_FEATURES = ['registros', 'oracoes', 'igreja', 'bencaos'];
 const FEATURE_CONTROLS = [
     { id: 'configPermRegistros', value: 'registros' },
@@ -221,6 +231,7 @@ const fetchInvitedEmails = async () => {
         const snap = await getDocs(q);
         invitedEmails = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         applyInvitedFilters();
+        populateMigrationTargets();
     } catch (err) {
         console.error("Erro ao carregar whitelist:", err);
         showAlert(`Erro ao carregar a lista de e-mails convidados. Detalhes: ${err.message}`);
@@ -299,7 +310,7 @@ const renderInvitedList = (arr) => {
                     <span class="badge-perm chip-active" style="cursor: default;" title="Acesso permanente"><i class="ph ph-gift"></i> Bênçãos</span>
                 </div>
             </td>
-            <td><span class="badge-admin" style="font-weight: 700;"><i class="ph ph-shield-check"></i> Master</span></td>
+            <td><span class="badge-admin admin-type-badge" style="font-weight: 700;"><i class="ph ph-shield-check"></i> Master</span></td>
             <td style="text-align: right;">
                 <span class="badge-admin" style="opacity: 0.85; border-style: dashed; font-size: 0.75rem; background: rgba(0,0,0,0.1);"><i class="ph ph-lock"></i> Vitalício</span>
             </td>
@@ -312,8 +323,8 @@ const renderInvitedList = (arr) => {
         const timeStr = addedDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const role = item.role || 'user';
         const typeBadge = role === 'admin'
-            ? '<span class="badge-admin" style="font-weight: 600;"><i class="ph ph-shield-check"></i> Admin</span>'
-            : '<span class="badge-invited" style="font-weight: 600;"><i class="ph ph-user"></i> Convidado</span>';
+            ? '<span class="badge-admin admin-type-badge" style="font-weight: 600;"><i class="ph ph-shield-check"></i> Admin</span>'
+            : '<span class="badge-invited admin-type-badge" style="font-weight: 600;"><i class="ph ph-user"></i> Convidado</span>';
         
         return `
             <tr>
@@ -529,10 +540,82 @@ if (btnLogout) {
 const btnDetectLegacyUid = document.getElementById('btnDetectLegacyUid');
 const btnRunMigration = document.getElementById('btnRunMigration');
 const legacyUidInput = document.getElementById('legacyUidInput');
+const migrationTargetEmail = document.getElementById('migrationTargetEmail');
+const migrationTargetUid = document.getElementById('migrationTargetUid');
 const detectedUidsContainer = document.getElementById('detectedUidsContainer');
 const detectedUidsList = document.getElementById('detectedUidsList');
 const migrationLogs = document.getElementById('migrationLogs');
 const btnClearMigrationLogs = document.getElementById('btnClearMigrationLogs');
+
+const getMigrationTargetOptions = () => {
+    const currentUser = auth.currentUser;
+    const currentEmail = currentUser?.email ? currentUser.email.toLowerCase().trim() : '';
+    const options = new Map();
+
+    if (currentEmail) {
+        options.set(currentEmail, {
+            email: currentEmail,
+            uid: currentUser.uid,
+            label: currentEmail === ADMIN_EMAIL ? `${currentEmail} (master logado)` : `${currentEmail} (logado)`
+        });
+    }
+
+    if (!options.has(ADMIN_EMAIL)) {
+        options.set(ADMIN_EMAIL, {
+            email: ADMIN_EMAIL,
+            uid: currentEmail === ADMIN_EMAIL ? currentUser?.uid || '' : '',
+            label: `${ADMIN_EMAIL} (master)`
+        });
+    }
+
+    invitedEmails.forEach(item => {
+        const email = item.email ? item.email.toLowerCase().trim() : '';
+        if (!email || options.has(email)) return;
+        options.set(email, {
+            email,
+            uid: getKnownUid(item),
+            label: `${email} (${getProfileRole(item) === 'admin' ? 'admin' : 'usuario'})`
+        });
+    });
+
+    return [...options.values()].sort((a, b) => a.email.localeCompare(b.email));
+};
+
+const populateMigrationTargets = () => {
+    if (!migrationTargetEmail) return;
+
+    const selectedValue = migrationTargetEmail.value;
+    const options = getMigrationTargetOptions();
+    migrationTargetEmail.innerHTML = '<option value="">Selecione o e-mail de destino...</option>';
+
+    options.forEach(option => {
+        const el = document.createElement('option');
+        el.value = option.email;
+        el.dataset.uid = option.uid || '';
+        el.innerText = option.label;
+        migrationTargetEmail.appendChild(el);
+    });
+
+    if (selectedValue && options.some(option => option.email === selectedValue)) {
+        migrationTargetEmail.value = selectedValue;
+    }
+
+    syncMigrationTargetUid(false);
+};
+
+const syncMigrationTargetUid = (overwrite = true) => {
+    if (!migrationTargetEmail || !migrationTargetUid) return;
+    const selected = migrationTargetEmail.selectedOptions[0];
+    const knownUid = selected?.dataset?.uid || '';
+
+    if (overwrite || !migrationTargetUid.value.trim()) {
+        migrationTargetUid.value = knownUid;
+    }
+
+    if (!knownUid && migrationTargetEmail.value) {
+        logToMigrationConsole(`UID do destino "${migrationTargetEmail.value}" nao esta salvo no sistema. Informe manualmente o UID Google dessa conta antes de migrar.`, "warning");
+    }
+};
 
 // Helper para logar mensagens no console visual
 const logToMigrationConsole = (msg, type = 'info') => {
@@ -559,6 +642,10 @@ if (btnClearMigrationLogs) {
     });
 }
 
+if (migrationTargetEmail) {
+    migrationTargetEmail.addEventListener('change', () => syncMigrationTargetUid(true));
+}
+
 // 1. Lógica para DETECTAR UIDs Antigos (Varre devotionals e blessings buscando criadores legados)
 if (btnDetectLegacyUid) {
     btnDetectLegacyUid.addEventListener('click', async () => {
@@ -570,12 +657,11 @@ if (btnDetectLegacyUid) {
             const devotionalsSnap = await getDocs(collection(db, "devotionals"));
             const uniqueUids = new Set();
             
-            // UID atual de Abner
-            const currentUid = auth.currentUser ? auth.currentUser.uid : '';
+            const selectedTargetUid = migrationTargetUid ? migrationTargetUid.value.trim() : '';
             
             devotionalsSnap.forEach(dDoc => {
                 const dData = dDoc.data();
-                if (dData.userId && dData.userId !== currentUid) {
+                if (dData.userId && dData.userId !== selectedTargetUid) {
                     uniqueUids.add(dData.userId);
                 }
             });
@@ -584,7 +670,7 @@ if (btnDetectLegacyUid) {
             const blessingsSnap = await getDocs(collection(db, "blessings"));
             blessingsSnap.forEach(bDoc => {
                 const bData = bDoc.data();
-                if (bData.userId && bData.userId !== currentUid) {
+                if (bData.userId && bData.userId !== selectedTargetUid) {
                     uniqueUids.add(bData.userId);
                 }
             });
@@ -632,22 +718,31 @@ if (btnDetectLegacyUid) {
 if (btnRunMigration) {
     btnRunMigration.addEventListener('click', async () => {
         const legacyUid = legacyUidInput ? legacyUidInput.value.trim() : '';
-        const currentUid = auth.currentUser ? auth.currentUser.uid : '';
+        const targetEmail = migrationTargetEmail ? migrationTargetEmail.value.trim().toLowerCase() : '';
+        const targetUid = migrationTargetUid ? migrationTargetUid.value.trim() : '';
         
         if (!legacyUid) {
             return showAlert("Por favor, selecione ou digite o UID legado antigo a ser migrado.");
         }
-        
-        if (legacyUid === currentUid) {
-            return showAlert("O UID legado informado é igual ao seu UID Google atual. Nada a migrar.");
+
+        if (!targetEmail) {
+            return showAlert("Selecione o e-mail de destino da migracao.");
+        }
+
+        if (!targetUid) {
+            return showAlert("Informe o UID Google de destino. O e-mail sozinho nao e suficiente para migrar registros, porque os dados usam userId.");
         }
         
-        const confirmMsg = `Deseja realmente migrar todos os registros vinculados ao UID legado "${legacyUid}" para o seu novo UID do Google "${currentUid}"? Essa operação não pode ser desfeita.`;
+        if (legacyUid === targetUid) {
+            return showAlert("O UID legado informado e igual ao UID de destino. Nada a migrar.");
+        }
+        
+        const confirmMsg = `Deseja realmente migrar todos os registros vinculados ao UID legado "${legacyUid}" para "${targetEmail}" (UID ${targetUid})? Essa operacao nao pode ser desfeita.`;
         if (!(await showConfirm(confirmMsg))) return;
         
         btnRunMigration.disabled = true;
         btnRunMigration.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Migrando...';
-        logToMigrationConsole(`Iniciando migração dos dados de [${legacyUid}] para [${currentUid}]...`, "warning");
+        logToMigrationConsole(`Iniciando migracao dos dados de [${legacyUid}] para ${targetEmail} [${targetUid}]...`, "warning");
         
         try {
             let devotionalsMigrated = 0;
@@ -662,7 +757,8 @@ if (btnRunMigration) {
                 logToMigrationConsole(`Identificados ${dSnap.size} devocionais. Atualizando registros...`, "info");
                 for (const dDoc of dSnap.docs) {
                     await updateDoc(doc(db, "devotionals", dDoc.id), {
-                        userId: currentUid,
+                        userId: targetUid,
+                        migratedToEmail: targetEmail,
                         migratedFromLegacy: true,
                         migratedAt: new Date().toISOString()
                     });
@@ -684,7 +780,8 @@ if (btnRunMigration) {
                 logToMigrationConsole(`Identificadas ${bSnap.size} bênçãos. Atualizando registros...`, "info");
                 for (const bDoc of bSnap.docs) {
                     await updateDoc(doc(db, "blessings", bDoc.id), {
-                        userId: currentUid,
+                        userId: targetUid,
+                        migratedToEmail: targetEmail,
                         migratedFromLegacy: true,
                         migratedAt: new Date().toISOString()
                     });
@@ -698,7 +795,7 @@ if (btnRunMigration) {
             }
             
             logToMigrationConsole(`MIGRAÇÃO CONCLUÍDA! Devocionais atualizados: ${devotionalsMigrated} | Bênçãos atualizadas: ${blessingsMigrated}`, "info");
-            showAlert(`Migração realizada com sucesso! ${devotionalsMigrated} devocionais e ${blessingsMigrated} bênçãos foram associados à sua conta ativa.`);
+            showAlert(`Migracao realizada com sucesso! ${devotionalsMigrated} devocionais e ${blessingsMigrated} bencaos foram associados a ${targetEmail}.`);
             
             // Reseta detecções e campo
             if (legacyUidInput) legacyUidInput.value = '';

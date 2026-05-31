@@ -72,6 +72,17 @@ O projeto possui uma estrutura simples e focada no front-end puro (HTML5, Vanill
 * **Em Computadores (Desktop):** A sidebar fica visível à esquerda e pode ser recolhida/expandida através de um botão de toggle (`#btnToggleSidebar`), que desloca o conteúdo principal de forma fluida.
 * **Em Dispositivos Móveis (Mobile):** A sidebar lateral é ocultada de forma completa. Em seu lugar, a barra inferior `.mobile-bottom-nav` permite alternar entre as abas autorizadas do Progressive Web App (PWA) de forma nativa e tátil.
 
+### C. Separacao entre App Comum e Hub Admin
+* O app comum (`index.html` / `script.js`) e o Hub Admin (`admin.html` / `admin.js`) possuem destinos separados por perfil.
+* O Administrador Master e documentos em `whitelisted_emails` com `role=admin` sao direcionados para `admin.html`.
+* Usuarios comuns com `role=user` ou documentos antigos sem `role` sao direcionados para o app comum e usam `features` para liberar abas.
+* O parametro `index.html?mode=app` nao mantem administradores na area comum.
+* O Hub Admin nao exibe "Voltar ao App" e o app comum nao injeta botao "Painel Admin".
+* Novos convites usam o e-mail normalizado como ID do documento em `whitelisted_emails` e salvam `role=user` ou `role=admin`.
+* A lista do Hub Admin permite busca por e-mail, filtro por perfil e resumo de permissoes como "Padrao" ou "Customizadas".
+* A configuracao detalhada de permissoes fica em modal acionado por "Configurar", evitando que todos os chips de permissoes aparecam na tabela principal.
+* Em desktop, o Hub Admin usa o formulario de convite em faixa horizontal acima da lista, deixando a tabela de convidados com a largura total disponivel.
+
 ---
 
 ## 5. Riscos e Observações do Sistema Atual

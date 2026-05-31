@@ -12,11 +12,6 @@ Este é o branch **main** 🌳
 
     Futuramente, quero transformar em um app que gerencia todas as áreas da vida cristã (devocionais, oração, dizimo, ofertas, pregação, escala da igreja, etc).
 
-[MODIFICAÇÕES EM CURSO]
-    Ainda falta realizar as tarefas:
-        - Tarefa 8 - Melhorar uso de espaco no desktop.
-        - Tarefa 9 - Atualizar documentacao final.
-
 [GRÁFICOS]
 
     > Gráficos;

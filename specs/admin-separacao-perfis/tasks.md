@@ -231,7 +231,7 @@ Para `role=admin`, a area pode exibir informacao de que permissoes de abas nao s
 
 ## Tarefa 8 - Melhorar uso de espaco no desktop
 
-Status: Pendente
+Status: Concluida
 
 ### Objetivo
 
@@ -263,7 +263,7 @@ Evitar refatoracao visual ampla fora do escopo.
 
 ## Tarefa 9 - Atualizar documentacao e revisar
 
-Status: Pendente
+Status: Concluida
 
 ### Objetivo
 
