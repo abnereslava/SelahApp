@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v4'; // ajustes de layout: cards, menu, gráficos, swipe
+const CACHE_NAME = 'selah-pwa-spa-v5'; // fixes: chip abaixo do título, toolbar quill, overlay close, stats, nav labels
 const urlsToCache = [
   './',
   './index.html',

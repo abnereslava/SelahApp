@@ -17,10 +17,6 @@ export function render(container) {
                         <span class="stats-quick-number" id="statsMonthBlessings">0</span>
                         <span class="stats-quick-label">Este mês</span>
                     </div>
-                    <div class="stats-quick-item">
-                        <span class="stats-quick-number stats-quick-type" id="statsTopTag">–</span>
-                        <span class="stats-quick-label">Tag top</span>
-                    </div>
                 </div>
                 <i class="ph ph-caret-down stats-card-chevron"></i>
             </div>
@@ -73,7 +69,7 @@ export function render(container) {
         <!-- Create / Edit Overlay -->
         <div class="create-overlay" id="createBencaosOverlay">
             <div class="create-overlay-header">
-                <button type="button" class="create-overlay-close" id="btnCloseCreateBencaos">
+                <button type="button" class="create-overlay-close" id="btnCloseCreateBencaos" onclick="if(window._closeBencaos)window._closeBencaos()">
                     <i class="ph ph-arrow-left"></i>
                 </button>
                 <h2 id="createBencaosTitleLabel">Nova Bênção</h2>
@@ -177,6 +173,11 @@ export function init(firebaseDb, firebaseAuth) {
     window.closeCreateBencaosOverlay = () => {
         const overlay = document.getElementById('createBencaosOverlay');
         if (overlay) overlay.classList.remove('open');
+        const mobileToolbar = document.getElementById('mobileQuillToolbar');
+        if (mobileToolbar) mobileToolbar.style.display = 'none';
+        const bottomNav = document.getElementById('mobileBottomNav');
+        if (bottomNav) bottomNav.style.display = '';
+        window.activeQuillEditor = null;
     };
 
     const btnCloseCreate = document.getElementById('btnCloseCreateBencaos');
@@ -208,6 +209,11 @@ export function init(firebaseDb, firebaseAuth) {
         if (editor) editor.root.innerHTML = draft ? draft : "<p><br></p>";
         setTodayDate();
         if (tagManager) tagManager.clear();
+    };
+
+    window._closeBencaos = () => {
+        window.closeCreateBencaosOverlay();
+        resetFormFields();
     };
 
     // --- EDITOR QUILL INDEPENDENTE ---
@@ -536,7 +542,7 @@ export function init(firebaseDb, firebaseAuth) {
                     </div>
                     <div class="record-card-info">
                         <div class="record-card-title">${b.title}</div>
-                        <div class="record-card-meta">
+                        <div class="record-card-chip">
                             <span class="record-type-chip chip-devocional"><i class="ph ph-gift" style="margin-right:3px;"></i>${firstTag || 'Bênção'}</span>
                         </div>
                     </div>
@@ -626,22 +632,6 @@ export function init(firebaseDb, firebaseAuth) {
         const elMonth = document.getElementById('statsMonthBlessings');
         if (elMonth) elMonth.innerText = monthCount;
 
-        const tagCounts = {};
-        allBlessings.forEach(b => {
-            if (b.tags) b.tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
-        });
-
-        const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
-        const elTopTag = document.getElementById('statsTopTag');
-        if (elTopTag) {
-            if (sortedTags.length > 0) {
-                const topTag = globalBlessingTagIndex.get(sortedTags[0][0]) || sortedTags[0][0];
-                elTopTag.innerText = `${topTag}`;
-                elTopTag.style.color = "var(--primary-color)";
-            } else {
-                elTopTag.innerText = "–";
-            }
-        }
     };
 
     // --- PAGINAÇÃO ---

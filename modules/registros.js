@@ -17,10 +17,6 @@ export function render(container) {
                         <span class="stats-quick-number" id="statsMonthReg">0</span>
                         <span class="stats-quick-label">Este mês</span>
                     </div>
-                    <div class="stats-quick-item">
-                        <span class="stats-quick-number stats-quick-type" id="statsTopTypeReg">–</span>
-                        <span class="stats-quick-label">Tipo top</span>
-                    </div>
                 </div>
                 <i class="ph ph-caret-down stats-card-chevron"></i>
             </div>
@@ -144,7 +140,7 @@ export function render(container) {
         <!-- Create / Edit Overlay -->
         <div class="create-overlay" id="createRegistrosOverlay">
             <div class="create-overlay-header">
-                <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros">
+                <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros" onclick="if(window._closeRegistros)window._closeRegistros()">
                     <i class="ph ph-arrow-left"></i>
                 </button>
                 <h2 id="createRegistrosTitleLabel">Novo Registro</h2>
@@ -302,6 +298,11 @@ export function init(firebaseDb, firebaseAuth) {
     window.closeCreateRegistrosOverlay = () => {
         const overlay = document.getElementById('createRegistrosOverlay');
         if (overlay) overlay.classList.remove('open');
+        const mobileToolbar = document.getElementById('mobileQuillToolbar');
+        if (mobileToolbar) mobileToolbar.style.display = 'none';
+        const bottomNav = document.getElementById('mobileBottomNav');
+        if (bottomNav) bottomNav.style.display = '';
+        window.activeQuillEditor = null;
     };
 
     const btnCloseCreate = document.getElementById('btnCloseCreateRegistros');
@@ -349,6 +350,11 @@ export function init(firebaseDb, firebaseAuth) {
         setTodayDate();
         if (tagManager) tagManager.clear();
         if (authorManager) authorManager.clear();
+    };
+
+    window._closeRegistros = () => {
+        window.closeCreateRegistrosOverlay();
+        resetFormFields();
     };
 
     // --- EDITORES E PERGUNTAS DINÂMICAS ---
@@ -955,8 +961,8 @@ export function init(firebaseDb, firebaseAuth) {
                     </div>
                     <div class="record-card-info">
                         <div class="record-card-title">${r.title || r.mainPassage}</div>
-                        <div class="record-card-meta">
-                            ${r.title ? `<span class="record-card-passage">${r.mainPassage}</span>` : ''}
+                        ${r.title ? `<div class="record-card-passage">${r.mainPassage}</div>` : ''}
+                        <div class="record-card-chip">
                             <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
                         </div>
                     </div>
@@ -1308,10 +1314,6 @@ export function init(firebaseDb, firebaseAuth) {
         const elMonth = document.getElementById('statsMonthReg');
         if (elMonth) elMonth.innerText = monthCount;
 
-        const typeCounts = allRecords.reduce((acc, r) => { acc[r.recordType] = (acc[r.recordType] || 0) + 1; return acc; }, {});
-        const topType = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0];
-        const elType = document.getElementById('statsTopTypeReg');
-        if (elType) elType.innerText = topType ? (RECORD_TYPE_LABELS[topType[0]] || topType[0]) : '–';
     };
 
     // --- PAGINAÇÃO ---

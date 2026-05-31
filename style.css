@@ -1989,10 +1989,15 @@ select:focus {
     }
 
     .mobile-bottom-nav .nav-item span {
+        display: none;
+    }
+    .mobile-bottom-nav .nav-item.active span {
+        display: block;
         max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-weight: 600;
     }
 
     .mobile-bottom-nav .nav-item i {
@@ -2150,6 +2155,11 @@ select:focus {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    display: block;
+    margin-top: 4px;
+}
+.record-card-chip {
+    margin-top: 6px;
 }
 .record-card-right {
     display: flex;
