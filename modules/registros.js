@@ -1,48 +1,54 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, orderBy, query, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, limit, orderBy, query, startAfter, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 let db;
 let auth;
 
 export function render(container) {
     container.innerHTML = `
-        <details class="collapsible-section" open>
-            <summary class="collapsible-summary">
-                <div class="summary-content">
-                    <i class="ph ph-note-pencil"></i>
-                    <span>Novo Registro</span>
+        <!-- Stats Card -->
+        <div class="stats-card" id="statsCardRegistros">
+            <div class="stats-card-header" id="statsCardRegistrosHeader">
+                <div class="stats-quick">
+                    <div class="stats-quick-item">
+                        <span class="stats-quick-number" id="statsTotalReg">0</span>
+                        <span class="stats-quick-label">Total</span>
+                    </div>
+                    <div class="stats-quick-item">
+                        <span class="stats-quick-number" id="statsMonthReg">0</span>
+                        <span class="stats-quick-label">Este mês</span>
+                    </div>
+                    <div class="stats-quick-item">
+                        <span class="stats-quick-number stats-quick-type" id="statsTopTypeReg">–</span>
+                        <span class="stats-quick-label">Tipo top</span>
+                    </div>
                 </div>
-                <i class="ph ph-caret-down caret-icon"></i>
-            </summary>
-            <main class="form-container">
-                <form id="devotionalForm">
-                    <input type="hidden" id="editId">
-
-                    <div class="form-group">
-                        <label for="title"><i class="ph ph-text-t"></i> Título do Registro</label>
-                        <input type="text" id="title" placeholder="Ex: O Bom Pastor" required>
+                <i class="ph ph-caret-down stats-card-chevron"></i>
+            </div>
+            <div class="stats-card-body">
+                <div class="stats-card-body-inner">
+                    <div class="charts-grid">
+                        <div class="chart-wrapper">
+                            <h3 class="chart-title">Por Tipo de Registro</h3>
+                            <canvas id="devotionalsChart"></canvas>
+                        </div>
+                        <div class="chart-wrapper">
+                            <h3 class="chart-title">Livros Mais Frequentes</h3>
+                            <canvas id="booksChart"></canvas>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <div class="form-group date-group">
-                        <label for="date"><i class="ph ph-calendar-blank"></i> Data</label>
-                        <input type="date" id="date" required>
-                    </div>
-
-                    <div class="form-group autocomplete-container">
-                        <label for="continuationSearch"><i class="ph ph-link"></i> Continuação de...</label>
-                        <input type="text" id="continuationSearch"
-                            placeholder="Buscar título do registro anterior..." autocomplete="off">
-                        <input type="hidden" id="continuationOf">
-                        <ul id="continuationDropdown" class="autocomplete-list" style="display:none;"></ul>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="mainPassage"><i class="ph ph-bookmark-simple"></i> Passagem Principal</label>
-                        <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="recordType"><i class="ph ph-tag"></i> Tipo de Registro</label>
-                        <select id="recordType" required>
+        <!-- Filtros + Feed -->
+        <div class="data-container mt-4">
+            <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0; background: var(--secondary-color);">
+                    <summary style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; color: var(--text-muted);"><i class="ph ph-funnel"></i> Filtrar e Buscar Registros</summary>
+                    <div class="details-content" style="padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
+                        <input type="text" id="filterKeyword" placeholder="Buscar termo ou passagem" style="width: 100%;">
+                        <select id="filterType" style="width: 100%;">
+                            <option value="">Todos os Tipos</option>
                             <option value="devocional">Devocional</option>
                             <option value="culto_domestico">Culto Doméstico</option>
                             <option value="aula">Aula</option>
@@ -51,143 +57,29 @@ export function render(container) {
                             <option value="anotacoes_gerais">Anotações Gerais</option>
                             <option value="outros">Outros</option>
                         </select>
-                    </div>
-
-                    <details class="optional-fields" id="authorSection">
-                        <summary><i class="ph ph-user"></i> Autoria</summary>
-                        <div class="details-content">
-                            <div class="tag-input-wrapper" id="authorTagWrapper">
-                                <div class="tag-chips" id="authorTagChips"></div>
-                                <input type="text" id="authorInputField" class="tag-input-field"
-                                    placeholder="Adicione autores separados por vírgula..."
-                                    autocomplete="off">
-                            </div>
-                            <ul id="authorSuggestions" class="tag-suggestions-list" style="display:none;"></ul>
+                        <div class="filter-dates" style="display: flex; gap: 10px; width: 100%;">
+                            <input type="date" id="filterDateStart" title="Data Inicial" style="flex: 1;">
+                            <input type="date" id="filterDateEnd" title="Data Final" style="flex: 1;">
                         </div>
-                    </details>
-                    <details class="optional-fields">
-                        <summary><i class="ph ph-bookmarks"></i> Passagens Relacionadas</summary>
-                        <div class="details-content"><input type="text" id="relatedPassages"
-                                placeholder="Ex: Romanos 5:8"></div>
-                    </details>
-                    <details class="optional-fields" id="keywordsSection">
-                        <summary><i class="ph ph-tag"></i> Palavras-chave</summary>
-                        <div class="details-content">
-                            <div class="tag-input-wrapper" id="tagInputWrapper">
-                                <div class="tag-chips" id="tagChips"></div>
-                                <input type="text" id="tagInputField" class="tag-input-field"
-                                    placeholder="Adicione até três palavras-chave, separadas por vírgula..."
-                                    autocomplete="off">
-                            </div>
-                            <ul id="tagSuggestions" class="tag-suggestions-list" style="display:none;"></ul>
-                        </div>
-                    </details>
-
-                    <hr class="divider">
-
-                    <div class="form-group">
-                        <label><i class="ph ph-pen-nib"></i> Formato do Registro</label>
-                        <div class="toggle-group">
-                            <button type="button" class="btn-toggle active" data-type="livre">Livre</button>
-                            <button type="button" class="btn-toggle" data-type="orientado">Perguntas Orientadoras</button>
-                        </div>
+                        <input type="text" id="filterAuthor" placeholder="Filtrar por autor" style="width: 100%;">
+                        <button type="button" id="btnApplyFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
                     </div>
-
-                    <div id="freeRecordContainer" class="record-section active">
-                        <div class="guided-question">
-                            <div id="quillEditorLivre" class="editor-container"></div>
-                        </div>
-                    </div>
-
-                    <div id="guidedRecordContainer" class="record-section">
-                        <div id="dynamicQuestionsContainer">
-                        </div>
-                        <button type="button" id="btnAddQuestion" class="btn-secondary mt-2"><i
-                                class="ph ph-plus"></i> Adicionar Pergunta</button>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button type="button" class="btn-secondary" id="btnOpenActionsModal"><i
-                                class="ph ph-list-plus"></i> Ações e Links</button>
-                        <button type="submit" class="btn-primary" id="btnSubmit"><i
-                                class="ph ph-floppy-disk"></i> Salvar na Nuvem</button>
-                        <button type="button" class="btn-secondary" id="btnCancelEdit"
-                            style="display: none;">Cancelar Edição</button>
-                    </div>
-                </form>
-            </main>
-        </details>
-
-        <details class="collapsible-section">
-            <summary class="collapsible-summary">
-                <div class="summary-content">
-                    <i class="ph ph-books"></i>
-                    <span>Meus Registros</span>
-                </div>
-                <i class="ph ph-caret-down caret-icon"></i>
-            </summary>
-            <main class="data-container mt-4">
-                <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                    <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0; background: var(--secondary-color);">
-                        <summary style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; color: var(--text-muted);"><i class="ph ph-funnel"></i> Filtrar e Buscar Registros</summary>
-                        <div class="details-content" style="padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
-                            <input type="text" id="filterKeyword" placeholder="Buscar termo ou passagem" style="width: 100%;">
-                            <select id="filterType" style="width: 100%;">
-                                <option value="">Todos os Tipos</option>
-                                <option value="devocional">Devocional</option>
-                                <option value="culto_domestico">Culto Doméstico</option>
-                                <option value="aula">Aula</option>
-                                <option value="ebd">EBD</option>
-                                <option value="pregacao">Pregação</option>
-                                <option value="anotacoes_gerais">Anotações Gerais</option>
-                                <option value="outros">Outros</option>
-                            </select>
-                            <div class="filter-dates" style="display: flex; gap: 10px; width: 100%;">
-                                <input type="date" id="filterDateStart" title="Data Inicial" style="flex: 1;">
-                                <input type="date" id="filterDateEnd" title="Data Final" style="flex: 1;">
-                            </div>
-                            <input type="text" id="filterAuthor" placeholder="Filtrar por autor" style="width: 100%;">
-                            <button type="button" id="btnApplyFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
-                        </div>
-                    </details>
-                    <button type="button" id="btnRandom" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Sortear Devocional Aleatório">
-                        <i class="ph ph-shuffle"></i> Sortear Registro
-                    </button>
-                </div>
-
-                <div id="devotionalsFeed" class="feed-grid mt-4"></div>
-            </main>
-        </details>
-
-        <details class="collapsible-section">
-            <summary class="collapsible-summary">
-                <div class="summary-content">
-                    <i class="ph ph-chart-pie"></i>
-                    <span>Estatísticas</span>
-                </div>
-                <i class="ph ph-caret-down caret-icon"></i>
-            </summary>
-            <div class="stats-container">
-                <div class="charts-grid mt-4">
-                    <div class="chart-wrapper">
-                        <h3 class="chart-title">Por Tipo de Registro</h3>
-                        <canvas id="devotionalsChart"></canvas>
-                    </div>
-                    <div class="chart-wrapper">
-                        <h3 class="chart-title">Livros Mais Frequentes</h3>
-                        <canvas id="booksChart"></canvas>
-                    </div>
-                </div>
+                </details>
+                <button type="button" id="btnRandom" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Sortear Devocional Aleatório">
+                    <i class="ph ph-shuffle"></i> Sortear Registro
+                </button>
             </div>
-        </details>
+
+            <div id="devotionalsFeed" class="feed-grid mt-4"></div>
+            <div id="devotionalsSentinel"></div>
+        </div>
 
         <!-- Modais associados a esta aba -->
         <dialog id="actionsModal" class="modal modal-lg">
             <div class="modal-content">
                 <header class="modal-header">
                     <h2>Ações e Links</h2>
-                    <button type="button" onclick="this.closest('dialog').close()" class="btn-icon"><i
-                            class="ph ph-x"></i></button>
+                    <button type="button" onclick="this.closest('dialog').close()" class="btn-icon"><i class="ph ph-x"></i></button>
                 </header>
                 <div class="modal-body dual-panel">
                     <div class="panel-section">
@@ -203,8 +95,7 @@ export function render(container) {
                             </select>
                             <input type="text" id="actionDesc" placeholder="O que fazer?">
                             <input type="date" id="actionDate" class="compact-date">
-                            <button type="button" id="btnAddAction" class="btn-secondary btn-compact" title="Inserir"><i
-                                    class="ph ph-plus"></i></button>
+                            <button type="button" id="btnAddAction" class="btn-secondary btn-compact" title="Inserir"><i class="ph ph-plus"></i></button>
                         </div>
                         <ul id="actionsListDOM" class="modern-item-list"></ul>
                     </div>
@@ -214,8 +105,7 @@ export function render(container) {
                         <div class="inline-form">
                             <input type="text" id="linkTitle" placeholder="Título do link">
                             <input type="url" id="linkUrl" placeholder="https://...">
-                            <button type="button" id="btnAddLink" class="btn-secondary btn-compact" title="Inserir"><i
-                                    class="ph ph-plus"></i></button>
+                            <button type="button" id="btnAddLink" class="btn-secondary btn-compact" title="Inserir"><i class="ph ph-plus"></i></button>
                         </div>
                         <ul id="linksListDOM" class="modern-item-list"></ul>
                     </div>
@@ -232,28 +122,128 @@ export function render(container) {
                     </div>
                     <h2 id="viewTitle" style="margin-top: 5px;">Título do Devocional</h2>
                 </header>
-                <div id="viewBody" class="modal-body read-content">
-                </div>
+                <div id="viewBody" class="modal-body read-content"></div>
             </div>
         </dialog>
 
         <dialog id="editQuestionModal" class="modal modal-sm">
             <div class="modal-content">
                 <header class="modal-header" style="margin-bottom: 15px;">
-                    <h2 style="font-size: 1.3rem; color: var(--primary-color);"><i class="ph ph-pencil-simple"></i>
-                        Editar Pergunta</h2>
-                    <button type="button" onclick="this.closest('dialog').close()" class="btn-icon"
-                        style="padding:0; font-size:1.4rem;"><i class="ph ph-x"></i></button>
+                    <h2 style="font-size: 1.3rem; color: var(--primary-color);"><i class="ph ph-pencil-simple"></i> Editar Pergunta</h2>
+                    <button type="button" onclick="this.closest('dialog').close()" class="btn-icon" style="padding:0; font-size:1.4rem;"><i class="ph ph-x"></i></button>
                 </header>
                 <textarea id="editQuestionTextarea" rows="4"
                     style="width: 100%; border: 1px solid var(--border-color); background: var(--secondary-color); color: var(--text-main); border-radius: 8px; padding: 12px; font-family: inherit; font-size: 1rem; resize: none; outline: none;"></textarea>
                 <div class="modal-actions mt-4 dual-panel-horizontal">
-                    <button type="button" onclick="this.closest('dialog').close()"
-                        class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="this.closest('dialog').close()" class="btn-secondary">Cancelar</button>
                     <button type="button" id="btnSaveQuestion" class="btn-primary">Salvar</button>
                 </div>
             </div>
         </dialog>
+
+        <!-- Create / Edit Overlay -->
+        <div class="create-overlay" id="createRegistrosOverlay">
+            <div class="create-overlay-header">
+                <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros">
+                    <i class="ph ph-arrow-left"></i>
+                </button>
+                <h2 id="createRegistrosTitleLabel">Novo Registro</h2>
+            </div>
+            <div class="create-overlay-scroll">
+                <main class="form-container">
+                    <form id="devotionalForm">
+                        <input type="hidden" id="editId">
+
+                        <div class="form-group">
+                            <label for="title"><i class="ph ph-text-t"></i> Título do Registro</label>
+                            <input type="text" id="title" placeholder="Ex: O Bom Pastor" required>
+                        </div>
+
+                        <div class="form-group date-group">
+                            <label for="date"><i class="ph ph-calendar-blank"></i> Data</label>
+                            <input type="date" id="date" required>
+                        </div>
+
+                        <div class="form-group autocomplete-container">
+                            <label for="continuationSearch"><i class="ph ph-link"></i> Continuação de...</label>
+                            <input type="text" id="continuationSearch" placeholder="Buscar título do registro anterior..." autocomplete="off">
+                            <input type="hidden" id="continuationOf">
+                            <ul id="continuationDropdown" class="autocomplete-list" style="display:none;"></ul>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="mainPassage"><i class="ph ph-bookmark-simple"></i> Passagem Principal</label>
+                            <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recordType"><i class="ph ph-tag"></i> Tipo de Registro</label>
+                            <select id="recordType" required>
+                                <option value="devocional">Devocional</option>
+                                <option value="culto_domestico">Culto Doméstico</option>
+                                <option value="aula">Aula</option>
+                                <option value="ebd">EBD</option>
+                                <option value="pregacao">Pregação</option>
+                                <option value="anotacoes_gerais">Anotações Gerais</option>
+                                <option value="outros">Outros</option>
+                            </select>
+                        </div>
+
+                        <details class="optional-fields" id="authorSection">
+                            <summary><i class="ph ph-user"></i> Autoria</summary>
+                            <div class="details-content">
+                                <div class="tag-input-wrapper" id="authorTagWrapper">
+                                    <div class="tag-chips" id="authorTagChips"></div>
+                                    <input type="text" id="authorInputField" class="tag-input-field" placeholder="Adicione autores separados por vírgula..." autocomplete="off">
+                                </div>
+                                <ul id="authorSuggestions" class="tag-suggestions-list" style="display:none;"></ul>
+                            </div>
+                        </details>
+                        <details class="optional-fields">
+                            <summary><i class="ph ph-bookmarks"></i> Passagens Relacionadas</summary>
+                            <div class="details-content"><input type="text" id="relatedPassages" placeholder="Ex: Romanos 5:8"></div>
+                        </details>
+                        <details class="optional-fields" id="keywordsSection">
+                            <summary><i class="ph ph-tag"></i> Palavras-chave</summary>
+                            <div class="details-content">
+                                <div class="tag-input-wrapper" id="tagInputWrapper">
+                                    <div class="tag-chips" id="tagChips"></div>
+                                    <input type="text" id="tagInputField" class="tag-input-field" placeholder="Adicione até três palavras-chave, separadas por vírgula..." autocomplete="off">
+                                </div>
+                                <ul id="tagSuggestions" class="tag-suggestions-list" style="display:none;"></ul>
+                            </div>
+                        </details>
+
+                        <hr class="divider">
+
+                        <div class="form-group">
+                            <label><i class="ph ph-pen-nib"></i> Formato do Registro</label>
+                            <div class="toggle-group">
+                                <button type="button" class="btn-toggle active" data-type="livre">Livre</button>
+                                <button type="button" class="btn-toggle" data-type="orientado">Perguntas Orientadoras</button>
+                            </div>
+                        </div>
+
+                        <div id="freeRecordContainer" class="record-section active">
+                            <div class="guided-question">
+                                <div id="quillEditorLivre" class="editor-container"></div>
+                            </div>
+                        </div>
+
+                        <div id="guidedRecordContainer" class="record-section">
+                            <div id="dynamicQuestionsContainer"></div>
+                            <button type="button" id="btnAddQuestion" class="btn-secondary mt-2"><i class="ph ph-plus"></i> Adicionar Pergunta</button>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button type="button" class="btn-secondary" id="btnOpenActionsModal"><i class="ph ph-list-plus"></i> Ações e Links</button>
+                            <button type="submit" class="btn-primary" id="btnSubmit"><i class="ph ph-floppy-disk"></i> Salvar na Nuvem</button>
+                            <button type="button" class="btn-secondary" id="btnCancelEdit" style="display: none;">Cancelar Edição</button>
+                        </div>
+                    </form>
+                </main>
+            </div>
+        </div>
     `;
 }
 
@@ -284,16 +274,8 @@ export function init(firebaseDb, firebaseAuth) {
             const btnOk = document.getElementById('btnOkConfirm');
             const btnCancel = document.getElementById('btnCancelConfirm');
 
-            const onOk = () => {
-                modal.close();
-                removeListeners();
-                resolve(true);
-            };
-            const onCancel = () => {
-                modal.close();
-                removeListeners();
-                resolve(false);
-            };
+            const onOk = () => { modal.close(); removeListeners(); resolve(true); };
+            const onCancel = () => { modal.close(); removeListeners(); resolve(false); };
             const removeListeners = () => {
                 btnOk.removeEventListener('click', onOk);
                 btnCancel.removeEventListener('click', onCancel);
@@ -307,11 +289,43 @@ export function init(firebaseDb, firebaseAuth) {
 
     const setTodayDate = () => {
         const dateInput = document.getElementById('date');
-        if (dateInput) {
-            dateInput.valueAsDate = new Date();
-        }
+        if (dateInput) dateInput.valueAsDate = new Date();
     };
     setTodayDate();
+
+    // --- OVERLAY OPEN/CLOSE ---
+    window.openCreateRegistrosOverlay = () => {
+        const overlay = document.getElementById('createRegistrosOverlay');
+        if (overlay) overlay.classList.add('open');
+    };
+
+    window.closeCreateRegistrosOverlay = () => {
+        const overlay = document.getElementById('createRegistrosOverlay');
+        if (overlay) overlay.classList.remove('open');
+    };
+
+    const btnCloseCreate = document.getElementById('btnCloseCreateRegistros');
+    if (btnCloseCreate) {
+        btnCloseCreate.addEventListener('click', () => {
+            window.closeCreateRegistrosOverlay();
+            resetFormFields();
+        });
+    }
+
+    // --- STATS CARD ---
+    const statsHeader = document.getElementById('statsCardRegistrosHeader');
+    if (statsHeader) {
+        statsHeader.addEventListener('click', () => {
+            const card = document.getElementById('statsCardRegistros');
+            card.classList.toggle('expanded');
+            if (card.classList.contains('expanded')) {
+                setTimeout(() => {
+                    if (typeChart) typeChart.resize();
+                    if (booksChartInstance) booksChartInstance.resize();
+                }, 310);
+            }
+        });
+    }
 
     const resetFormFields = () => {
         const form = document.getElementById('devotionalForm');
@@ -322,14 +336,13 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('continuationSearch').value = "";
         document.getElementById('btnCancelEdit').style.display = 'none';
         document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-floppy-disk"></i> Salvar na Nuvem';
-        document.getElementById('formTitle').innerText = "Novo Registro";
+        document.getElementById('createRegistrosTitleLabel').innerText = "Novo Registro";
 
-        // Limpa editores e arrays
         const draft = localStorage.getItem('selah_draft_livre');
         if (editors.livre) {
             editors.livre.root.innerHTML = draft ? draft : "<p><br></p>";
         }
-        renderGuidedQuestions(); // Reseta para as perguntas padrão
+        renderGuidedQuestions();
         tempActions = [];
         tempLinks = [];
         renderLists();
@@ -339,15 +352,7 @@ export function init(firebaseDb, firebaseAuth) {
     };
 
     // --- EDITORES E PERGUNTAS DINÂMICAS ---
-    const customColors = [
-        false, 
-        '#e60000', 
-        '#ff9900', 
-        '#d4af37', 
-        '#008a00', 
-        '#0066cc', 
-        '#9933ff'
-    ];
+    const customColors = [false, '#e60000', '#ff9900', '#d4af37', '#008a00', '#0066cc', '#9933ff'];
     const toolbar = [['bold', 'italic', 'underline'], [{ 'color': customColors }], [{ 'header': [1, 2, false] }], ['clean']];
     const editors = {
         livre: new Quill('#quillEditorLivre', { theme: 'snow', modules: { toolbar } })
@@ -369,46 +374,34 @@ export function init(firebaseDb, firebaseAuth) {
 
     // --- MOBILE FLOATING TOOLBAR LOGIC ---
     const mobileToolbar = document.getElementById('mobileQuillToolbar');
-    
+
     const setupMobileToolbarForEditor = (qEditor) => {
         if (!mobileToolbar) return;
 
         qEditor.on('selection-change', (range) => {
-            if (window.innerWidth > 768) return; // only for mobile!
+            if (window.innerWidth > 768) return;
 
             if (range) {
-                // Editor gained focus
                 window.activeQuillEditor = qEditor;
-                
-                // Hide bottom nav to avoid clashing
                 const bottomNav = document.getElementById('mobileBottomNav');
                 if (bottomNav) bottomNav.style.display = 'none';
-                
-                // Show mobile toolbar docked at bottom
                 mobileToolbar.style.display = 'flex';
-                
-                // Update button format states
+
                 const format = qEditor.getFormat(range);
                 mobileToolbar.querySelectorAll('button').forEach(btn => {
                     const f = btn.dataset.format;
                     const v = btn.dataset.value;
                     if (f === 'clean') return;
-                    let isActive = false;
-                    if (v) isActive = (format[f] == v);
-                    else isActive = format[f];
+                    let isActive = v ? (format[f] == v) : format[f];
                     btn.classList.toggle('active-format', !!isActive);
                 });
             } else {
-                // Editor lost focus (blur)
                 setTimeout(() => {
-                    // Check if another editor took focus, or if we really lost focus
                     if (window.activeQuillEditor === qEditor && !qEditor.hasFocus()) {
                         mobileToolbar.style.display = 'none';
                         const bottomNav = document.getElementById('mobileBottomNav');
                         if (bottomNav) bottomNav.style.display = 'flex';
                         window.activeQuillEditor = null;
-                        
-                        // Also reset color toggle groups
                         const ftColorGroup = document.getElementById('ftColorGroup');
                         const ftMainGroup = document.getElementById('ftMainGroup');
                         if (ftColorGroup) ftColorGroup.style.display = 'none';
@@ -419,9 +412,7 @@ export function init(firebaseDb, firebaseAuth) {
         });
     };
 
-    if (editors.livre) {
-        setupMobileToolbarForEditor(editors.livre);
-    }
+    if (editors.livre) setupMobileToolbarForEditor(editors.livre);
 
     if (mobileToolbar && !window.mobileToolbarListenersBound) {
         window.mobileToolbarListenersBound = true;
@@ -429,18 +420,16 @@ export function init(firebaseDb, firebaseAuth) {
         const ftColorGroup = document.getElementById('ftColorGroup');
 
         const handleFormatBtn = (e, btn) => {
-            e.preventDefault(); 
+            e.preventDefault();
             if (!window.activeQuillEditor) return;
             const activeEditor = window.activeQuillEditor;
-            
-            // Retain focus on editor
             activeEditor.focus();
-            
+
             const f = btn.dataset.format;
             const v = btn.dataset.value;
             const range = activeEditor.getSelection();
             if (!range) return;
-            
+
             if (f === 'clean') {
                 activeEditor.removeFormat(range.index, range.length);
             } else {
@@ -451,13 +440,12 @@ export function init(firebaseDb, firebaseAuth) {
                     activeEditor.format(f, !currentFormat[f]);
                 }
             }
-            
+
             if (f === 'color') {
                 ftColorGroup.style.display = 'none';
                 ftMainGroup.style.display = 'flex';
             }
-            
-            // Update button active states
+
             setTimeout(() => {
                 const newRange = activeEditor.getSelection();
                 if (newRange) {
@@ -466,9 +454,7 @@ export function init(firebaseDb, firebaseAuth) {
                         const bf = b.dataset.format;
                         const bv = b.dataset.value;
                         if (bf === 'clean') return;
-                        let isActive = false;
-                        if (bv) isActive = (format[bf] == bv);
-                        else isActive = format[bf];
+                        let isActive = bv ? (format[bf] == bv) : format[bf];
                         b.classList.toggle('active-format', !!isActive);
                     });
                 }
@@ -488,7 +474,6 @@ export function init(firebaseDb, firebaseAuth) {
                 btn.addEventListener('touchstart', back);
                 return;
             }
-
             btn.addEventListener('mousedown', (e) => handleFormatBtn(e, btn));
             btn.addEventListener('touchstart', (e) => handleFormatBtn(e, btn));
         });
@@ -510,7 +495,6 @@ export function init(firebaseDb, firebaseAuth) {
             const textarea = document.getElementById('editQuestionTextarea');
             textarea.value = inputEl.value;
             modal.showModal();
-
             document.getElementById('btnSaveQuestion').onclick = () => {
                 inputEl.value = textarea.value;
                 modal.close();
@@ -534,9 +518,9 @@ export function init(firebaseDb, firebaseAuth) {
                             <div class="collapse-toggle" style="cursor:pointer; display:flex; align-items:center; color: var(--text-muted); padding: 5px;" title="Recolher/Expandir">
                                 <i class="ph ph-caret-down collapse-icon"></i>
                             </div>
-                            <input type="text" class="question-input truncate-mobile" value="${q}" 
-                                style="flex:1; font-weight:500; min-width:0; padding-right:5px; text-overflow:ellipsis;" 
-                                onclick="handleQuestionClick(${idx}, this)" 
+                            <input type="text" class="question-input truncate-mobile" value="${q}"
+                                style="flex:1; font-weight:500; min-width:0; padding-right:5px; text-overflow:ellipsis;"
+                                onclick="handleQuestionClick(${idx}, this)"
                                 onfocus="if(window.innerWidth <= 768) this.blur();">
                             <button type="button" class="btn-icon text-danger" style="margin:0; padding:5px;" onclick="event.preventDefault(); removeGuidedQuestion(${idx});" title="Remover Pergunta"><i class="ph ph-trash"></i></button>
                         </div>
@@ -578,7 +562,7 @@ export function init(firebaseDb, firebaseAuth) {
         }));
     };
 
-    renderGuidedQuestions(); // inicializa as perguntas padrão
+    renderGuidedQuestions();
 
     // --- ALTERNÂNCIA DE FORMATO ---
     document.querySelectorAll('.btn-toggle').forEach(btn => {
@@ -637,7 +621,8 @@ export function init(firebaseDb, firebaseAuth) {
             const desc = document.getElementById('actionDesc');
             if (!desc.value) return;
             tempActions.push({ type: document.getElementById('actionType').value, description: desc.value, date: document.getElementById('actionDate').value });
-            desc.value = ''; renderLists();
+            desc.value = '';
+            renderLists();
         });
     }
 
@@ -647,7 +632,8 @@ export function init(firebaseDb, firebaseAuth) {
             const t = document.getElementById('linkTitle'), u = document.getElementById('linkUrl');
             if (!t.value || !u.value) return;
             tempLinks.push({ title: t.value, url: u.value });
-            t.value = ''; u.value = ''; renderLists();
+            t.value = ''; u.value = '';
+            renderLists();
         });
     }
 
@@ -672,9 +658,7 @@ export function init(firebaseDb, firebaseAuth) {
                 relatedPassages: document.getElementById('relatedPassages').value,
                 keywords: tagManager.getTags(),
                 recordFormat: isLivre ? 'livre' : 'orientado',
-                content: isLivre ? { texto: editors.livre.root.innerHTML } : {
-                    questions: getGuidedData()
-                },
+                content: isLivre ? { texto: editors.livre.root.innerHTML } : { questions: getGuidedData() },
                 actions: tempActions,
                 links: tempLinks,
                 updatedAt: new Date().toISOString()
@@ -691,6 +675,7 @@ export function init(firebaseDb, firebaseAuth) {
                     localStorage.removeItem('selah_draft_livre');
                 }
 
+                window.closeCreateRegistrosOverlay();
                 resetFormFields();
                 fetchAll();
             } catch (err) {
@@ -702,8 +687,13 @@ export function init(firebaseDb, firebaseAuth) {
         });
     }
 
-    // --- CRUD: BUSCAR E RENDERIZAR ---
+    // --- CRUD: BUSCAR E RENDERIZAR (com paginação) ---
     let allRecords = [];
+    let lastDoc = null;
+    let allLoaded = false;
+    let isFetching = false;
+    let sentinelObserver = null;
+    const PAGE_SIZE = 15;
 
     const initAutocomplete = () => {
         const input = document.getElementById('continuationSearch');
@@ -752,9 +742,7 @@ export function init(firebaseDb, firebaseAuth) {
         allRecords.forEach(r => {
             if (r.keywords) {
                 r.keywords.forEach(k => {
-                    if (k && !globalKeywordIndex.has(k.toLowerCase())) {
-                        globalKeywordIndex.set(k.toLowerCase(), k);
-                    }
+                    if (k && !globalKeywordIndex.has(k.toLowerCase())) globalKeywordIndex.set(k.toLowerCase(), k);
                 });
             }
             if (r.author) {
@@ -775,7 +763,6 @@ export function init(firebaseDb, firebaseAuth) {
         constructor(config) {
             this.tags = [];
             this.activeIdx = -1;
-
             this.config = Object.assign({
                 wrapperId: 'tagInputWrapper',
                 chipsId: 'tagChips',
@@ -794,16 +781,13 @@ export function init(firebaseDb, firebaseAuth) {
             this.input = document.getElementById(this.config.inputId);
             this.sugList = document.getElementById(this.config.sugListId);
 
-            if (this.wrapper && this.input) {
-                this._bind();
-            }
+            if (this.wrapper && this.input) this._bind();
         }
 
         _bind() {
             if (window.innerWidth <= 768 && this.config.placeholderMobile) {
                 this.input.placeholder = this.config.placeholderMobile;
             }
-
             this.wrapper.addEventListener('click', () => this.input.focus());
             this.input.addEventListener('input', () => this._onInput());
             this.input.addEventListener('keydown', (e) => this._onKeydown(e));
@@ -825,15 +809,12 @@ export function init(firebaseDb, firebaseAuth) {
         _onKeydown(e) {
             const val = this.input.value.trim();
             const items = this.sugList.querySelectorAll('.tag-suggestion-item');
-
             if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault();
                 if (this.activeIdx >= 0 && items[this.activeIdx]) {
                     this._acceptSuggestion(items[this.activeIdx].dataset.tag);
                 } else if (val) {
-                    this._addTag(val);
-                    this.input.value = '';
-                    this._hideSuggestions();
+                    this._addTag(val); this.input.value = ''; this._hideSuggestions();
                 }
             } else if (e.key === 'Backspace' && val === '' && this.tags.length) {
                 this._removeTag(this.tags.length - 1);
@@ -854,14 +835,11 @@ export function init(firebaseDb, firebaseAuth) {
             this.sugList.innerHTML = '';
             this.activeIdx = -1;
             if (!query) { this._hideSuggestions(); return; }
-
             const q = query.toLowerCase();
             const matches = Array.from(this.config.indexMap.entries())
                 .filter(([key]) => key.includes(q) && !this.tags.includes(key))
                 .slice(0, 8);
-
             if (matches.length === 0) { this._hideSuggestions(); return; }
-
             matches.forEach(([key, label]) => {
                 const li = document.createElement('li');
                 li.className = 'tag-suggestion-item';
@@ -871,13 +849,9 @@ export function init(firebaseDb, firebaseAuth) {
                     '<mark>$1</mark>'
                 );
                 li.innerHTML = `<i class="ph ${this.config.iconClass}"></i>${highlighted}`;
-                li.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    this._acceptSuggestion(key);
-                });
+                li.addEventListener('mousedown', (e) => { e.preventDefault(); this._acceptSuggestion(key); });
                 this.sugList.appendChild(li);
             });
-
             this.sugList.style.display = 'block';
         }
 
@@ -885,38 +859,20 @@ export function init(firebaseDb, firebaseAuth) {
             items.forEach((el, i) => el.classList.toggle('active', i === this.activeIdx));
         }
 
-        _hideSuggestions() {
-            this.sugList.style.display = 'none';
-            this.activeIdx = -1;
-        }
-
-        _acceptSuggestion(tagKey) {
-            this._addTag(tagKey);
-            this.input.value = '';
-            this._hideSuggestions();
-            this.input.focus();
-        }
+        _hideSuggestions() { this.sugList.style.display = 'none'; this.activeIdx = -1; }
+        _acceptSuggestion(tagKey) { this._addTag(tagKey); this.input.value = ''; this._hideSuggestions(); this.input.focus(); }
 
         _addTag(raw) {
             if (!raw) return;
             const key = raw.toLowerCase().trim();
             if (!key || this.tags.includes(key)) return;
-
-            if (this.tags.length >= this.config.maxTags) {
-                showAlert(this.config.maxTagsMsg);
-                return;
-            }
-
+            if (this.tags.length >= this.config.maxTags) { showAlert(this.config.maxTagsMsg); return; }
             if (!this.config.indexMap.has(key)) this.config.indexMap.set(key, raw.trim());
-
             this.tags.push(key);
             this._renderChips();
         }
 
-        _removeTag(idx) {
-            this.tags.splice(idx, 1);
-            this._renderChips();
-        }
+        _removeTag(idx) { this.tags.splice(idx, 1); this._renderChips(); }
 
         _renderChips() {
             this.chipsEl.innerHTML = '';
@@ -926,27 +882,19 @@ export function init(firebaseDb, firebaseAuth) {
                 const label = this.config.indexMap.get(tag) || tag;
                 chip.innerHTML = `${label}<button type="button" class="tag-chip-remove" title="Remover"><i class="ph ph-x"></i></button>`;
                 chip.querySelector('.tag-chip-remove').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this._removeTag(i);
+                    e.stopPropagation(); this._removeTag(i);
                 });
                 this.chipsEl.appendChild(chip);
             });
         }
 
         getTags() { return [...this.tags]; }
-
         setTags(arr) {
             this.tags = arr.map(t => t.toLowerCase().trim()).filter(Boolean);
             this.tags.forEach(t => { if (!this.config.indexMap.has(t)) this.config.indexMap.set(t, t); });
             this._renderChips();
         }
-
-        clear() {
-            this.tags = [];
-            this.input.value = '';
-            this._renderChips();
-            this._hideSuggestions();
-        }
+        clear() { this.tags = []; this.input.value = ''; this._renderChips(); this._hideSuggestions(); }
     }
 
     let tagManager;
@@ -967,49 +915,6 @@ export function init(firebaseDb, firebaseAuth) {
             </div>`).join('')}
         </div>`;
 
-    const fetchAll = async () => {
-        try {
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const feed = document.getElementById('devotionalsFeed');
-            if (feed && !feed.dataset.loaded) {
-                feed.innerHTML = feedSkeletonHTML;
-            }
-
-            const q = query(
-                collection(db, "devotionals"),
-                where("userId", "==", user.uid),
-                orderBy("date", "desc")
-            );
-
-            const snap = await getDocs(q);
-            allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (feed) feed.dataset.loaded = '1';
-
-            buildIndices();
-
-            if (!tagManager) tagManager = new TagManager();
-            if (!authorManager) authorManager = new TagManager({
-                wrapperId: 'authorTagWrapper',
-                chipsId: 'authorTagChips',
-                inputId: 'authorInputField',
-                sugListId: 'authorSuggestions',
-                sectionId: 'authorSection',
-                maxTags: 5,
-                maxTagsMsg: "Você pode adicionar no máximo 5 autores.",
-                indexMap: globalAuthorIndex,
-                iconClass: 'ph-user',
-                placeholderMobile: "Adicionar autores..."
-            });
-            initAutocomplete();
-            renderFeed(allRecords);
-            renderChart(allRecords);
-        } catch (err) {
-            console.error("Erro ao carregar devocionais em fetchAll:", err);
-        }
-    };
-
     const RECORD_TYPE_LABELS = {
         devocional: 'Devocional', culto_domestico: 'Culto Dom.', aula: 'Aula',
         ebd: 'EBD', pregacao: 'Pregação', anotacoes_gerais: 'Anotações', outros: 'Outros'
@@ -1021,21 +926,20 @@ export function init(firebaseDb, firebaseAuth) {
         return { day: d, month: months[parseInt(m,10)-1], year: y };
     };
 
-    const renderFeed = (arr) => {
+    const renderFeed = (arr, replace = true) => {
         const feed = document.getElementById('devotionalsFeed');
         if (!feed) return;
 
-        if (arr.length === 0) {
+        if (replace && arr.length === 0) {
             feed.innerHTML = `
                 <div class="records-empty-state">
                     <i class="ph ph-book-open"></i>
-                    <p>Comece seu diário espiritual.<br>Registre o que o Senhor falou ao seu coração hoje.</p>
+                    <p>Comece seu diário espiritual.<br>Toque no <strong>+</strong> para registrar o que o Senhor falou.</p>
                 </div>`;
             return;
         }
 
-        feed.className = 'records-feed mt-2';
-        feed.innerHTML = arr.map(r => {
+        const html = arr.map(r => {
             const dp = formatDateParts(r.date);
             const typeLabel = RECORD_TYPE_LABELS[r.recordType] || r.recordType;
             const keywordChips = (r.keywords && r.keywords.length)
@@ -1079,6 +983,13 @@ export function init(firebaseDb, firebaseAuth) {
                 </div>
             </div>`;
         }).join('');
+
+        if (replace) {
+            feed.className = 'records-feed mt-2';
+            feed.innerHTML = html;
+        } else {
+            feed.insertAdjacentHTML('beforeend', html);
+        }
     };
 
     window.toggleRecordCard = (id) => {
@@ -1110,7 +1021,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-toolbar">
                 <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
-                    <button class="rc-btn" onclick="editRecord('${r.id}'); document.getElementById('readingOverlay')?.remove()"><i class="ph ph-pencil"></i> Editar</button>
+                    <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
             </div>
             <div class="reading-scroll">
@@ -1132,8 +1043,10 @@ export function init(firebaseDb, firebaseAuth) {
         };
 
         document.getElementById('readingCloseBtn').addEventListener('click', close);
-        overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-        overlay.focus?.();
+        document.getElementById('readingEditBtn').addEventListener('click', () => {
+            close();
+            setTimeout(() => editRecord(r.id), 210);
+        });
 
         document.addEventListener('keydown', function onEsc(e) {
             if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
@@ -1150,21 +1063,20 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('viewTitle').innerText = r.title ? r.title : r.mainPassage;
 
         let html = '<div class="view-meta-grid">';
-        
         html += `<div class="meta-item"><span class="meta-label">Data</span><span class="meta-value">${r.date.split('-').reverse().join('/')}</span></div>`;
         html += `<div class="meta-item"><span class="meta-label">Tipo</span><span class="meta-value tag uppercase">${r.recordType}</span></div>`;
-        
+
         if (r.author) {
             const authorsArr = Array.isArray(r.author) ? r.author.map(a => globalAuthorIndex.get(a) || a) : [r.author];
             if (authorsArr.length > 0 && authorsArr[0] !== '') {
                 html += `<div class="meta-item full-width"><span class="meta-label">Autor(es)</span><span class="meta-value capitalize">${authorsArr.join(', ')}</span></div>`;
             }
         }
-        
+
         if (r.title && r.mainPassage) {
             html += `<div class="meta-item full-width"><span class="meta-label">Passagem</span><span class="meta-value capitalize">${r.mainPassage}</span></div>`;
         }
-        
+
         if (r.relatedPassages) {
             html += `<div class="meta-item full-width"><span class="meta-label">Passagens Relacionadas</span><span class="meta-value capitalize">${r.relatedPassages}</span></div>`;
         }
@@ -1173,10 +1085,8 @@ export function init(firebaseDb, firebaseAuth) {
             const keywordHtml = r.keywords.map(k => `<span class="meta-value tag capitalize">${globalKeywordIndex.get(k) || k}</span>`).join('');
             html += `<div class="meta-item full-width"><span class="meta-label">Palavras-chave</span><div style="display:flex; gap:5px; flex-wrap:wrap;">${keywordHtml}</div></div>`;
         }
-        
         html += '</div>';
 
-        // Lógica de Trilha (Chain Logic)
         let chainBack = [], chainForward = [];
         let curr = r;
         while (curr.continuationOf) {
@@ -1206,12 +1116,7 @@ export function init(firebaseDb, firebaseAuth) {
                         const tagHtml = isCurrent ?
                             `<span class="tag" style="background:var(--primary-color);color:var(--bg-color);font-weight:600;">${item.title || item.mainPassage}</span>` :
                             `<a href="#" onclick="viewRecord('${item.id}', true); return false;" class="tag">${item.title || item.mainPassage}</a>`;
-                        
-                        return `
-                        <div class="chain-item">
-                            <span class="chain-number">${idx + 1}.</span>
-                            ${tagHtml}
-                        </div>`;
+                        return `<div class="chain-item"><span class="chain-number">${idx + 1}.</span>${tagHtml}</div>`;
                     }).join('')}
                 </div>
             </details>`;
@@ -1223,12 +1128,9 @@ export function init(firebaseDb, firebaseAuth) {
         } else {
             if (r.content.questions) {
                 r.content.questions.forEach(q => {
-                    if (q.a && q.a !== '<p><br></p>') {
-                        html += `<h4>${q.q}</h4><div>${q.a}</div>`;
-                    }
+                    if (q.a && q.a !== '<p><br></p>') html += `<h4>${q.q}</h4><div>${q.a}</div>`;
                 });
             } else {
-                // Legado
                 const qs = ["Contexto", "Sobre o que fala", "Revela sobre Deus", "Revela sobre o Homem", "Aplicação"];
                 [r.content.c1, r.content.c2, r.content.c3, r.content.c4, r.content.c5].forEach((c, i) => {
                     if (c && c !== '<p><br></p>') html += `<h4>${qs[i]}</h4><div>${c}</div>`;
@@ -1240,27 +1142,26 @@ export function init(firebaseDb, firebaseAuth) {
         html += '</div>';
 
         document.getElementById('viewBody').innerHTML = html;
-
         document.getElementById('viewModalActions').innerHTML = `
             <button type="button" onclick="editRecord('${r.id}')" class="btn-icon" title="Editar"><i class="ph ph-pencil"></i></button>
             <button type="button" onclick="deleteRecord('${r.id}')" class="btn-icon text-danger" title="Excluir"><i class="ph ph-trash"></i></button>
         `;
-
         document.getElementById('viewModal').showModal();
     };
 
     window.editRecord = (id) => {
-        const modal = document.getElementById('viewModal');
-        if (modal && modal.open) modal.close();
+        const viewModal = document.getElementById('viewModal');
+        if (viewModal && viewModal.open) viewModal.close();
 
         const r = allRecords.find(x => x.id === id);
         if (!r) return;
+
         document.getElementById('editId').value = r.id;
-        document.getElementById('formTitle').innerText = "Editando Registro";
+        document.getElementById('createRegistrosTitleLabel').innerText = "Editando Registro";
         document.getElementById('title').value = r.title || '';
         document.getElementById('date').value = r.date;
-
         document.getElementById('continuationOf').value = r.continuationOf || '';
+
         if (r.continuationOf) {
             const parent = allRecords.find(x => x.id === r.continuationOf);
             if (parent) document.getElementById('continuationSearch').value = parent.title || parent.mainPassage;
@@ -1279,7 +1180,6 @@ export function init(firebaseDb, firebaseAuth) {
             authorsArr = [r.author.trim()];
         }
         authorManager.setTags(authorsArr);
-        
         tagManager.setTags(r.keywords || []);
 
         if (r.recordFormat === 'livre') {
@@ -1295,25 +1195,21 @@ export function init(firebaseDb, firebaseAuth) {
                 renderGuidedQuestions(qs, contents);
             }
         }
-        tempActions = r.actions || []; tempLinks = r.links || [];
+
+        tempActions = r.actions || [];
+        tempLinks = r.links || [];
         renderLists();
         document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-check"></i> Atualizar Registro';
         document.getElementById('btnCancelEdit').style.display = 'block';
 
-        const coll = document.querySelector('.collapsible-section');
-        if (coll && !coll.hasAttribute('open')) {
-            coll.setAttribute('open', '');
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.openCreateRegistrosOverlay();
     };
 
     window.deleteRecord = async (id) => {
         if (await showConfirm("Deseja realmente excluir este registro?")) {
             await deleteDoc(doc(db, "devotionals", id));
-
             const modal = document.getElementById('viewModal');
             if (modal && modal.open) modal.close();
-
             fetchAll();
         }
     };
@@ -1322,7 +1218,7 @@ export function init(firebaseDb, firebaseAuth) {
     if (btnCancelEdit) {
         btnCancelEdit.onclick = () => {
             resetFormFields();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.closeCreateRegistrosOverlay();
         };
     }
 
@@ -1373,6 +1269,136 @@ export function init(firebaseDb, firebaseAuth) {
         }
     };
 
+    const updateStatsCard = () => {
+        const total = allRecords.length;
+        const el = document.getElementById('statsTotalReg');
+        if (el) el.innerText = total;
+
+        const now = new Date();
+        const monthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        const monthCount = allRecords.filter(r => r.date.startsWith(monthPrefix)).length;
+        const elMonth = document.getElementById('statsMonthReg');
+        if (elMonth) elMonth.innerText = monthCount;
+
+        const typeCounts = allRecords.reduce((acc, r) => { acc[r.recordType] = (acc[r.recordType] || 0) + 1; return acc; }, {});
+        const topType = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0];
+        const elType = document.getElementById('statsTopTypeReg');
+        if (elType) elType.innerText = topType ? (RECORD_TYPE_LABELS[topType[0]] || topType[0]) : '–';
+    };
+
+    // --- PAGINAÇÃO ---
+    const initSentinelObserver = () => {
+        if (sentinelObserver) sentinelObserver.disconnect();
+        const sentinel = document.getElementById('devotionalsSentinel');
+        if (!sentinel) return;
+
+        sentinelObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isFetching && !allLoaded) {
+                fetchPage(false);
+            }
+        }, { rootMargin: '0px 0px 200px 0px' });
+
+        sentinelObserver.observe(sentinel);
+    };
+
+    const fetchPage = async (isFirst = false) => {
+        if (isFetching || (!isFirst && allLoaded)) return;
+        const user = auth.currentUser;
+        if (!user) return;
+        isFetching = true;
+
+        const feed = document.getElementById('devotionalsFeed');
+        const sentinel = document.getElementById('devotionalsSentinel');
+
+        if (isFirst && feed && !feed.dataset.loaded) {
+            feed.innerHTML = feedSkeletonHTML;
+        } else if (!isFirst && sentinel) {
+            sentinel.innerHTML = `<div class="load-more-sentinel"><i class="ph ph-circle-notch ph-spin"></i> Carregando mais...</div>`;
+        }
+
+        try {
+            let q;
+            if (isFirst) {
+                q = query(
+                    collection(db, "devotionals"),
+                    where("userId", "==", user.uid),
+                    orderBy("date", "desc"),
+                    limit(PAGE_SIZE)
+                );
+            } else {
+                q = query(
+                    collection(db, "devotionals"),
+                    where("userId", "==", user.uid),
+                    orderBy("date", "desc"),
+                    startAfter(lastDoc),
+                    limit(PAGE_SIZE)
+                );
+            }
+
+            const snap = await getDocs(q);
+            const newRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            if (isFirst) {
+                allRecords = newRecords;
+                if (feed) feed.dataset.loaded = '1';
+            } else {
+                allRecords = [...allRecords, ...newRecords];
+            }
+
+            if (snap.docs.length > 0) lastDoc = snap.docs[snap.docs.length - 1];
+            if (snap.docs.length < PAGE_SIZE) allLoaded = true;
+
+            buildIndices();
+
+            if (!tagManager) tagManager = new TagManager();
+            if (!authorManager) authorManager = new TagManager({
+                wrapperId: 'authorTagWrapper',
+                chipsId: 'authorTagChips',
+                inputId: 'authorInputField',
+                sugListId: 'authorSuggestions',
+                sectionId: 'authorSection',
+                maxTags: 5,
+                maxTagsMsg: "Você pode adicionar no máximo 5 autores.",
+                indexMap: globalAuthorIndex,
+                iconClass: 'ph-user',
+                placeholderMobile: "Adicionar autores..."
+            });
+
+            if (isFirst) {
+                initAutocomplete();
+                renderFeed(newRecords, true);
+                renderChart(allRecords);
+            } else {
+                renderFeed(newRecords, false);
+            }
+            updateStatsCard();
+
+            if (sentinel) {
+                if (allLoaded) {
+                    sentinel.innerHTML = `<div class="list-end-msg"><i class="ph ph-check-circle"></i> Você chegou ao início do seu diário.</div>`;
+                    if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+                } else {
+                    sentinel.innerHTML = '';
+                    initSentinelObserver();
+                }
+            }
+        } catch (err) {
+            console.error("Erro ao carregar registros:", err);
+            if (sentinel) sentinel.innerHTML = '';
+        } finally {
+            isFetching = false;
+        }
+    };
+
+    const fetchAll = async () => {
+        if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+        lastDoc = null;
+        allLoaded = false;
+        isFetching = false;
+        allRecords = [];
+        await fetchPage(true);
+    };
+
     // --- FILTROS E BUSCA ---
     const btnApplyFilters = document.getElementById('btnApplyFilters');
     if (btnApplyFilters) {
@@ -1387,12 +1413,12 @@ export function init(firebaseDb, firebaseAuth) {
                 let match = true;
                 if (t && r.recordType !== t) match = false;
                 if (k && !(r.mainPassage.toLowerCase().includes(k) || (r.title && r.title.toLowerCase().includes(k)) || r.keywords?.some(kw => kw.includes(k)))) match = false;
-                if (author && (!r.author || !r.author.toLowerCase().includes(author))) match = false;
+                if (author && (!r.author || !r.author.toLowerCase?.includes?.(author))) match = false;
                 if (dStart && r.date < dStart) match = false;
                 if (dEnd && r.date > dEnd) match = false;
                 return match;
             });
-            renderFeed(filtered);
+            renderFeed(filtered, true);
         };
     }
 
@@ -1405,6 +1431,5 @@ export function init(firebaseDb, firebaseAuth) {
         };
     }
 
-    // Inicialização da busca de dados
     fetchAll();
 }

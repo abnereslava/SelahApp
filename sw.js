@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v1'; // Arquitetura SPA Modular
+const CACHE_NAME = 'selah-pwa-spa-v2'; // FAB + paginação + paridade desktop
 const urlsToCache = [
   './',
   './index.html',
