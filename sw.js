@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v2'; // FAB + paginação + paridade desktop
+const CACHE_NAME = 'selah-pwa-spa-v3'; // FAB + paginação + paridade desktop
 const urlsToCache = [
   './',
   './index.html',
@@ -31,26 +31,29 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // Assume o controle das abas abertas imediatamente
   );
 });
 
-// --- NOVA ESTRATÉGIA: NETWORK FIRST (Rede Primeiro) ---
+// --- ESTRATÉGIA: NETWORK FIRST (Rede Primeiro) ---
 self.addEventListener('fetch', event => {
+  const request = event.request;
+
+  // Só lida com GET de mesma origem. Firebase, fontes, CDNs e POSTs passam direto.
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) {
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then(networkResponse => {
-        // Se a internet funcionou, pega o arquivo novo do GitHub
-        // E já salva uma cópia atualizada no cache silenciosamente
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
-        });
+        // Só guarda respostas válidas (200, mesma origem, sem ser opaca)
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        }
+        return networkResponse;
       })
-      .catch(() => {
-        // Se falhar (você estiver offline), ele puxa da memória do celular
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(request))
   );
 });
-
