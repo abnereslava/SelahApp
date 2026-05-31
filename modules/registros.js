@@ -17,10 +17,6 @@ export function render(container) {
                         <span class="stats-quick-number" id="statsMonthReg">0</span>
                         <span class="stats-quick-label">Este mês</span>
                     </div>
-                    <div class="stats-quick-item">
-                        <span class="stats-quick-number stats-quick-type" id="statsTopTypeReg">–</span>
-                        <span class="stats-quick-label">Tipo top</span>
-                    </div>
                 </div>
                 <i class="ph ph-caret-down stats-card-chevron"></i>
             </div>
@@ -29,11 +25,11 @@ export function render(container) {
                     <div class="charts-grid">
                         <div class="chart-wrapper">
                             <h3 class="chart-title">Por Tipo de Registro</h3>
-                            <canvas id="devotionalsChart"></canvas>
+                            <div class="chart-canvas-box"><canvas id="devotionalsChart"></canvas></div>
                         </div>
                         <div class="chart-wrapper">
                             <h3 class="chart-title">Livros Mais Frequentes</h3>
-                            <canvas id="booksChart"></canvas>
+                            <div class="chart-canvas-box"><canvas id="booksChart"></canvas></div>
                         </div>
                     </div>
                 </div>
@@ -144,7 +140,7 @@ export function render(container) {
         <!-- Create / Edit Overlay -->
         <div class="create-overlay" id="createRegistrosOverlay">
             <div class="create-overlay-header">
-                <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros">
+                <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros" onclick="if(window._closeRegistros)window._closeRegistros()">
                     <i class="ph ph-arrow-left"></i>
                 </button>
                 <h2 id="createRegistrosTitleLabel">Novo Registro</h2>
@@ -302,6 +298,11 @@ export function init(firebaseDb, firebaseAuth) {
     window.closeCreateRegistrosOverlay = () => {
         const overlay = document.getElementById('createRegistrosOverlay');
         if (overlay) overlay.classList.remove('open');
+        const mobileToolbar = document.getElementById('mobileQuillToolbar');
+        if (mobileToolbar) mobileToolbar.style.display = 'none';
+        const bottomNav = document.getElementById('mobileBottomNav');
+        if (bottomNav) bottomNav.style.display = '';
+        window.activeQuillEditor = null;
     };
 
     const btnCloseCreate = document.getElementById('btnCloseCreateRegistros');
@@ -349,6 +350,11 @@ export function init(firebaseDb, firebaseAuth) {
         setTodayDate();
         if (tagManager) tagManager.clear();
         if (authorManager) authorManager.clear();
+    };
+
+    window._closeRegistros = () => {
+        window.closeCreateRegistrosOverlay();
+        resetFormFields();
     };
 
     // --- EDITORES E PERGUNTAS DINÂMICAS ---
@@ -956,11 +962,11 @@ export function init(firebaseDb, firebaseAuth) {
                     <div class="record-card-info">
                         <div class="record-card-title">${r.title || r.mainPassage}</div>
                         ${r.title ? `<div class="record-card-passage">${r.mainPassage}</div>` : ''}
+                        <div class="record-card-chip">
+                            <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
+                        </div>
                     </div>
-                    <div class="record-card-right">
-                        <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
-                        <i class="ph ph-caret-down record-card-chevron"></i>
-                    </div>
+                    <i class="ph ph-caret-down record-card-chevron"></i>
                 </div>
                 <div class="record-card-body">
                     <div class="record-card-body-inner">
@@ -1241,30 +1247,58 @@ export function init(firebaseDb, firebaseAuth) {
             return acc;
         }, {});
 
+        // Paleta dourada/terrosa alinhada ao tema do app
+        const goldPalette = ['#D4AF37', '#B8860B', '#E6C566', '#8C6D1F', '#F2C94C', '#A0722C', '#5C4A2E'];
+        const labelColor = '#D4AF37';
+        const gridColor = 'rgba(212,175,55,0.12)';
+
         const typeCanvas = document.getElementById('devotionalsChart');
         if (typeCanvas) {
             if (typeChart) typeChart.destroy();
             typeChart = new Chart(typeCanvas, {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(typeCounts),
-                    datasets: [{ data: Object.values(typeCounts), backgroundColor: ['#2c3e50', '#34495e', '#7f8c8d', '#95a5a6', '#bdc3c7', '#3b82f6'] }]
+                    labels: Object.keys(typeCounts).map(t => RECORD_TYPE_LABELS[t] || t),
+                    datasets: [{
+                        data: Object.values(typeCounts),
+                        backgroundColor: goldPalette,
+                        borderColor: '#1A0F0A',
+                        borderWidth: 2
+                    }]
                 },
-                options: { plugins: { legend: { position: 'bottom' } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#FBF7EB', boxWidth: 12, padding: 12, font: { size: 11 } }
+                        }
+                    }
+                }
             });
         }
 
         const booksCanvas = document.getElementById('booksChart');
         if (booksCanvas) {
             if (booksChartInstance) booksChartInstance.destroy();
-            const sortedBooks = Object.entries(bookCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const sortedBooks = Object.entries(bookCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
             booksChartInstance = new Chart(booksCanvas, {
                 type: 'bar',
                 data: {
                     labels: sortedBooks.map(b => b[0]),
-                    datasets: [{ label: 'Qtd de Registros', data: sortedBooks.map(b => b[1]), backgroundColor: '#3b82f6' }]
+                    datasets: [{ label: 'Qtd de Registros', data: sortedBooks.map(b => b[1]), backgroundColor: '#D4AF37', borderRadius: 4 }]
                 },
-                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, color: labelColor, font: { size: 10 } }, grid: { color: gridColor } },
+                        x: { ticks: { color: labelColor, font: { size: 10 }, maxRotation: 45, minRotation: 0 }, grid: { display: false } }
+                    }
+                }
             });
         }
     };
@@ -1280,10 +1314,6 @@ export function init(firebaseDb, firebaseAuth) {
         const elMonth = document.getElementById('statsMonthReg');
         if (elMonth) elMonth.innerText = monthCount;
 
-        const typeCounts = allRecords.reduce((acc, r) => { acc[r.recordType] = (acc[r.recordType] || 0) + 1; return acc; }, {});
-        const topType = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0];
-        const elType = document.getElementById('statsTopTypeReg');
-        if (elType) elType.innerText = topType ? (RECORD_TYPE_LABELS[topType[0]] || topType[0]) : '–';
     };
 
     // --- PAGINAÇÃO ---
@@ -1384,6 +1414,14 @@ export function init(firebaseDb, firebaseAuth) {
             }
         } catch (err) {
             console.error("Erro ao carregar registros:", err);
+            if (isFirst && feed) {
+                feed.dataset.loaded = '1';
+                feed.innerHTML = `
+                    <div class="records-empty-state">
+                        <i class="ph ph-warning-circle"></i>
+                        <p>Não foi possível carregar seus registros agora.<br>Verifique sua conexão e tente recarregar.</p>
+                    </div>`;
+            }
             if (sentinel) sentinel.innerHTML = '';
         } finally {
             isFetching = false;
