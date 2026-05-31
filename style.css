@@ -2097,10 +2097,12 @@ select:focus {
     font-size: 0.98rem;
     font-weight: 600;
     color: var(--text-main);
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
     margin: 0 0 3px 0;
+    line-height: 1.35;
 }
 .record-card-passage {
     font-size: 0.78rem;
