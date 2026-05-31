@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v3'; // FAB + paginação + paridade desktop
+const CACHE_NAME = 'selah-pwa-spa-v4'; // ajustes de layout: cards, menu, gráficos, swipe
 const urlsToCache = [
   './',
   './index.html',

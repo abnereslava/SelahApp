@@ -158,6 +158,11 @@ let currentUserFeatures = [];
 let isNavigating = false;
 const loadedModules = new Set();
 
+// Ordem visual das abas (igual ao menu): usada para swipe e direção da animação.
+const NAV_ORDER = ['registros', 'bencaos', 'oracoes', 'igreja'];
+// Retorna as features permitidas na ordem visual do menu.
+const getOrderedFeatures = () => NAV_ORDER.filter(f => currentUserFeatures.includes(f));
+
 const adjustSidebarMenu = (allowedFeatures) => {
     // Sidebar Desktop
     const sidebarNav = document.querySelector('.sidebar-nav');
@@ -211,8 +216,9 @@ const handleRouteChange = async (direction = null) => {
     const hash = window.location.hash.substring(1) || 'registros';
 
     if (!currentUserFeatures.includes(hash)) {
-        if (currentUserFeatures.length > 0) {
-            window.location.hash = currentUserFeatures[0];
+        const ordered = getOrderedFeatures();
+        if (ordered.length > 0) {
+            window.location.hash = ordered[0];
         } else {
             await signOut(auth);
         }
@@ -278,10 +284,11 @@ const handleRouteChange = async (direction = null) => {
 // Escuta às mudanças da Hash do Roteador com detecção de direção
 let _prevHash = '';
 window.addEventListener('hashchange', (e) => {
-    const prev = _prevHash || new URL(e.oldURL).hash.substring(1) || (currentUserFeatures[0] ?? '');
+    const ordered = getOrderedFeatures();
+    const prev = _prevHash || new URL(e.oldURL).hash.substring(1) || (ordered[0] ?? '');
     const next = window.location.hash.substring(1);
-    const pi = currentUserFeatures.indexOf(prev);
-    const ni = currentUserFeatures.indexOf(next);
+    const pi = ordered.indexOf(prev);
+    const ni = ordered.indexOf(next);
     let dir = null;
     if (pi !== -1 && ni !== -1 && pi !== ni) dir = ni > pi ? 'left' : 'right';
     _prevHash = next;
@@ -296,7 +303,7 @@ const initSwipeNavigation = () => {
     let tStartX = 0, tStartY = 0, tCurrX = 0, tCurrY = 0;
     let dragging = false;
 
-    const getHash = () => window.location.hash.substring(1) || currentUserFeatures[0];
+    const getHash = () => window.location.hash.substring(1) || getOrderedFeatures()[0];
 
     spaContent.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return;
@@ -316,7 +323,7 @@ const initSwipeNavigation = () => {
         const dx = tCurrX - tStartX;
         const dy = tCurrY - tStartY;
         if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
-        const features = currentUserFeatures;
+        const features = getOrderedFeatures();
         const idx = features.indexOf(getHash());
         const atStart = idx === 0 && dx > 0;
         const atEnd   = idx === features.length - 1 && dx < 0;
@@ -340,7 +347,7 @@ const initSwipeNavigation = () => {
         }
 
         const threshold = window.innerWidth * 0.28;
-        const features = currentUserFeatures;
+        const features = getOrderedFeatures();
         const idx = features.indexOf(getHash());
 
         spaContent.style.transform = '';
@@ -432,11 +439,12 @@ onAuthStateChanged(auth, async (user) => {
                 // Inicializa navegação por swipe
                 initSwipeNavigation();
 
-                // Executa rota inicial
+                // Executa rota inicial (na ordem visual do menu)
+                const orderedFeatures = getOrderedFeatures();
                 const currentHash = window.location.hash.substring(1);
-                _prevHash = currentHash || userFeatures[0];
+                _prevHash = currentHash || orderedFeatures[0];
                 if (!currentHash || !userFeatures.includes(currentHash)) {
-                    window.location.hash = userFeatures[0];
+                    window.location.hash = orderedFeatures[0];
                 } else {
                     handleRouteChange();
                 }

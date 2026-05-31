@@ -525,6 +525,7 @@ export function init(firebaseDb, firebaseAuth) {
             const tagChips = (b.tags && b.tags.length)
                 ? `<div class="record-card-keywords">${b.tags.map(t => `<span class="card-tag">${globalBlessingTagIndex.get(t) || t}</span>`).join('')}</div>`
                 : '';
+            const firstTag = (b.tags && b.tags.length) ? (globalBlessingTagIndex.get(b.tags[0]) || b.tags[0]) : '';
             return `
             <div class="record-card" id="bc-${b.id}">
                 <div class="record-card-header" onclick="window.toggleBlessingCard('${b.id}')">
@@ -535,11 +536,11 @@ export function init(firebaseDb, firebaseAuth) {
                     </div>
                     <div class="record-card-info">
                         <div class="record-card-title">${b.title}</div>
+                        <div class="record-card-meta">
+                            <span class="record-type-chip chip-devocional"><i class="ph ph-gift" style="margin-right:3px;"></i>${firstTag || 'Bênção'}</span>
+                        </div>
                     </div>
-                    <div class="record-card-right">
-                        <i class="ph ph-gift" style="color:var(--primary-color);opacity:0.7;font-size:1.1rem;"></i>
-                        <i class="ph ph-caret-down record-card-chevron"></i>
-                    </div>
+                    <i class="ph ph-caret-down record-card-chevron"></i>
                 </div>
                 <div class="record-card-body">
                     <div class="record-card-body-inner">
@@ -725,6 +726,14 @@ export function init(firebaseDb, firebaseAuth) {
             }
         } catch (err) {
             console.error("Erro ao carregar bênçãos:", err);
+            if (isFirst && feed) {
+                feed.dataset.loaded = '1';
+                feed.innerHTML = `
+                    <div class="records-empty-state">
+                        <i class="ph ph-warning-circle"></i>
+                        <p>Não foi possível carregar suas bênçãos agora.<br>Verifique sua conexão e tente recarregar.</p>
+                    </div>`;
+            }
             if (sentinel) sentinel.innerHTML = '';
         } finally {
             isFetching = false;
