@@ -308,7 +308,7 @@ const initSwipeNavigation = () => {
     spaContent.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return;
         if (isNavigating) return;
-        if (e.target.closest('.ql-editor, .autocomplete-list, .tag-suggestions-list, select, input, textarea')) return;
+        if (e.target.closest('.ql-editor, .autocomplete-list, .tag-suggestions-list, select, input, textarea, .create-overlay, .reading-overlay')) return;
         tStartX = e.touches[0].clientX;
         tStartY = e.touches[0].clientY;
         tCurrX = tStartX;
@@ -432,6 +432,16 @@ onAuthStateChanged(auth, async (user) => {
                 if (loginContainer) loginContainer.style.display = 'none';
                 dashboardContainer.style.display = 'block';
                 userGreeting.innerText = `Olá, ${user.displayName || userEmail.split('@')[0]}`;
+                const avatarEl = document.getElementById('userAvatar');
+                if (avatarEl) {
+                    if (user.photoURL) {
+                        avatarEl.src = user.photoURL;
+                        avatarEl.style.display = 'block';
+                        avatarEl.onerror = () => { avatarEl.style.display = 'none'; };
+                    } else {
+                        avatarEl.style.display = 'none';
+                    }
+                }
 
                 // Configura sidebar com as abas permitidas
                 adjustSidebarMenu(userFeatures);

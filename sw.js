@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v6'; // título por aba, stats centralizado, meta flex, modal aleatório
+const CACHE_NAME = 'selah-pwa-spa-v7'; // close overlay fix, card padding, empty state, avatar
 const urlsToCache = [
   './',
   './index.html',

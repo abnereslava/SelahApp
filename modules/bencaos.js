@@ -185,6 +185,13 @@ export function init(firebaseDb, firebaseAuth) {
 
     const btnCloseCreate = document.getElementById('btnCloseCreateBencaos');
     if (btnCloseCreate) {
+        btnCloseCreate.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        btnCloseCreate.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.closeCreateBencaosOverlay();
+            resetFormFields();
+        }, { passive: false });
         btnCloseCreate.addEventListener('click', () => {
             window.closeCreateBencaosOverlay();
             resetFormFields();
@@ -723,8 +730,8 @@ export function init(firebaseDb, firebaseAuth) {
                 feed.dataset.loaded = '1';
                 feed.innerHTML = `
                     <div class="records-empty-state">
-                        <i class="ph ph-warning-circle"></i>
-                        <p>Não foi possível carregar suas bênçãos agora.<br>Verifique sua conexão e tente recarregar.</p>
+                        <i class="ph ph-hands-praying"></i>
+                        <p>Registre as bênçãos que o Senhor derramou sobre você.<br>Toque no <strong>+</strong> para começar.</p>
                     </div>`;
             }
             if (sentinel) sentinel.innerHTML = '';
@@ -839,6 +846,13 @@ export function init(firebaseDb, firebaseAuth) {
 
     const btnCancelBlessingEdit = document.getElementById('btnCancelBlessingEdit');
     if (btnCancelBlessingEdit) {
+        btnCancelBlessingEdit.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        btnCancelBlessingEdit.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetFormFields();
+            window.closeCreateBencaosOverlay();
+        }, { passive: false });
         btnCancelBlessingEdit.onclick = () => {
             resetFormFields();
             window.closeCreateBencaosOverlay();

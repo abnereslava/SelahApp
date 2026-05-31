@@ -310,6 +310,13 @@ export function init(firebaseDb, firebaseAuth) {
 
     const btnCloseCreate = document.getElementById('btnCloseCreateRegistros');
     if (btnCloseCreate) {
+        btnCloseCreate.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        btnCloseCreate.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.closeCreateRegistrosOverlay();
+            resetFormFields();
+        }, { passive: false });
         btnCloseCreate.addEventListener('click', () => {
             window.closeCreateRegistrosOverlay();
             resetFormFields();
@@ -1225,6 +1232,13 @@ export function init(firebaseDb, firebaseAuth) {
 
     const btnCancelEdit = document.getElementById('btnCancelEdit');
     if (btnCancelEdit) {
+        btnCancelEdit.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+        btnCancelEdit.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetFormFields();
+            window.closeCreateRegistrosOverlay();
+        }, { passive: false });
         btnCancelEdit.onclick = () => {
             resetFormFields();
             window.closeCreateRegistrosOverlay();
@@ -1421,8 +1435,8 @@ export function init(firebaseDb, firebaseAuth) {
                 feed.dataset.loaded = '1';
                 feed.innerHTML = `
                     <div class="records-empty-state">
-                        <i class="ph ph-warning-circle"></i>
-                        <p>Não foi possível carregar seus registros agora.<br>Verifique sua conexão e tente recarregar.</p>
+                        <i class="ph ph-book-open"></i>
+                        <p>Comece seu diário espiritual.<br>Toque no <strong>+</strong> para registrar o que o Senhor falou.</p>
                     </div>`;
             }
             if (sentinel) sentinel.innerHTML = '';

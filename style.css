@@ -2084,7 +2084,7 @@ select:focus {
     background: var(--secondary-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     overflow: hidden;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -2095,8 +2095,8 @@ select:focus {
 .record-card-header {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 14px 16px;
+    gap: 10px;
+    padding: 10px 12px;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
@@ -2106,8 +2106,8 @@ select:focus {
     font-size: 0.78rem;
     font-weight: 700;
     color: var(--primary-color);
-    width: 44px;
-    min-width: 44px;
+    width: 38px;
+    min-width: 38px;
     text-align: center;
     line-height: 1.2;
     flex-shrink: 0;
@@ -2122,7 +2122,7 @@ select:focus {
 }
 .record-card-title {
     font-family: 'Playfair Display', serif;
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text-main);
     display: -webkit-box;
@@ -2137,7 +2137,7 @@ select:focus {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 6px;
+    margin-top: 4px;
     overflow: hidden;
 }
 .record-card-passage {
@@ -2196,7 +2196,7 @@ select:focus {
     overflow: hidden;
 }
 .record-card-content {
-    padding: 0 16px 16px 16px;
+    padding: 0 12px 12px 12px;
     border-top: 1px solid var(--border-color);
 }
 .record-card-text {
@@ -2363,8 +2363,8 @@ select:focus {
 }
 
 @media (max-width: 768px) {
-    .record-card-header { padding: 12px 14px; }
-    .record-card-content { padding: 0 14px 14px; }
+    .record-card-header { padding: 10px 12px; }
+    .record-card-content { padding: 0 12px 12px; }
     .reading-scroll { padding: 24px 18px 40px; }
     .reading-title { font-size: 1.4rem; }
     .reading-body { font-size: 0.95rem; }
@@ -2593,6 +2593,20 @@ select:focus {
     }
 }
 
+
+
+/* ============================================================
+   USER AVATAR
+   ============================================================ */
+.user-avatar-img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(212,175,55,0.45);
+    flex-shrink: 0;
+    display: none;
+}
 
 /* ============================================================
    TAB PAGE HEADER
