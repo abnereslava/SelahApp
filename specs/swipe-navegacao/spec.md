@@ -61,7 +61,7 @@ Atualmente a navegação entre abas ocorre apenas por toque nos itens da bottom 
 - Conflito com scroll vertical: o gesto deve ser interpretado como swipe apenas se o ângulo horizontal for dominante (>30° de diferença em relação ao eixo vertical).
 - Campos de texto e editor Quill: o swipe não deve interceptar o texto sendo arrastado para seleção.
 - Usuários com apenas uma aba visível: swipe não tem efeito.
-- [Pendente] O que acontece se o conteúdo da aba ainda estiver carregando durante o swipe?
+- Se o conteúdo da aba ainda estiver carregando durante o swipe, exibir um placeholder (skeleton) na área da aba de destino enquanto o módulo é carregado.
 
 ## 11. Critérios de aceite
 
@@ -76,5 +76,5 @@ Atualmente a navegação entre abas ocorre apenas por toque nos itens da bottom 
 
 ## 12. Dúvidas pendentes
 
-- [Pendente] Se o conteúdo da aba ainda estiver sendo carregado durante o swipe, deve-se mostrar um placeholder ou bloquear o swipe até o carregamento completo?
-- [Pendente] Deve haver feedback de vibração (Haptic Feedback via `navigator.vibrate`) ao completar a troca de aba?
+- ✅ Carregamento durante swipe → exibir placeholder skeleton na área de destino enquanto o módulo carrega.
+- ✅ Vibração háptica → sim, vibração breve (`navigator.vibrate`) ao confirmar troca de aba.

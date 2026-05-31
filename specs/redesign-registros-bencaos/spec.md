@@ -133,9 +133,9 @@ Consistência visual com a aba de Registros.
 
 ## 12. Dúvidas pendentes
 
-- [Pendente] Qual das sugestões de layout para o formulário de criação você prefere? (Bottom Sheet / Tela dedicada / Card inline aprimorado)
-- [Pendente] Qual das sugestões para a lista de registros você prefere? (Timeline / Lista compacta / Grade com capa)
-- [Pendente] Para Bênçãos: o formulário deve ser simplificado ou manter os mesmos campos de Registros?
-- [Pendente] Para Bênçãos: mural de cartões ou timeline como Registros?
-- [Pendente] Deve haver um "modo leitura" dedicado ao abrir um registro?
-- [Pendente] Confirmar campos atuais do módulo bencaos.js antes de planejar.
+- ✅ Formulário de criação → Card inline aprimorado (Sugestão C): manter o formulário na aba, redesenhar visualmente com campos underline, ícones maiores e agrupamento claro.
+- ✅ Lista de registros → Lista compacta com expansão inline (Sugestão B): cards menores com título + data + tipo; toque expande inline mostrando conteúdo.
+- ✅ Bênçãos → manter estrutura similar a Registros (mesmos campos, mesmo formulário inline redesenhado).
+- ✅ Lista de bênçãos → timeline igual a Registros para consistência visual.
+- ✅ Modo leitura dedicado → sim, ao expandir um registro abre tela de leitura com tipografia grande.
+- ✅ Campos do módulo bencaos.js confirmados: título, data, tags/palavras-chave, editor Quill (relato/testemunho). Estrutura próxima de Registros.
