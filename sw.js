@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v9'; // analytics overlay, passage picker, back button, chips removed
+const CACHE_NAME = 'selah-pwa-spa-v10'; // quill toolbar above keyboard, fade swipe, stats card centered
 const urlsToCache = [
   './',
   './index.html',

@@ -108,6 +108,20 @@ if (sidebar) {
     }, { passive: true });
 }
 
+// --- QUILL TOOLBAR: segue o teclado via Visual Viewport API ---
+if (window.visualViewport) {
+    const reposToolbar = () => {
+        const toolbar = document.getElementById('mobileQuillToolbar');
+        if (!toolbar || toolbar.style.display === 'none') return;
+        const vv = window.visualViewport;
+        // Distância entre o bottom do viewport visual e o bottom do layout viewport
+        const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
+        toolbar.style.bottom = Math.max(0, offsetFromBottom) + 'px';
+    };
+    window.visualViewport.addEventListener('resize', reposToolbar);
+    window.visualViewport.addEventListener('scroll', reposToolbar);
+}
+
 // --- OVERLAY STACK (back-button handling) ---
 window._overlayCloseStack = [];
 
