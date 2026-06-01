@@ -10,7 +10,7 @@ export function render(container) {
         </div>
         <!-- Stats Card -->
         <div class="stats-card" id="statsCardRegistros">
-            <div class="stats-card-header" id="statsCardRegistrosHeader" style="cursor:pointer;justify-content:center;gap:24px;">
+            <div class="stats-card-header" id="statsCardRegistrosHeader" style="cursor:pointer;justify-content:center;">
                 <div class="stats-quick">
                     <div class="stats-quick-item">
                         <span class="stats-quick-number" id="statsTotalReg">0</span>
@@ -21,7 +21,6 @@ export function render(container) {
                         <span class="stats-quick-label">Este mês</span>
                     </div>
                 </div>
-                <i class="ph ph-chart-bar" style="font-size:1.2rem;color:var(--primary-color);opacity:0.7;flex-shrink:0;"></i>
             </div>
         </div>
 

@@ -352,55 +352,23 @@ const initSwipeNavigation = () => {
         if (!dragging || window.innerWidth > 768) return;
         tCurrX = e.touches[0].clientX;
         tCurrY = e.touches[0].clientY;
-        const dx = tCurrX - tStartX;
-        const dy = tCurrY - tStartY;
-        if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
-        const features = getOrderedFeatures();
-        const idx = features.indexOf(getHash());
-        const atStart = idx === 0 && dx > 0;
-        const atEnd   = idx === features.length - 1 && dx < 0;
-        const factor  = (atStart || atEnd) ? 0.25 : 1;
-        requestAnimationFrame(() => {
-            spaContent.style.transform = `translateX(${dx * factor}px)`;
-            spaContent.style.transition = 'none';
-        });
+        // Sem movement no conteúdo — swipe só detecta gesto, animação é fade
     }, { passive: true });
 
     spaContent.addEventListener('touchend', () => {
-        const snapBack = (animated) => {
-            if (animated) {
-                spaContent.style.transition = 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1)';
-                spaContent.style.transform = '';
-                setTimeout(() => { spaContent.style.transition = ''; }, 260);
-            } else {
-                spaContent.style.transition = '';
-                spaContent.style.transform = '';
-            }
-        };
-
-        if (!dragging || window.innerWidth > 768) {
-            snapBack(false);
-            dragging = false;
-            return;
-        }
+        if (!dragging || window.innerWidth > 768) { dragging = false; return; }
         dragging = false;
 
         const dx = tCurrX - tStartX;
         const dy = tCurrY - tStartY;
 
-        if (Math.abs(dx) < Math.abs(dy) * 1.5) {
-            snapBack(false);
-            return;
-        }
+        if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
 
         const threshold = window.innerWidth * 0.28;
         const features = getOrderedFeatures();
         const idx = features.indexOf(getHash());
 
-        if (Math.abs(dx) < threshold) {
-            snapBack(true);
-            return;
-        }
+        if (Math.abs(dx) < threshold) return;
 
         let nextIdx = -1;
         if (dx < 0 && idx < features.length - 1) nextIdx = idx + 1;

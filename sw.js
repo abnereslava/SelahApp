@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v10'; // quill toolbar above keyboard, fade swipe, stats card centered
+const CACHE_NAME = 'selah-pwa-spa-v11'; // swipe sem movimento no conteúdo (só fade), ícone stats removido
 const urlsToCache = [
   './',
   './index.html',
