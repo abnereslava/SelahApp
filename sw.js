@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v7'; // close overlay fix, card padding, empty state, avatar
+const CACHE_NAME = 'selah-pwa-spa-v8'; // quill z-index, swipe recoil fix, cards→reading overlay, blessing fallback
 const urlsToCache = [
   './',
   './index.html',

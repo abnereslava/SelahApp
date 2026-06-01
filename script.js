@@ -335,14 +335,29 @@ const initSwipeNavigation = () => {
     }, { passive: true });
 
     spaContent.addEventListener('touchend', () => {
-        if (!dragging || window.innerWidth > 768) { dragging = false; return; }
+        const snapBack = (animated) => {
+            if (animated) {
+                spaContent.style.transition = 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1)';
+                spaContent.style.transform = '';
+                setTimeout(() => { spaContent.style.transition = ''; }, 260);
+            } else {
+                spaContent.style.transition = '';
+                spaContent.style.transform = '';
+            }
+        };
+
+        if (!dragging || window.innerWidth > 768) {
+            snapBack(false);
+            dragging = false;
+            return;
+        }
         dragging = false;
 
         const dx = tCurrX - tStartX;
         const dy = tCurrY - tStartY;
+
         if (Math.abs(dx) < Math.abs(dy) * 1.5) {
-            spaContent.style.transform = '';
-            spaContent.style.transition = '';
+            snapBack(false);
             return;
         }
 
@@ -350,16 +365,8 @@ const initSwipeNavigation = () => {
         const features = getOrderedFeatures();
         const idx = features.indexOf(getHash());
 
-        spaContent.style.transform = '';
-        spaContent.style.transition = '';
-
         if (Math.abs(dx) < threshold) {
-            spaContent.style.setProperty('--swipe-offset', `${dx}px`);
-            spaContent.classList.add('anim-snap-back');
-            setTimeout(() => {
-                spaContent.classList.remove('anim-snap-back');
-                spaContent.style.removeProperty('--swipe-offset');
-            }, 220);
+            snapBack(true);
             return;
         }
 
@@ -367,8 +374,13 @@ const initSwipeNavigation = () => {
         if (dx < 0 && idx < features.length - 1) nextIdx = idx + 1;
         if (dx > 0 && idx > 0) nextIdx = idx - 1;
 
-        if (nextIdx === -1) return;
+        if (nextIdx === -1) {
+            snapBack(true);
+            return;
+        }
 
+        spaContent.style.transition = '';
+        spaContent.style.transform = '';
         if (navigator.vibrate) navigator.vibrate(20);
         isNavigating = true;
         _prevHash = features[idx];

@@ -544,7 +544,7 @@ export function init(firebaseDb, firebaseAuth) {
             const firstTag = (b.tags && b.tags.length) ? (globalBlessingTagIndex.get(b.tags[0]) || b.tags[0]) : '';
             return `
             <div class="record-card" id="bc-${b.id}">
-                <div class="record-card-header" onclick="window.toggleBlessingCard('${b.id}')">
+                <div class="record-card-header" onclick="window.openBlessingReadingMode('${b.id}')">
                     <div class="record-card-date">
                         <span class="rc-day">${dp.day}</span>
                         <span class="rc-month">${dp.month}</span>
@@ -555,21 +555,9 @@ export function init(firebaseDb, firebaseAuth) {
                         <div class="record-card-meta">
                             <span class="record-type-chip chip-devocional"><i class="ph ph-gift" style="margin-right:3px;"></i>${firstTag || 'Bênção'}</span>
                         </div>
+                        ${tagChips}
                     </div>
-                    <i class="ph ph-caret-down record-card-chevron"></i>
-                </div>
-                <div class="record-card-body">
-                    <div class="record-card-body-inner">
-                        <div class="record-card-content">
-                            <div class="record-card-text">${b.description || ''}</div>
-                            ${tagChips}
-                            <div class="record-card-actions">
-                                <button class="rc-btn rc-btn-read" onclick="window.openBlessingReadingMode('${b.id}')"><i class="ph ph-book-open-text"></i> Ler</button>
-                                <button class="rc-btn" onclick="editBlessing('${b.id}')"><i class="ph ph-pencil"></i> Editar</button>
-                                <button class="rc-btn rc-btn-delete" onclick="deleteBlessing('${b.id}')"><i class="ph ph-trash"></i> Excluir</button>
-                            </div>
-                        </div>
-                    </div>
+                    <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
             </div>`;
         }).join('');
@@ -602,6 +590,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-toolbar">
                 <button class="reading-close-btn" id="readingCloseBencaos"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
+                    <button class="rc-btn rc-btn-delete" id="readingDeleteBencaos"><i class="ph ph-trash"></i> Excluir</button>
                     <button class="rc-btn" id="readingEditBencaos"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
             </div>
@@ -622,6 +611,10 @@ export function init(firebaseDb, firebaseAuth) {
         };
 
         document.getElementById('readingCloseBencaos').addEventListener('click', close);
+        document.getElementById('readingDeleteBencaos').addEventListener('click', () => {
+            close();
+            setTimeout(() => window.deleteBlessing(b.id), 210);
+        });
         document.getElementById('readingEditBencaos').addEventListener('click', () => {
             close();
             setTimeout(() => editBlessing(b.id), 210);
@@ -726,15 +719,41 @@ export function init(firebaseDb, firebaseAuth) {
             }
         } catch (err) {
             console.error("Erro ao carregar bênçãos:", err);
-            if (isFirst && feed) {
-                feed.dataset.loaded = '1';
-                feed.innerHTML = `
-                    <div class="records-empty-state">
-                        <i class="ph ph-hands-praying"></i>
-                        <p>Registre as bênçãos que o Senhor derramou sobre você.<br>Toque no <strong>+</strong> para começar.</p>
-                    </div>`;
+            // Fallback: query sem orderBy para evitar erro de índice composto ausente
+            let fallbackOk = false;
+            if (isFirst) {
+                try {
+                    const fallbackQ = query(
+                        collection(db, "blessings"),
+                        where("userId", "==", user.uid)
+                    );
+                    const snap = await getDocs(fallbackQ);
+                    const newBlessings = snap.docs
+                        .map(d => ({ id: d.id, ...d.data() }))
+                        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                    allBlessings = newBlessings;
+                    allLoaded = true;
+                    if (feed) feed.dataset.loaded = '1';
+                    buildTagIndex();
+                    renderFeed(newBlessings, true);
+                    renderStats();
+                    if (sentinel) sentinel.innerHTML = '';
+                    fallbackOk = true;
+                } catch (fallbackErr) {
+                    console.error("Fallback de bênçãos também falhou:", fallbackErr);
+                }
             }
-            if (sentinel) sentinel.innerHTML = '';
+            if (!fallbackOk) {
+                if (isFirst && feed) {
+                    feed.dataset.loaded = '1';
+                    feed.innerHTML = `
+                        <div class="records-empty-state">
+                            <i class="ph ph-hands-praying"></i>
+                            <p>Registre as bênçãos que o Senhor derramou sobre você.<br>Toque no <strong>+</strong> para começar.</p>
+                        </div>`;
+                }
+                if (sentinel) sentinel.innerHTML = '';
+            }
         } finally {
             isFetching = false;
         }

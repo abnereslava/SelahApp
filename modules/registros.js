@@ -963,7 +963,7 @@ export function init(firebaseDb, firebaseAuth) {
                 : '';
             return `
             <div class="record-card" id="rc-${r.id}">
-                <div class="record-card-header" onclick="window.toggleRecordCard('${r.id}')">
+                <div class="record-card-header" onclick="window.openReadingMode('${r.id}')">
                     <div class="record-card-date">
                         <span class="rc-day">${dp.day}</span>
                         <span class="rc-month">${dp.month}</span>
@@ -975,27 +975,9 @@ export function init(firebaseDb, firebaseAuth) {
                             ${r.title ? `<span class="record-card-passage">${r.mainPassage}</span>` : ''}
                             <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
                         </div>
+                        ${keywordChips}
                     </div>
-                    <i class="ph ph-caret-down record-card-chevron"></i>
-                </div>
-                <div class="record-card-body">
-                    <div class="record-card-body-inner">
-                        <div class="record-card-content">
-                            <div class="record-card-text">
-                                ${r.recordFormat === 'livre'
-                                    ? (r.content?.texto || '')
-                                    : (r.content?.questions
-                                        ? r.content.questions.map(q => q.a && q.a !== '<p><br></p>' ? `<strong>${q.q}</strong><div>${q.a}</div>` : '').join('')
-                                        : '')}
-                            </div>
-                            ${keywordChips}
-                            <div class="record-card-actions">
-                                <button class="rc-btn rc-btn-read" onclick="window.openReadingMode('${r.id}')"><i class="ph ph-book-open-text"></i> Ler</button>
-                                <button class="rc-btn" onclick="editRecord('${r.id}')"><i class="ph ph-pencil"></i> Editar</button>
-                                <button class="rc-btn rc-btn-delete" onclick="deleteRecord('${r.id}')"><i class="ph ph-trash"></i> Excluir</button>
-                            </div>
-                        </div>
-                    </div>
+                    <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
             </div>`;
         }).join('');
@@ -1037,6 +1019,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-toolbar">
                 <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
+                    <button class="rc-btn rc-btn-delete" id="readingDeleteBtn"><i class="ph ph-trash"></i> Excluir</button>
                     <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
             </div>
@@ -1059,6 +1042,10 @@ export function init(firebaseDb, firebaseAuth) {
         };
 
         document.getElementById('readingCloseBtn').addEventListener('click', close);
+        document.getElementById('readingDeleteBtn').addEventListener('click', async () => {
+            close();
+            setTimeout(() => window.deleteRecord(r.id), 210);
+        });
         document.getElementById('readingEditBtn').addEventListener('click', () => {
             close();
             setTimeout(() => editRecord(r.id), 210);
