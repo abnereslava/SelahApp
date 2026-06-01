@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v11'; // swipe sem movimento no conteúdo (só fade), ícone stats removido
+const CACHE_NAME = 'selah-pwa-spa-v12'; // passage-input-row, picker passagens relacionadas, botão mostra passagem selecionada
 const urlsToCache = [
   './',
   './index.html',

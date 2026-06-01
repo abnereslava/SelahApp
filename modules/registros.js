@@ -157,9 +157,9 @@ export function render(container) {
 
                         <div class="form-group">
                             <label for="mainPassage"><i class="ph ph-bookmark-simple"></i> Passagem Principal</label>
-                            <div style="display:flex;gap:8px;align-items:stretch;">
-                                <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required style="flex:1;">
-                                <button type="button" id="btnOpenPassagePicker" class="btn-secondary" style="padding:0 14px;flex-shrink:0;border-radius:var(--radius);" title="Selecionar livro e capítulo">
+                            <div class="passage-input-row">
+                                <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required>
+                                <button type="button" id="btnOpenPassagePicker" class="btn-secondary btn-passage-picker" title="Selecionar livro e capítulo">
                                     <i class="ph ph-book-open"></i>
                                 </button>
                             </div>
@@ -190,7 +190,14 @@ export function render(container) {
                         </details>
                         <details class="optional-fields">
                             <summary><i class="ph ph-bookmarks"></i> Passagens Relacionadas</summary>
-                            <div class="details-content"><input type="text" id="relatedPassages" placeholder="Ex: Romanos 5:8"></div>
+                            <div class="details-content">
+                                <div class="passage-input-row">
+                                    <input type="text" id="relatedPassages" placeholder="Ex: Romanos 5:8">
+                                    <button type="button" id="btnRelatedPassagePicker" class="btn-secondary btn-passage-picker" title="Adicionar passagem relacionada">
+                                        <i class="ph ph-book-open"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </details>
                         <details class="optional-fields" id="keywordsSection">
                             <summary><i class="ph ph-tag"></i> Palavras-chave</summary>
@@ -345,6 +352,8 @@ export function init(firebaseDb, firebaseAuth) {
         setTodayDate();
         if (tagManager) tagManager.clear();
         if (authorManager) authorManager.clear();
+        const btnPicker = document.getElementById('btnOpenPassagePicker');
+        if (btnPicker) btnPicker.innerHTML = '<i class="ph ph-book-open"></i>';
     };
 
     window._closeRegistros = () => {
@@ -1192,6 +1201,9 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-check"></i> Atualizar Registro';
         document.getElementById('btnCancelEdit').style.display = 'block';
 
+        const btnPickerEdit = document.getElementById('btnOpenPassagePicker');
+        if (btnPickerEdit) btnPickerEdit.innerHTML = '<i class="ph ph-book-open"></i>';
+
         window.openCreateRegistrosOverlay();
     };
 
@@ -1246,7 +1258,8 @@ export function init(firebaseDb, firebaseAuth) {
     ];
 
     // --- PASSAGE PICKER ---
-    const openPassagePicker = () => {
+    const openPassagePicker = (opts = {}) => {
+        const { targetId = 'mainPassage', append = false, triggerBtn = null } = opts;
         const overlay = document.createElement('div');
         overlay.className = 'reading-overlay passage-picker-overlay';
 
@@ -1306,8 +1319,18 @@ export function init(firebaseDb, firebaseAuth) {
                     });
                     content.querySelectorAll('.pp-chapter-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
-                            const input = document.getElementById('mainPassage');
-                            if (input) input.value = `${currentBook.name} ${btn.dataset.c}`;
+                            const passage = `${currentBook.name} ${btn.dataset.c}`;
+                            const input = document.getElementById(targetId);
+                            if (input) {
+                                if (append && input.value.trim()) {
+                                    input.value = input.value.trim() + '; ' + passage;
+                                } else {
+                                    input.value = passage;
+                                }
+                            }
+                            if (triggerBtn && !append) {
+                                triggerBtn.textContent = passage;
+                            }
                             close();
                         });
                     });
@@ -1326,7 +1349,10 @@ export function init(firebaseDb, firebaseAuth) {
     };
 
     const btnPassagePicker = document.getElementById('btnOpenPassagePicker');
-    if (btnPassagePicker) btnPassagePicker.addEventListener('click', openPassagePicker);
+    if (btnPassagePicker) btnPassagePicker.addEventListener('click', () => openPassagePicker({ triggerBtn: btnPassagePicker }));
+
+    const btnRelatedPicker = document.getElementById('btnRelatedPassagePicker');
+    if (btnRelatedPicker) btnRelatedPicker.addEventListener('click', () => openPassagePicker({ targetId: 'relatedPassages', append: true }));
 
     // --- ANALYTICS OVERLAY ---
     const extractBibleBook = (passage) => {

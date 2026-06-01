@@ -2530,6 +2530,32 @@ select:focus {
     .pp-search-row { max-width: 680px; margin: 0 auto; width: 100%; }
 }
 
+/* ── PASSAGE INPUT ROW (input + picker button) ─────────── */
+.passage-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.form-group .passage-input-row input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+}
+.btn-passage-picker {
+    flex-shrink: 0;
+    padding: 0 14px;
+    height: 48px;
+    min-width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 140px;
+}
+
 /* ── FAB DE CRIAÇÃO RÁPIDA ───────────────────────────── */
 
 /* Center FAB button in bottom nav */
