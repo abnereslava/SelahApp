@@ -10,7 +10,7 @@ export function render(container) {
         </div>
         <!-- Stats Card -->
         <div class="stats-card" id="statsCardBencaos">
-            <div class="stats-card-header" id="statsCardBencaosHeader">
+            <div class="stats-card-header" id="statsCardBencaosHeader" style="cursor:pointer;">
                 <div class="stats-quick">
                     <div class="stats-quick-item">
                         <span class="stats-quick-number" id="statsTotalBlessings">0</span>
@@ -21,13 +21,8 @@ export function render(container) {
                         <span class="stats-quick-label">Este mês</span>
                     </div>
                 </div>
-                <i class="ph ph-caret-down stats-card-chevron"></i>
-            </div>
-            <div class="stats-card-body">
-                <div class="stats-card-body-inner">
-                    <p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">
-                        Expanda para ver o resumo das suas bênçãos registradas.
-                    </p>
+                <div style="display:flex;align-items:center;gap:5px;color:var(--primary-color);font-size:0.78rem;flex-shrink:0;">
+                    <span>Analytics</span><i class="ph ph-chart-bar" style="font-size:1.1rem;"></i>
                 </div>
             </div>
         </div>
@@ -170,7 +165,11 @@ export function init(firebaseDb, firebaseAuth) {
     // --- OVERLAY OPEN/CLOSE ---
     window.openCreateBencaosOverlay = () => {
         const overlay = document.getElementById('createBencaosOverlay');
-        if (overlay) overlay.classList.add('open');
+        if (!overlay) return;
+        overlay.classList.add('open');
+        if (!window._overlayCloseStack.includes(window._closeBencaos)) {
+            window._overlayCloseStack.push(window._closeBencaos);
+        }
     };
 
     window.closeCreateBencaosOverlay = () => {
@@ -181,6 +180,8 @@ export function init(firebaseDb, firebaseAuth) {
         const bottomNav = document.getElementById('mobileBottomNav');
         if (bottomNav) bottomNav.style.display = '';
         window.activeQuillEditor = null;
+        const idx = window._overlayCloseStack.indexOf(window._closeBencaos);
+        if (idx > -1) window._overlayCloseStack.splice(idx, 1);
     };
 
     const btnCloseCreate = document.getElementById('btnCloseCreateBencaos');
@@ -198,13 +199,9 @@ export function init(firebaseDb, firebaseAuth) {
         });
     }
 
-    // --- STATS CARD ---
+    // --- STATS CARD → analytics overlay ---
     const statsHeader = document.getElementById('statsCardBencaosHeader');
-    if (statsHeader) {
-        statsHeader.addEventListener('click', () => {
-            document.getElementById('statsCardBencaos').classList.toggle('expanded');
-        });
-    }
+    if (statsHeader) statsHeader.addEventListener('click', () => openBlessingAnalyticsOverlay());
 
     const resetFormFields = () => {
         const form = document.getElementById('blessingForm');
@@ -555,7 +552,6 @@ export function init(firebaseDb, firebaseAuth) {
                         <div class="record-card-meta">
                             <span class="record-type-chip chip-devocional"><i class="ph ph-gift" style="margin-right:3px;"></i>${firstTag || 'Bênção'}</span>
                         </div>
-                        ${tagChips}
                     </div>
                     <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
@@ -606,9 +602,12 @@ export function init(firebaseDb, firebaseAuth) {
         document.body.appendChild(overlay);
 
         const close = () => {
+            const idx = window._overlayCloseStack.indexOf(close);
+            if (idx > -1) window._overlayCloseStack.splice(idx, 1);
             overlay.classList.add('closing');
             setTimeout(() => overlay.remove(), 200);
         };
+        window._overlayCloseStack.push(close);
 
         document.getElementById('readingCloseBencaos').addEventListener('click', close);
         document.getElementById('readingDeleteBencaos').addEventListener('click', () => {
@@ -905,6 +904,71 @@ export function init(firebaseDb, firebaseAuth) {
             window.openBlessingReadingMode(allBlessings[randomIdx].id);
         };
     }
+
+    // --- ANALYTICS OVERLAY (BÊNÇÃOS) ---
+    const openBlessingAnalyticsOverlay = () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'reading-overlay analytics-overlay';
+
+        const now = new Date();
+        const monthlyData = Array.from({length:6}, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+            const prefix = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+            return { label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()], count: allBlessings.filter(b => b.date.startsWith(prefix)).length };
+        });
+        const yearCount = allBlessings.filter(b => b.date.startsWith(now.getFullYear().toString())).length;
+        const monthCount = allBlessings.filter(b => b.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
+
+        const tagCounts = {};
+        allBlessings.forEach(b => (b.tags||[]).forEach(t => { tagCounts[t] = (tagCounts[t]||0)+1; }));
+        const sortedTags = Object.entries(tagCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+        const hasTagChart = sortedTags.length > 0;
+
+        overlay.innerHTML = `
+            <div class="reading-toolbar">
+                <button class="reading-close-btn" id="bAnalyticsClose"><i class="ph ph-arrow-left"></i></button>
+                <span class="analytics-overlay-title">Analytics · Bênçãos</span>
+                <div style="width:36px;"></div>
+            </div>
+            <div class="reading-scroll analytics-scroll">
+                <div class="analytics-stats-row">
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${allBlessings.length}</span><span class="analytics-stat-lbl">Total</span></div>
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${monthCount}</span><span class="analytics-stat-lbl">Este mês</span></div>
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${yearCount}</span><span class="analytics-stat-lbl">Este ano</span></div>
+                </div>
+                ${hasTagChart ? `<div class="analytics-card"><h3 class="analytics-card-title">Por Tag</h3><div class="analytics-chart-box"><canvas id="bTagChart"></canvas></div></div>` : ''}
+                <div class="analytics-card"><h3 class="analytics-card-title">Últimos 6 Meses</h3><div class="analytics-chart-box"><canvas id="bMonthlyChart"></canvas></div></div>
+            </div>`;
+
+        document.body.appendChild(overlay);
+
+        const gold = ['#D4AF37','#B8860B','#E6C566','#8C6D1F','#F2C94C','#A0722C','#5C4A2E'];
+        const lc = '#D4AF37', gc = 'rgba(212,175,55,0.12)';
+        const base = { responsive:true, maintainAspectRatio:false };
+
+        let cA, cB;
+        if (hasTagChart) {
+            cA = new Chart(document.getElementById('bTagChart'), {
+                type:'doughnut', data:{ labels:sortedTags.map(t=>(globalBlessingTagIndex.get(t[0])||t[0])), datasets:[{data:sortedTags.map(t=>t[1]),backgroundColor:gold,borderColor:'#1A0F0A',borderWidth:2}] },
+                options:{...base,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#FBF7EB',boxWidth:12,padding:10,font:{size:11}}}}}
+            });
+        }
+        cB = new Chart(document.getElementById('bMonthlyChart'), {
+            type:'bar', data:{ labels:monthlyData.map(m=>m.label), datasets:[{label:'Bênçãos',data:monthlyData.map(m=>m.count),backgroundColor:'rgba(212,175,55,0.7)',borderRadius:4}] },
+            options:{...base,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:lc,font:{size:10}},grid:{color:gc}},x:{ticks:{color:lc,font:{size:10}},grid:{display:false}}}}
+        });
+
+        const close = () => {
+            const idx = window._overlayCloseStack.indexOf(close);
+            if (idx > -1) window._overlayCloseStack.splice(idx, 1);
+            if (cA) cA.destroy();
+            cB.destroy();
+            overlay.classList.add('closing');
+            setTimeout(() => overlay.remove(), 200);
+        };
+        window._overlayCloseStack.push(close);
+        overlay.querySelector('#bAnalyticsClose').addEventListener('click', close);
+    };
 
     fetchBlessings();
 }

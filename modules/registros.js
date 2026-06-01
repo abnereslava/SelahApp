@@ -10,7 +10,7 @@ export function render(container) {
         </div>
         <!-- Stats Card -->
         <div class="stats-card" id="statsCardRegistros">
-            <div class="stats-card-header" id="statsCardRegistrosHeader">
+            <div class="stats-card-header" id="statsCardRegistrosHeader" style="cursor:pointer;">
                 <div class="stats-quick">
                     <div class="stats-quick-item">
                         <span class="stats-quick-number" id="statsTotalReg">0</span>
@@ -21,20 +21,8 @@ export function render(container) {
                         <span class="stats-quick-label">Este mês</span>
                     </div>
                 </div>
-                <i class="ph ph-caret-down stats-card-chevron"></i>
-            </div>
-            <div class="stats-card-body">
-                <div class="stats-card-body-inner">
-                    <div class="charts-grid">
-                        <div class="chart-wrapper">
-                            <h3 class="chart-title">Por Tipo de Registro</h3>
-                            <div class="chart-canvas-box"><canvas id="devotionalsChart"></canvas></div>
-                        </div>
-                        <div class="chart-wrapper">
-                            <h3 class="chart-title">Livros Mais Frequentes</h3>
-                            <div class="chart-canvas-box"><canvas id="booksChart"></canvas></div>
-                        </div>
-                    </div>
+                <div style="display:flex;align-items:center;gap:5px;color:var(--primary-color);font-size:0.78rem;flex-shrink:0;">
+                    <span>Analytics</span><i class="ph ph-chart-bar" style="font-size:1.1rem;"></i>
                 </div>
             </div>
         </div>
@@ -172,7 +160,12 @@ export function render(container) {
 
                         <div class="form-group">
                             <label for="mainPassage"><i class="ph ph-bookmark-simple"></i> Passagem Principal</label>
-                            <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required>
+                            <div style="display:flex;gap:8px;align-items:stretch;">
+                                <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required style="flex:1;">
+                                <button type="button" id="btnOpenPassagePicker" class="btn-secondary" style="padding:0 14px;flex-shrink:0;border-radius:var(--radius);" title="Selecionar livro e capítulo">
+                                    <i class="ph ph-book-open"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -295,7 +288,11 @@ export function init(firebaseDb, firebaseAuth) {
     // --- OVERLAY OPEN/CLOSE ---
     window.openCreateRegistrosOverlay = () => {
         const overlay = document.getElementById('createRegistrosOverlay');
-        if (overlay) overlay.classList.add('open');
+        if (!overlay) return;
+        overlay.classList.add('open');
+        if (!window._overlayCloseStack.includes(window._closeRegistros)) {
+            window._overlayCloseStack.push(window._closeRegistros);
+        }
     };
 
     window.closeCreateRegistrosOverlay = () => {
@@ -306,6 +303,8 @@ export function init(firebaseDb, firebaseAuth) {
         const bottomNav = document.getElementById('mobileBottomNav');
         if (bottomNav) bottomNav.style.display = '';
         window.activeQuillEditor = null;
+        const idx = window._overlayCloseStack.indexOf(window._closeRegistros);
+        if (idx > -1) window._overlayCloseStack.splice(idx, 1);
     };
 
     const btnCloseCreate = document.getElementById('btnCloseCreateRegistros');
@@ -323,20 +322,9 @@ export function init(firebaseDb, firebaseAuth) {
         });
     }
 
-    // --- STATS CARD ---
+    // --- STATS CARD → abre analytics overlay ---
     const statsHeader = document.getElementById('statsCardRegistrosHeader');
-    if (statsHeader) {
-        statsHeader.addEventListener('click', () => {
-            const card = document.getElementById('statsCardRegistros');
-            card.classList.toggle('expanded');
-            if (card.classList.contains('expanded')) {
-                setTimeout(() => {
-                    if (typeChart) typeChart.resize();
-                    if (booksChartInstance) booksChartInstance.resize();
-                }, 310);
-            }
-        });
-    }
+    if (statsHeader) statsHeader.addEventListener('click', () => openAnalyticsOverlay());
 
     const resetFormFields = () => {
         const form = document.getElementById('devotionalForm');
@@ -975,7 +963,6 @@ export function init(firebaseDb, firebaseAuth) {
                             ${r.title ? `<span class="record-card-passage">${r.mainPassage}</span>` : ''}
                             <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
                         </div>
-                        ${keywordChips}
                     </div>
                     <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
@@ -1037,9 +1024,12 @@ export function init(firebaseDb, firebaseAuth) {
         document.body.appendChild(overlay);
 
         const close = () => {
+            const idx = window._overlayCloseStack.indexOf(close);
+            if (idx > -1) window._overlayCloseStack.splice(idx, 1);
             overlay.classList.add('closing');
             setTimeout(() => overlay.remove(), 200);
         };
+        window._overlayCloseStack.push(close);
 
         document.getElementById('readingCloseBtn').addEventListener('click', close);
         document.getElementById('readingDeleteBtn').addEventListener('click', async () => {
@@ -1232,79 +1222,183 @@ export function init(firebaseDb, firebaseAuth) {
         };
     }
 
-    // --- GRÁFICOS ---
-    let typeChart, booksChartInstance;
+    // --- LIVROS BÍBLICOS (66 livros protestantes) ---
+    const BIBLE_BOOKS = [
+        { name:'Gênesis', chapters:50, t:'AT' }, { name:'Êxodo', chapters:40, t:'AT' }, { name:'Levítico', chapters:27, t:'AT' },
+        { name:'Números', chapters:36, t:'AT' }, { name:'Deuteronômio', chapters:34, t:'AT' }, { name:'Josué', chapters:24, t:'AT' },
+        { name:'Juízes', chapters:21, t:'AT' }, { name:'Rute', chapters:4, t:'AT' }, { name:'1 Samuel', chapters:31, t:'AT' },
+        { name:'2 Samuel', chapters:24, t:'AT' }, { name:'1 Reis', chapters:22, t:'AT' }, { name:'2 Reis', chapters:25, t:'AT' },
+        { name:'1 Crônicas', chapters:29, t:'AT' }, { name:'2 Crônicas', chapters:36, t:'AT' }, { name:'Esdras', chapters:10, t:'AT' },
+        { name:'Neemias', chapters:13, t:'AT' }, { name:'Ester', chapters:10, t:'AT' }, { name:'Jó', chapters:42, t:'AT' },
+        { name:'Salmos', chapters:150, t:'AT' }, { name:'Provérbios', chapters:31, t:'AT' }, { name:'Eclesiastes', chapters:12, t:'AT' },
+        { name:'Cantares', chapters:8, t:'AT' }, { name:'Isaías', chapters:66, t:'AT' }, { name:'Jeremias', chapters:52, t:'AT' },
+        { name:'Lamentações', chapters:5, t:'AT' }, { name:'Ezequiel', chapters:48, t:'AT' }, { name:'Daniel', chapters:12, t:'AT' },
+        { name:'Oséias', chapters:14, t:'AT' }, { name:'Joel', chapters:3, t:'AT' }, { name:'Amós', chapters:9, t:'AT' },
+        { name:'Obadias', chapters:1, t:'AT' }, { name:'Jonas', chapters:4, t:'AT' }, { name:'Miquéias', chapters:7, t:'AT' },
+        { name:'Naum', chapters:3, t:'AT' }, { name:'Habacuque', chapters:3, t:'AT' }, { name:'Sofonias', chapters:3, t:'AT' },
+        { name:'Ageu', chapters:2, t:'AT' }, { name:'Zacarias', chapters:14, t:'AT' }, { name:'Malaquias', chapters:4, t:'AT' },
+        { name:'Mateus', chapters:28, t:'NT' }, { name:'Marcos', chapters:16, t:'NT' }, { name:'Lucas', chapters:24, t:'NT' },
+        { name:'João', chapters:21, t:'NT' }, { name:'Atos', chapters:28, t:'NT' }, { name:'Romanos', chapters:16, t:'NT' },
+        { name:'1 Coríntios', chapters:16, t:'NT' }, { name:'2 Coríntios', chapters:13, t:'NT' }, { name:'Gálatas', chapters:6, t:'NT' },
+        { name:'Efésios', chapters:6, t:'NT' }, { name:'Filipenses', chapters:4, t:'NT' }, { name:'Colossenses', chapters:4, t:'NT' },
+        { name:'1 Tessalonicenses', chapters:5, t:'NT' }, { name:'2 Tessalonicenses', chapters:3, t:'NT' }, { name:'1 Timóteo', chapters:6, t:'NT' },
+        { name:'2 Timóteo', chapters:4, t:'NT' }, { name:'Tito', chapters:3, t:'NT' }, { name:'Filemom', chapters:1, t:'NT' },
+        { name:'Hebreus', chapters:13, t:'NT' }, { name:'Tiago', chapters:5, t:'NT' }, { name:'1 Pedro', chapters:5, t:'NT' },
+        { name:'2 Pedro', chapters:3, t:'NT' }, { name:'1 João', chapters:5, t:'NT' }, { name:'2 João', chapters:1, t:'NT' },
+        { name:'3 João', chapters:1, t:'NT' }, { name:'Judas', chapters:1, t:'NT' }, { name:'Apocalipse', chapters:22, t:'NT' },
+    ];
 
-    const extractBibleBook = (passage) => {
-        const match = passage.trim().match(/^(\d?\s*[A-Za-zÀ-ÿ]+(?:[\s-][A-Za-zÀ-ÿ]+)*)/);
-        if (match) return match[1].trim();
-        return "Outros";
+    // --- PASSAGE PICKER ---
+    const openPassagePicker = () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'reading-overlay passage-picker-overlay';
+
+        const renderBookList = (filter = '') => {
+            const fl = filter.toLowerCase();
+            const at = BIBLE_BOOKS.filter(b => b.t === 'AT' && (!fl || b.name.toLowerCase().includes(fl)));
+            const nt = BIBLE_BOOKS.filter(b => b.t === 'NT' && (!fl || b.name.toLowerCase().includes(fl)));
+            let html = '';
+            if (at.length) html += `<div class="pp-testament-label">Antigo Testamento</div>${at.map(b=>`<div class="pp-book-item" data-name="${b.name}" data-ch="${b.chapters}">${b.name}</div>`).join('')}`;
+            if (nt.length) html += `<div class="pp-testament-label">Novo Testamento</div>${nt.map(b=>`<div class="pp-book-item" data-name="${b.name}" data-ch="${b.chapters}">${b.name}</div>`).join('')}`;
+            return html || `<div style="padding:24px 20px;color:var(--text-muted);">Nenhum livro encontrado.</div>`;
+        };
+
+        const renderChapterGrid = (book) =>
+            `<div class="pp-back-row"><button type="button" class="pp-back-btn" id="ppBack"><i class="ph ph-arrow-left"></i> ${book.name}</button></div>
+             <p style="padding:8px 20px;font-size:0.82rem;color:var(--text-muted);">Selecione o capítulo:</p>
+             <div class="pp-chapter-grid">${Array.from({length:book.chapters},(_,i)=>`<button type="button" class="pp-chapter-btn" data-c="${i+1}">${i+1}</button>`).join('')}</div>`;
+
+        overlay.innerHTML = `
+            <div class="reading-toolbar">
+                <button class="reading-close-btn" id="ppClose"><i class="ph ph-x"></i></button>
+                <span class="analytics-overlay-title">Selecionar Passagem</span>
+                <div style="width:36px;"></div>
+            </div>
+            <div class="pp-search-row">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="ppSearch" placeholder="Pesquisar livro..." autocomplete="off" autocorrect="off" spellcheck="false">
+            </div>
+            <div class="pp-content" id="ppContent">${renderBookList()}</div>`;
+
+        document.body.appendChild(overlay);
+
+        const content = overlay.querySelector('#ppContent');
+        const searchInput = overlay.querySelector('#ppSearch');
+        let currentBook = null;
+
+        const close = () => {
+            const idx = window._overlayCloseStack.indexOf(close);
+            if (idx > -1) window._overlayCloseStack.splice(idx, 1);
+            overlay.classList.add('closing');
+            setTimeout(() => overlay.remove(), 200);
+        };
+        window._overlayCloseStack.push(close);
+        overlay.querySelector('#ppClose').addEventListener('click', close);
+
+        const bindBookClicks = () => {
+            content.querySelectorAll('.pp-book-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    currentBook = { name: item.dataset.name, chapters: parseInt(item.dataset.ch) };
+                    searchInput.style.display = 'none';
+                    content.innerHTML = renderChapterGrid(currentBook);
+                    content.querySelector('#ppBack').addEventListener('click', () => {
+                        currentBook = null;
+                        searchInput.style.display = '';
+                        content.innerHTML = renderBookList(searchInput.value);
+                        bindBookClicks();
+                    });
+                    content.querySelectorAll('.pp-chapter-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const input = document.getElementById('mainPassage');
+                            if (input) input.value = `${currentBook.name} ${btn.dataset.c}`;
+                            close();
+                        });
+                    });
+                });
+            });
+        };
+        bindBookClicks();
+
+        searchInput.addEventListener('input', () => {
+            currentBook = null;
+            content.innerHTML = renderBookList(searchInput.value);
+            bindBookClicks();
+        });
+
+        setTimeout(() => searchInput.focus(), 80);
     };
 
-    const renderChart = (arr) => {
-        const typeCounts = arr.reduce((acc, r) => { acc[r.recordType] = (acc[r.recordType] || 0) + 1; return acc; }, {});
-        const bookCounts = arr.reduce((acc, r) => {
-            if (r.mainPassage) {
-                const b = extractBibleBook(r.mainPassage);
-                acc[b] = (acc[b] || 0) + 1;
-            }
-            return acc;
-        }, {});
+    const btnPassagePicker = document.getElementById('btnOpenPassagePicker');
+    if (btnPassagePicker) btnPassagePicker.addEventListener('click', openPassagePicker);
 
-        // Paleta dourada/terrosa alinhada ao tema do app
-        const goldPalette = ['#D4AF37', '#B8860B', '#E6C566', '#8C6D1F', '#F2C94C', '#A0722C', '#5C4A2E'];
-        const labelColor = '#D4AF37';
-        const gridColor = 'rgba(212,175,55,0.12)';
+    // --- ANALYTICS OVERLAY ---
+    const extractBibleBook = (passage) => {
+        const m = passage.trim().match(/^(\d?\s*[A-Za-zÀ-ÿ]+(?:[\s-][A-Za-zÀ-ÿ]+)*)/);
+        return m ? m[1].trim() : 'Outros';
+    };
 
-        const typeCanvas = document.getElementById('devotionalsChart');
-        if (typeCanvas) {
-            if (typeChart) typeChart.destroy();
-            typeChart = new Chart(typeCanvas, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(typeCounts).map(t => RECORD_TYPE_LABELS[t] || t),
-                    datasets: [{
-                        data: Object.values(typeCounts),
-                        backgroundColor: goldPalette,
-                        borderColor: '#1A0F0A',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '62%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#FBF7EB', boxWidth: 12, padding: 12, font: { size: 11 } }
-                        }
-                    }
-                }
-            });
-        }
+    const openAnalyticsOverlay = () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'reading-overlay analytics-overlay';
 
-        const booksCanvas = document.getElementById('booksChart');
-        if (booksCanvas) {
-            if (booksChartInstance) booksChartInstance.destroy();
-            const sortedBooks = Object.entries(bookCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
-            booksChartInstance = new Chart(booksCanvas, {
-                type: 'bar',
-                data: {
-                    labels: sortedBooks.map(b => b[0]),
-                    datasets: [{ label: 'Qtd de Registros', data: sortedBooks.map(b => b[1]), backgroundColor: '#D4AF37', borderRadius: 4 }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1, color: labelColor, font: { size: 10 } }, grid: { color: gridColor } },
-                        x: { ticks: { color: labelColor, font: { size: 10 }, maxRotation: 45, minRotation: 0 }, grid: { display: false } }
-                    }
-                }
-            });
-        }
+        const now = new Date();
+        const monthlyData = Array.from({length:6}, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+            const prefix = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+            return { label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()], count: allRecords.filter(r => r.date.startsWith(prefix)).length };
+        });
+        const yearCount = allRecords.filter(r => r.date.startsWith(now.getFullYear().toString())).length;
+        const monthCount = allRecords.filter(r => r.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
+
+        overlay.innerHTML = `
+            <div class="reading-toolbar">
+                <button class="reading-close-btn" id="analyticsClose"><i class="ph ph-arrow-left"></i></button>
+                <span class="analytics-overlay-title">Analytics · Registros</span>
+                <div style="width:36px;"></div>
+            </div>
+            <div class="reading-scroll analytics-scroll">
+                <div class="analytics-stats-row">
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${allRecords.length}</span><span class="analytics-stat-lbl">Total</span></div>
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${monthCount}</span><span class="analytics-stat-lbl">Este mês</span></div>
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${yearCount}</span><span class="analytics-stat-lbl">Este ano</span></div>
+                </div>
+                <div class="analytics-card"><h3 class="analytics-card-title">Por Tipo de Registro</h3><div class="analytics-chart-box"><canvas id="aTypeChart"></canvas></div></div>
+                <div class="analytics-card"><h3 class="analytics-card-title">Livros Mais Frequentes</h3><div class="analytics-chart-box"><canvas id="aBooksChart"></canvas></div></div>
+                <div class="analytics-card"><h3 class="analytics-card-title">Últimos 6 Meses</h3><div class="analytics-chart-box"><canvas id="aMonthlyChart"></canvas></div></div>
+            </div>`;
+
+        document.body.appendChild(overlay);
+
+        const gold = ['#D4AF37','#B8860B','#E6C566','#8C6D1F','#F2C94C','#A0722C','#5C4A2E'];
+        const lc = '#D4AF37', gc = 'rgba(212,175,55,0.12)';
+        const chartOpts = { responsive:true, maintainAspectRatio:false };
+
+        const typeCounts = allRecords.reduce((acc,r) => { acc[r.recordType]=(acc[r.recordType]||0)+1; return acc; }, {});
+        const bookCounts = allRecords.reduce((acc,r) => { if(r.mainPassage){const b=extractBibleBook(r.mainPassage); acc[b]=(acc[b]||0)+1;} return acc; }, {});
+        const sortedBooks = Object.entries(bookCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+        const cA = new Chart(document.getElementById('aTypeChart'), {
+            type:'doughnut', data:{ labels:Object.keys(typeCounts).map(t=>RECORD_TYPE_LABELS[t]||t), datasets:[{data:Object.values(typeCounts),backgroundColor:gold,borderColor:'#1A0F0A',borderWidth:2}] },
+            options:{...chartOpts,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#FBF7EB',boxWidth:12,padding:10,font:{size:11}}}}}
+        });
+        const cB = new Chart(document.getElementById('aBooksChart'), {
+            type:'bar', data:{ labels:sortedBooks.map(b=>b[0]), datasets:[{label:'Registros',data:sortedBooks.map(b=>b[1]),backgroundColor:'#D4AF37',borderRadius:4}] },
+            options:{...chartOpts,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:lc,font:{size:10}},grid:{color:gc}},x:{ticks:{color:lc,font:{size:10},maxRotation:45},grid:{display:false}}}}
+        });
+        const cC = new Chart(document.getElementById('aMonthlyChart'), {
+            type:'bar', data:{ labels:monthlyData.map(m=>m.label), datasets:[{label:'Registros',data:monthlyData.map(m=>m.count),backgroundColor:'rgba(212,175,55,0.7)',borderRadius:4}] },
+            options:{...chartOpts,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:lc,font:{size:10}},grid:{color:gc}},x:{ticks:{color:lc,font:{size:10}},grid:{display:false}}}}
+        });
+
+        const close = () => {
+            const idx = window._overlayCloseStack.indexOf(close);
+            if (idx > -1) window._overlayCloseStack.splice(idx, 1);
+            cA.destroy(); cB.destroy(); cC.destroy();
+            overlay.classList.add('closing');
+            setTimeout(() => overlay.remove(), 200);
+        };
+        window._overlayCloseStack.push(close);
+        overlay.querySelector('#analyticsClose').addEventListener('click', close);
     };
 
     const updateStatsCard = () => {
@@ -1401,7 +1495,6 @@ export function init(firebaseDb, firebaseAuth) {
             if (isFirst) {
                 initAutocomplete();
                 renderFeed(newRecords, true);
-                renderChart(allRecords);
             } else {
                 renderFeed(newRecords, false);
             }

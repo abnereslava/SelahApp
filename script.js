@@ -108,6 +108,23 @@ if (sidebar) {
     }, { passive: true });
 }
 
+// --- OVERLAY STACK (back-button handling) ---
+window._overlayCloseStack = [];
+
+const initBackButtonHandler = () => {
+    if (!history.state?.selah) history.pushState({ selah: true }, '');
+
+    window.addEventListener('popstate', () => {
+        if (window._overlayCloseStack.length > 0) {
+            const closeFn = window._overlayCloseStack[window._overlayCloseStack.length - 1];
+            closeFn();
+        } else {
+            // No overlay open — stay in app
+        }
+        history.pushState({ selah: true }, '');
+    });
+};
+
 // --- FAB / BOTTOM SHEET ---
 const fabSheet = document.getElementById('fabSheet');
 const fabSheetOverlay = document.getElementById('fabSheetOverlay');
@@ -116,7 +133,6 @@ const btnDesktopFab = document.getElementById('btnDesktopFab');
 
 const openFabSheet = () => {
     if (!fabSheet) return;
-    // Visibility based on features (will be applied after auth)
     const hasReg = currentUserFeatures.includes('registros');
     const hasBen = currentUserFeatures.includes('bencaos');
     const optReg = document.getElementById('fabOptRegistros');
@@ -124,18 +140,20 @@ const openFabSheet = () => {
     if (optReg) optReg.style.display = hasReg ? '' : 'none';
     if (optBen) optBen.style.display = hasBen ? '' : 'none';
 
-    // If only one feature available, skip sheet and open directly
     if (hasReg && !hasBen) { window.openCreateOverlay('registros'); return; }
     if (!hasReg && hasBen) { window.openCreateOverlay('bencaos'); return; }
 
     fabSheet.classList.add('visible');
     fabSheetOverlay.classList.add('visible');
+    window._overlayCloseStack.push(closeFabSheet);
 };
 
 const closeFabSheet = () => {
     if (!fabSheet) return;
     fabSheet.classList.remove('visible');
     fabSheetOverlay.classList.remove('visible');
+    const idx = window._overlayCloseStack.indexOf(closeFabSheet);
+    if (idx > -1) window._overlayCloseStack.splice(idx, 1);
 };
 
 window.openCreateOverlay = (type) => {
@@ -457,6 +475,9 @@ onAuthStateChanged(auth, async (user) => {
 
                 // Configura sidebar com as abas permitidas
                 adjustSidebarMenu(userFeatures);
+
+                // Inicializa handler do botão Voltar
+                initBackButtonHandler();
 
                 // Inicializa navegação por swipe
                 initSwipeNavigation();

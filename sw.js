@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v8'; // quill z-index, swipe recoil fix, cards→reading overlay, blessing fallback
+const CACHE_NAME = 'selah-pwa-spa-v9'; // analytics overlay, passage picker, back button, chips removed
 const urlsToCache = [
   './',
   './index.html',
