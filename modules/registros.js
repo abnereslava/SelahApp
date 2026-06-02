@@ -988,7 +988,7 @@ export function init(firebaseDb, firebaseAuth) {
         if (card) card.classList.toggle('expanded');
     };
 
-    window.openReadingMode = (id) => {
+    window.openReadingMode = (id, fromRandom = false) => {
         const r = allRecords.find(x => x.id === id);
         if (!r) return;
 
@@ -1014,6 +1014,7 @@ export function init(firebaseDb, firebaseAuth) {
                 <div class="reading-actions-row">
                     <button class="rc-btn rc-btn-delete" id="readingDeleteBtn"><i class="ph ph-trash"></i> Excluir</button>
                     <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
+                    ${fromRandom ? '<button class="rc-btn rc-btn-shuffle" id="readingShuffleBtn" title="Sortear outro"><i class="ph ph-shuffle"></i></button>' : ''}
                 </div>
             </div>
             <div class="reading-scroll">
@@ -1046,6 +1047,17 @@ export function init(firebaseDb, firebaseAuth) {
             close();
             setTimeout(() => editRecord(r.id), 210);
         });
+
+        if (fromRandom) {
+            document.getElementById('readingShuffleBtn').addEventListener('click', () => {
+                close();
+                setTimeout(() => {
+                    const others = allRecords.filter(x => x.id !== r.id);
+                    const pool = others.length > 0 ? others : allRecords;
+                    window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id, true);
+                }, 210);
+            });
+        }
 
         document.addEventListener('keydown', function onEsc(e) {
             if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
@@ -1585,7 +1597,7 @@ export function init(firebaseDb, firebaseAuth) {
         btnRandom.onclick = () => {
             if (allRecords.length === 0) return showAlert("Nenhum registro encontrado.");
             const randomIdx = Math.floor(Math.random() * allRecords.length);
-            window.openReadingMode(allRecords[randomIdx].id);
+            window.openReadingMode(allRecords[randomIdx].id, true);
         };
     }
 

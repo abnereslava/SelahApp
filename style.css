@@ -2227,6 +2227,8 @@ select:focus {
 .rc-btn.rc-btn-read:hover { background: rgba(212,175,55,0.22); }
 .rc-btn.rc-btn-delete { color: var(--danger-color, #ef4444); }
 .rc-btn.rc-btn-delete:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); }
+.rc-btn.rc-btn-shuffle { padding: 7px 10px; color: var(--primary-color); border-color: rgba(212,175,55,0.3); }
+.rc-btn.rc-btn-shuffle:hover { background: rgba(212,175,55,0.12); }
 
 /* Empty state */
 .records-empty-state {

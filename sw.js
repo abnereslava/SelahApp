@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v12'; // passage-input-row, picker passagens relacionadas, botão mostra passagem selecionada
+const CACHE_NAME = 'selah-pwa-spa-v13'; // botão sortear outro no overlay de leitura (só via sorteio)
 const urlsToCache = [
   './',
   './index.html',
