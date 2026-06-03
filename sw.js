@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v15'; // barra bottom, excluir no edit, aleatório sempre visível, form visual refinado
+const CACHE_NAME = 'selah-pwa-spa-v16'; // bottom bar e aleatório no overlay de bênçãos
 const urlsToCache = [
   './',
   './index.html',

@@ -583,19 +583,19 @@ export function init(firebaseDb, firebaseAuth) {
         overlay.className = 'reading-overlay';
         overlay.id = 'readingOverlayBencaos';
         overlay.innerHTML = `
-            <div class="reading-toolbar">
-                <button class="reading-close-btn" id="readingCloseBencaos"><i class="ph ph-arrow-left"></i></button>
-                <div class="reading-actions-row">
-                    <button class="rc-btn rc-btn-delete" id="readingDeleteBencaos"><i class="ph ph-trash"></i> Excluir</button>
-                    <button class="rc-btn" id="readingEditBencaos"><i class="ph ph-pencil"></i> Editar</button>
-                </div>
-            </div>
             <div class="reading-scroll">
                 <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
                 <h1 class="reading-title">${b.title}</h1>
                 ${tagChips ? `<div style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:6px;">${tagChips}</div>` : ''}
                 <hr class="reading-divider">
                 <div class="reading-body">${b.description || ''}</div>
+            </div>
+            <div class="reading-bottom-bar">
+                <button class="reading-close-btn" id="readingCloseBencaos"><i class="ph ph-arrow-left"></i></button>
+                <div class="reading-actions-row">
+                    <button class="rc-btn rc-btn-shuffle" id="readingShuffleBencaos"><i class="ph ph-shuffle"></i> Aleatório</button>
+                    <button class="rc-btn" id="readingEditBencaos"><i class="ph ph-pencil"></i> Editar</button>
+                </div>
             </div>
         `;
 
@@ -610,13 +610,17 @@ export function init(firebaseDb, firebaseAuth) {
         window._overlayCloseStack.push(close);
 
         document.getElementById('readingCloseBencaos').addEventListener('click', close);
-        document.getElementById('readingDeleteBencaos').addEventListener('click', () => {
-            close();
-            setTimeout(() => window.deleteBlessing(b.id), 210);
-        });
         document.getElementById('readingEditBencaos').addEventListener('click', () => {
             close();
             setTimeout(() => editBlessing(b.id), 210);
+        });
+        document.getElementById('readingShuffleBencaos').addEventListener('click', () => {
+            close();
+            setTimeout(() => {
+                const others = allBlessings.filter(x => x.id !== b.id);
+                const pool = others.length > 0 ? others : allBlessings;
+                window.openBlessingReadingMode(pool[Math.floor(Math.random() * pool.length)].id);
+            }, 210);
         });
         document.addEventListener('keydown', function onEsc(e) {
             if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
