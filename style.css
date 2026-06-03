@@ -1153,6 +1153,7 @@ select:focus {
     border-radius: var(--radius);
     padding: 12px 15px;
     border: 1px solid var(--border-color);
+    margin-top: 16px;
 }
 
 .chain-details summary {

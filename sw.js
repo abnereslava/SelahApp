@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v13'; // botão sortear outro no overlay de leitura (só via sorteio)
+const CACHE_NAME = 'selah-pwa-spa-v14'; // trilha de registros restaurada no overlay de leitura
 const urlsToCache = [
   './',
   './index.html',

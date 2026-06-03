@@ -995,6 +995,40 @@ export function init(firebaseDb, firebaseAuth) {
         const dp = formatDateParts(r.date);
         const typeLabel = RECORD_TYPE_LABELS[r.recordType] || r.recordType;
 
+        // --- Trilha de registros ---
+        let chainBack = [], chainForward = [];
+        let curr = r;
+        while (curr.continuationOf) {
+            const parent = allRecords.find(x => x.id === curr.continuationOf);
+            if (!parent) break;
+            chainBack.unshift(parent);
+            curr = parent;
+        }
+        curr = r;
+        while (true) {
+            const child = allRecords.find(x => x.continuationOf === curr.id);
+            if (!child) break;
+            chainForward.push(child);
+            curr = child;
+        }
+        const fullChain = [...chainBack, r, ...chainForward];
+        const chainHtml = fullChain.length > 1 ? `
+            <details class="chain-details mt-2 mb-2">
+                <summary>
+                    <i class="ph ph-caret-down"></i>
+                    <span>Trilha de Registros (${fullChain.length})</span>
+                </summary>
+                <div class="chain-list">
+                    ${fullChain.map((item, idx) => {
+                        const isCurrent = item.id === r.id;
+                        const tagHtml = isCurrent
+                            ? `<span class="tag" style="background:var(--primary-color);color:var(--bg-color);font-weight:600;">${item.title || item.mainPassage}</span>`
+                            : `<a href="#" class="tag chain-nav-link" data-chain-id="${item.id}">${item.title || item.mainPassage}</a>`;
+                        return `<div class="chain-item"><span class="chain-number">${idx + 1}.</span>${tagHtml}</div>`;
+                    }).join('')}
+                </div>
+            </details>` : '';
+
         let bodyHtml = '';
         if (r.recordFormat === 'livre') {
             bodyHtml = r.content?.texto || '';
@@ -1022,6 +1056,7 @@ export function init(firebaseDb, firebaseAuth) {
                 <h1 class="reading-title">${r.title || r.mainPassage}</h1>
                 ${r.title ? `<div class="reading-passage">${r.mainPassage}</div>` : ''}
                 <span class="record-type-chip chip-${r.recordType} reading-type-chip">${typeLabel}</span>
+                ${chainHtml}
                 <hr class="reading-divider">
                 <div class="reading-body">${bodyHtml}</div>
                 ${r.links?.length ? `<hr class="reading-divider"><h4>Links</h4>${r.links.map(l=>`<a href="${l.url}" target="_blank" class="tag">${l.title}</a>`).join(' ')}` : ''}
@@ -1058,6 +1093,15 @@ export function init(firebaseDb, firebaseAuth) {
                 }, 210);
             });
         }
+
+        overlay.querySelectorAll('.chain-nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.dataset.chainId;
+                close();
+                setTimeout(() => window.openReadingMode(targetId), 210);
+            });
+        });
 
         document.addEventListener('keydown', function onEsc(e) {
             if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); }
