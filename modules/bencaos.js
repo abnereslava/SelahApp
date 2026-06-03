@@ -106,6 +106,7 @@ export function render(container) {
                             <button type="submit" class="btn-primary" id="btnSubmitBlessing"><i class="ph ph-floppy-disk"></i> Registrar Gratidão</button>
                             <button type="button" class="btn-secondary" id="btnCancelBlessingEdit" style="display: none;">Cancelar Edição</button>
                         </div>
+                        <button type="button" class="btn-danger" id="btnDeleteBlessingFromEdit" style="display:none;"><i class="ph ph-trash"></i> Excluir Bênção</button>
                     </form>
                 </main>
             </div>
@@ -208,6 +209,8 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('btnCancelBlessingEdit').style.display = 'none';
         document.getElementById('btnSubmitBlessing').innerHTML = '<i class="ph ph-floppy-disk"></i> Registrar Gratidão';
         document.getElementById('createBencaosTitleLabel').innerText = "Nova Bênção";
+        const btnDelB = document.getElementById('btnDeleteBlessingFromEdit');
+        if (btnDelB) btnDelB.style.display = 'none';
 
         const draft = localStorage.getItem('selah_draft_bencaos');
         if (editor) editor.root.innerHTML = draft ? draft : "<p><br></p>";
@@ -846,6 +849,8 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('btnSubmitBlessing').innerHTML = '<i class="ph ph-check"></i> Atualizar Gratidão';
         document.getElementById('btnCancelBlessingEdit').style.display = 'block';
         document.getElementById('createBencaosTitleLabel').innerText = "Editando Bênção";
+        const btnDelB = document.getElementById('btnDeleteBlessingFromEdit');
+        if (btnDelB) btnDelB.style.display = 'flex';
 
         window.openCreateBencaosOverlay();
     };
@@ -872,6 +877,21 @@ export function init(firebaseDb, firebaseAuth) {
             resetFormFields();
             window.closeCreateBencaosOverlay();
         };
+    }
+
+    const btnDeleteBlessingFromEdit = document.getElementById('btnDeleteBlessingFromEdit');
+    if (btnDeleteBlessingFromEdit) {
+        btnDeleteBlessingFromEdit.addEventListener('click', async () => {
+            const editId = document.getElementById('editBlessingId').value;
+            if (!editId) return;
+            if (!await showConfirm("Tem certeza de que deseja apagar este registro de bênção?")) return;
+            window.closeCreateBencaosOverlay();
+            resetFormFields();
+            setTimeout(async () => {
+                await deleteDoc(doc(db, "blessings", editId));
+                fetchBlessings();
+            }, 210);
+        });
     }
 
     // --- FILTERS & RANDOM ---

@@ -2228,7 +2228,7 @@ select:focus {
 .rc-btn.rc-btn-read:hover { background: rgba(212,175,55,0.22); }
 .rc-btn.rc-btn-delete { color: var(--danger-color, #ef4444); }
 .rc-btn.rc-btn-delete:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); }
-.rc-btn.rc-btn-shuffle { padding: 7px 10px; color: var(--primary-color); border-color: rgba(212,175,55,0.3); }
+.rc-btn.rc-btn-shuffle { color: var(--primary-color); border-color: rgba(212,175,55,0.3); }
 .rc-btn.rc-btn-shuffle:hover { background: rgba(212,175,55,0.12); }
 
 /* Empty state */
@@ -2280,6 +2280,18 @@ select:focus {
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
 }
+/* Bottom action bar for reading overlay */
+.reading-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+    flex-shrink: 0;
+    gap: 8px;
+}
 .reading-close-btn {
     background: none;
     border: none;
@@ -2302,7 +2314,7 @@ select:focus {
 .reading-scroll {
     flex: 1;
     overflow-y: auto;
-    padding: 32px 24px 48px;
+    padding: 32px 24px 24px;
     -webkit-overflow-scrolling: touch;
 }
 .reading-meta {
@@ -2356,7 +2368,7 @@ select:focus {
 @media (max-width: 768px) {
     .record-card-header { padding: 10px 12px; }
     .record-card-content { padding: 0 12px 12px; }
-    .reading-scroll { padding: 24px 18px 40px; }
+    .reading-scroll { padding: 24px 18px 16px; }
     .reading-title { font-size: 1.4rem; }
     .reading-body { font-size: 0.95rem; }
 }
@@ -2367,7 +2379,7 @@ select:focus {
     .app-header { padding-bottom: 0; margin-bottom: 20px; }
     .header-container { gap: 0; }
     .header-user { padding: 12px 0; }
-    .reading-toolbar, .reading-scroll { max-width: 680px; margin-left: auto; margin-right: auto; width: 100%; }
+    .reading-toolbar, .reading-bottom-bar, .reading-scroll { max-width: 680px; margin-left: auto; margin-right: auto; width: 100%; }
 }
 
 /* ── ANALYTICS OVERLAY ───────────────────────────────── */
@@ -2727,9 +2739,10 @@ select:focus {
 .create-overlay-header h2 {
     flex: 1;
     font-size: 1.15rem;
-    color: var(--text-main);
+    color: var(--primary-color);
     margin: 0;
     font-family: 'Playfair Display', serif;
+    letter-spacing: 0.01em;
 }
 
 .create-overlay-close {
@@ -2757,6 +2770,61 @@ select:focus {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 }
+
+/* ── Estilo refinado do formulário (alinhado ao overlay de leitura) ── */
+.create-overlay-scroll .form-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 20px 20px;
+    margin-bottom: 16px;
+}
+.create-overlay .form-group label {
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+.create-overlay .form-group input,
+.create-overlay .form-group select {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(212,175,55,0.2);
+    border-radius: 10px;
+    padding: 13px 16px;
+}
+.create-overlay .form-group input:focus,
+.create-overlay .form-group select:focus {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--primary-color);
+}
+.create-overlay .optional-fields {
+    background: rgba(0,0,0,0.2);
+    border-color: rgba(212,175,55,0.15);
+}
+.create-overlay .optional-fields summary {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.btn-danger {
+    background: rgba(239,68,68,0.08);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.3);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+}
+.btn-danger:hover, .btn-danger:active { background: rgba(239,68,68,0.16); }
 
 @media (min-width: 769px) {
     .create-overlay {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v14'; // trilha de registros restaurada no overlay de leitura
+const CACHE_NAME = 'selah-pwa-spa-v15'; // barra bottom, excluir no edit, aleatório sempre visível, form visual refinado
 const urlsToCache = [
   './',
   './index.html',

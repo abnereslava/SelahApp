@@ -236,6 +236,7 @@ export function render(container) {
                             <button type="submit" class="btn-primary" id="btnSubmit"><i class="ph ph-floppy-disk"></i> Salvar na Nuvem</button>
                             <button type="button" class="btn-secondary" id="btnCancelEdit" style="display: none;">Cancelar Edição</button>
                         </div>
+                        <button type="button" class="btn-danger" id="btnDeleteFromEdit" style="display:none;"><i class="ph ph-trash"></i> Excluir Registro</button>
                     </form>
                 </main>
             </div>
@@ -340,6 +341,8 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('btnCancelEdit').style.display = 'none';
         document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-floppy-disk"></i> Salvar na Nuvem';
         document.getElementById('createRegistrosTitleLabel').innerText = "Novo Registro";
+        const btnDel = document.getElementById('btnDeleteFromEdit');
+        if (btnDel) btnDel.style.display = 'none';
 
         const draft = localStorage.getItem('selah_draft_livre');
         if (editors.livre) {
@@ -1043,14 +1046,6 @@ export function init(firebaseDb, firebaseAuth) {
         overlay.className = 'reading-overlay';
         overlay.id = 'readingOverlay';
         overlay.innerHTML = `
-            <div class="reading-toolbar">
-                <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
-                <div class="reading-actions-row">
-                    <button class="rc-btn rc-btn-delete" id="readingDeleteBtn"><i class="ph ph-trash"></i> Excluir</button>
-                    <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
-                    ${fromRandom ? '<button class="rc-btn rc-btn-shuffle" id="readingShuffleBtn" title="Sortear outro"><i class="ph ph-shuffle"></i></button>' : ''}
-                </div>
-            </div>
             <div class="reading-scroll">
                 <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
                 <h1 class="reading-title">${r.title || r.mainPassage}</h1>
@@ -1060,6 +1055,13 @@ export function init(firebaseDb, firebaseAuth) {
                 <hr class="reading-divider">
                 <div class="reading-body">${bodyHtml}</div>
                 ${r.links?.length ? `<hr class="reading-divider"><h4>Links</h4>${r.links.map(l=>`<a href="${l.url}" target="_blank" class="tag">${l.title}</a>`).join(' ')}` : ''}
+            </div>
+            <div class="reading-bottom-bar">
+                <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
+                <div class="reading-actions-row">
+                    <button class="rc-btn rc-btn-shuffle" id="readingShuffleBtn"><i class="ph ph-shuffle"></i> Aleatório</button>
+                    <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
+                </div>
             </div>
         `;
 
@@ -1074,25 +1076,18 @@ export function init(firebaseDb, firebaseAuth) {
         window._overlayCloseStack.push(close);
 
         document.getElementById('readingCloseBtn').addEventListener('click', close);
-        document.getElementById('readingDeleteBtn').addEventListener('click', async () => {
-            close();
-            setTimeout(() => window.deleteRecord(r.id), 210);
-        });
         document.getElementById('readingEditBtn').addEventListener('click', () => {
             close();
             setTimeout(() => editRecord(r.id), 210);
         });
-
-        if (fromRandom) {
-            document.getElementById('readingShuffleBtn').addEventListener('click', () => {
-                close();
-                setTimeout(() => {
-                    const others = allRecords.filter(x => x.id !== r.id);
-                    const pool = others.length > 0 ? others : allRecords;
-                    window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id, true);
-                }, 210);
-            });
-        }
+        document.getElementById('readingShuffleBtn').addEventListener('click', () => {
+            close();
+            setTimeout(() => {
+                const others = allRecords.filter(x => x.id !== r.id);
+                const pool = others.length > 0 ? others : allRecords;
+                window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id);
+            }, 210);
+        });
 
         overlay.querySelectorAll('.chain-nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
@@ -1256,6 +1251,7 @@ export function init(firebaseDb, firebaseAuth) {
         renderLists();
         document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-check"></i> Atualizar Registro';
         document.getElementById('btnCancelEdit').style.display = 'block';
+        document.getElementById('btnDeleteFromEdit').style.display = 'flex';
 
         const btnPickerEdit = document.getElementById('btnOpenPassagePicker');
         if (btnPickerEdit) btnPickerEdit.innerHTML = '<i class="ph ph-book-open"></i>';
@@ -1285,6 +1281,21 @@ export function init(firebaseDb, firebaseAuth) {
             resetFormFields();
             window.closeCreateRegistrosOverlay();
         };
+    }
+
+    const btnDeleteFromEdit = document.getElementById('btnDeleteFromEdit');
+    if (btnDeleteFromEdit) {
+        btnDeleteFromEdit.addEventListener('click', async () => {
+            const editId = document.getElementById('editId').value;
+            if (!editId) return;
+            if (!await showConfirm("Deseja realmente excluir este registro?")) return;
+            window.closeCreateRegistrosOverlay();
+            resetFormFields();
+            setTimeout(async () => {
+                await deleteDoc(doc(db, "devotionals", editId));
+                fetchAll();
+            }, 210);
+        });
     }
 
     // --- LIVROS BÍBLICOS (66 livros protestantes) ---
