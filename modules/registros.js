@@ -156,13 +156,12 @@ export function render(container) {
                         </div>
 
                         <div class="form-group">
-                            <label for="mainPassage"><i class="ph ph-bookmark-simple"></i> Passagem Principal</label>
-                            <div class="passage-input-row">
-                                <input type="text" id="mainPassage" placeholder="Ex: João 3:16" required>
-                                <button type="button" id="btnOpenPassagePicker" class="btn-secondary btn-passage-picker" title="Selecionar livro e capítulo">
-                                    <i class="ph ph-book-open"></i>
-                                </button>
-                            </div>
+                            <label for="btnOpenPassagePicker"><i class="ph ph-bookmark-simple"></i> Capítulo</label>
+                            <input type="hidden" id="mainPassage">
+                            <button type="button" id="btnOpenPassagePicker" class="passage-select-btn" title="Selecionar livro e capítulo">
+                                <span id="mainPassageLabel" class="passage-select-placeholder">Selecionar livro e capítulo</span>
+                                <i class="ph ph-caret-right"></i>
+                            </button>
                         </div>
 
                         <div class="form-group">
@@ -355,8 +354,11 @@ export function init(firebaseDb, firebaseAuth) {
         setTodayDate();
         if (tagManager) tagManager.clear();
         if (authorManager) authorManager.clear();
-        const btnPicker = document.getElementById('btnOpenPassagePicker');
-        if (btnPicker) btnPicker.innerHTML = '<i class="ph ph-book-open"></i>';
+        const mainPassageLabel = document.getElementById('mainPassageLabel');
+        if (mainPassageLabel) {
+            mainPassageLabel.textContent = 'Selecionar livro e capítulo';
+            mainPassageLabel.classList.add('passage-select-placeholder');
+        }
     };
 
     window._closeRegistros = () => {
@@ -399,6 +401,12 @@ export function init(firebaseDb, firebaseAuth) {
                 const bottomNav = document.getElementById('mobileBottomNav');
                 if (bottomNav) bottomNav.style.display = 'none';
                 mobileToolbar.style.display = 'flex';
+                // Reposiciona logo acima do teclado assim que aparece (e durante a animação do teclado)
+                if (window._reposQuillToolbar) {
+                    window._reposQuillToolbar();
+                    setTimeout(window._reposQuillToolbar, 150);
+                    setTimeout(window._reposQuillToolbar, 350);
+                }
 
                 const format = qEditor.getFormat(range);
                 mobileToolbar.querySelectorAll('button').forEach(btn => {
@@ -657,6 +665,12 @@ export function init(firebaseDb, firebaseAuth) {
             e.preventDefault();
             const submitBtn = document.getElementById('btnSubmit');
             const editId = document.getElementById('editId').value;
+
+            if (!document.getElementById('mainPassage').value) {
+                showAlert("Selecione o livro e capítulo antes de salvar.");
+                return;
+            }
+
             submitBtn.disabled = true;
 
             const isLivre = document.querySelector('.btn-toggle.active').dataset.type === 'livre';
@@ -1219,7 +1233,17 @@ export function init(firebaseDb, firebaseAuth) {
             document.getElementById('continuationSearch').value = '';
         }
 
-        document.getElementById('mainPassage').value = r.mainPassage;
+        document.getElementById('mainPassage').value = r.mainPassage || '';
+        const mainPassageLabelEdit = document.getElementById('mainPassageLabel');
+        if (mainPassageLabelEdit) {
+            if (r.mainPassage) {
+                mainPassageLabelEdit.textContent = r.mainPassage;
+                mainPassageLabelEdit.classList.remove('passage-select-placeholder');
+            } else {
+                mainPassageLabelEdit.textContent = 'Selecionar livro e capítulo';
+                mainPassageLabelEdit.classList.add('passage-select-placeholder');
+            }
+        }
         document.getElementById('recordType').value = r.recordType;
         document.getElementById('relatedPassages').value = r.relatedPassages || '';
 
@@ -1252,9 +1276,6 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('btnSubmit').innerHTML = '<i class="ph ph-check"></i> Atualizar Registro';
         document.getElementById('btnCancelEdit').style.display = 'block';
         document.getElementById('btnDeleteFromEdit').style.display = 'flex';
-
-        const btnPickerEdit = document.getElementById('btnOpenPassagePicker');
-        if (btnPickerEdit) btnPickerEdit.innerHTML = '<i class="ph ph-book-open"></i>';
 
         window.openCreateRegistrosOverlay();
     };
@@ -1326,7 +1347,7 @@ export function init(firebaseDb, firebaseAuth) {
 
     // --- PASSAGE PICKER ---
     const openPassagePicker = (opts = {}) => {
-        const { targetId = 'mainPassage', append = false, triggerBtn = null } = opts;
+        const { targetId = 'mainPassage', append = false, labelId = null } = opts;
         const overlay = document.createElement('div');
         overlay.className = 'reading-overlay passage-picker-overlay';
 
@@ -1395,8 +1416,9 @@ export function init(firebaseDb, firebaseAuth) {
                                     input.value = passage;
                                 }
                             }
-                            if (triggerBtn && !append) {
-                                triggerBtn.textContent = passage;
+                            if (labelId) {
+                                const lbl = document.getElementById(labelId);
+                                if (lbl) { lbl.textContent = passage; lbl.classList.remove('passage-select-placeholder'); }
                             }
                             close();
                         });
@@ -1416,7 +1438,7 @@ export function init(firebaseDb, firebaseAuth) {
     };
 
     const btnPassagePicker = document.getElementById('btnOpenPassagePicker');
-    if (btnPassagePicker) btnPassagePicker.addEventListener('click', () => openPassagePicker({ triggerBtn: btnPassagePicker }));
+    if (btnPassagePicker) btnPassagePicker.addEventListener('click', () => openPassagePicker({ targetId: 'mainPassage', labelId: 'mainPassageLabel' }));
 
     const btnRelatedPicker = document.getElementById('btnRelatedPassagePicker');
     if (btnRelatedPicker) btnRelatedPicker.addEventListener('click', () => openPassagePicker({ targetId: 'relatedPassages', append: true }));
@@ -1555,6 +1577,13 @@ export function init(firebaseDb, firebaseAuth) {
 
             const snap = await getDocs(q);
             const newRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Desempate de registros no mesmo dia: mais recente (createdAt) primeiro
+            newRecords.sort((a, b) => {
+                if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+                const ta = a.createdAt || a.updatedAt || '';
+                const tb = b.createdAt || b.updatedAt || '';
+                return ta < tb ? 1 : (ta > tb ? -1 : 0);
+            });
 
             if (isFirst) {
                 allRecords = newRecords;

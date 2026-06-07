@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v16'; // bottom bar e aleatório no overlay de bênçãos
+const CACHE_NAME = 'selah-pwa-spa-v17'; // overscroll-behavior, desempate same-day, quill reposiciona ao focar, capítulo via botão único
 const urlsToCache = [
   './',
   './index.html',

@@ -250,6 +250,11 @@ export function init(firebaseDb, firebaseAuth) {
                 const bottomNav = document.getElementById('mobileBottomNav');
                 if (bottomNav) bottomNav.style.display = 'none';
                 mobileToolbar.style.display = 'flex';
+                if (window._reposQuillToolbar) {
+                    window._reposQuillToolbar();
+                    setTimeout(window._reposQuillToolbar, 150);
+                    setTimeout(window._reposQuillToolbar, 350);
+                }
 
                 const format = editor.getFormat(range);
                 mobileToolbar.querySelectorAll('button').forEach(btn => {
@@ -691,6 +696,13 @@ export function init(firebaseDb, firebaseAuth) {
 
             const snap = await getDocs(q);
             const newBlessings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Desempate de bênçãos no mesmo dia: mais recente (createdAt) primeiro
+            newBlessings.sort((a, b) => {
+                if (a.date !== b.date) return (a.date || '') < (b.date || '') ? 1 : -1;
+                const ta = a.createdAt || a.updatedAt || '';
+                const tb = b.createdAt || b.updatedAt || '';
+                return ta < tb ? 1 : (ta > tb ? -1 : 0);
+            });
 
             if (isFirst) {
                 allBlessings = newBlessings;
@@ -733,7 +745,12 @@ export function init(firebaseDb, firebaseAuth) {
                     const snap = await getDocs(fallbackQ);
                     const newBlessings = snap.docs
                         .map(d => ({ id: d.id, ...d.data() }))
-                        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                        .sort((a, b) => {
+                            if ((a.date || '') !== (b.date || '')) return (b.date || '').localeCompare(a.date || '');
+                            const ta = a.createdAt || a.updatedAt || '';
+                            const tb = b.createdAt || b.updatedAt || '';
+                            return ta < tb ? 1 : (ta > tb ? -1 : 0);
+                        });
                     allBlessings = newBlessings;
                     allLoaded = true;
                     if (feed) feed.dataset.loaded = '1';

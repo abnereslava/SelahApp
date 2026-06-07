@@ -42,6 +42,8 @@ body {
 html, body {
     overflow-x: hidden;
     max-width: 100%;
+    /* Impede pull-to-refresh e overscroll que recarrega/sai da página no mobile */
+    overscroll-behavior-y: contain;
 }
 
 /* O título "Registro de Leitura" estava vinculado ao formulário inline,
@@ -2314,6 +2316,7 @@ select:focus {
 .reading-scroll {
     flex: 1;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 32px 24px 24px;
     -webkit-overflow-scrolling: touch;
 }
@@ -2571,6 +2574,38 @@ select:focus {
     max-width: 140px;
 }
 
+/* ── BOTÃO ÚNICO DE SELEÇÃO DE CAPÍTULO ────────────────── */
+.passage-select-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(212,175,55,0.2);
+    border-radius: 10px;
+    color: var(--text-main);
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition);
+}
+.passage-select-btn:hover,
+.passage-select-btn:active {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--primary-color);
+}
+.passage-select-btn i {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.passage-select-btn .passage-select-placeholder {
+    color: var(--text-muted);
+}
+
 /* ── FAB DE CRIAÇÃO RÁPIDA ───────────────────────────── */
 
 /* Center FAB button in bottom nav */
@@ -2768,6 +2803,7 @@ select:focus {
 .create-overlay-scroll {
     flex: 1;
     overflow-y: auto;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
 }
 

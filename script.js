@@ -109,17 +109,21 @@ if (sidebar) {
 }
 
 // --- QUILL TOOLBAR: segue o teclado via Visual Viewport API ---
-if (window.visualViewport) {
-    const reposToolbar = () => {
-        const toolbar = document.getElementById('mobileQuillToolbar');
-        if (!toolbar || toolbar.style.display === 'none') return;
+const reposQuillToolbar = () => {
+    const toolbar = document.getElementById('mobileQuillToolbar');
+    if (!toolbar || toolbar.style.display === 'none') return;
+    if (window.visualViewport) {
         const vv = window.visualViewport;
         // Distância entre o bottom do viewport visual e o bottom do layout viewport
         const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
         toolbar.style.bottom = Math.max(0, offsetFromBottom) + 'px';
-    };
-    window.visualViewport.addEventListener('resize', reposToolbar);
-    window.visualViewport.addEventListener('scroll', reposToolbar);
+    }
+};
+// Exposto para que os módulos reposicionem assim que a toolbar é exibida
+window._reposQuillToolbar = reposQuillToolbar;
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', reposQuillToolbar);
+    window.visualViewport.addEventListener('scroll', reposQuillToolbar);
 }
 
 // --- OVERLAY STACK (back-button handling) ---
@@ -374,10 +378,7 @@ const initSwipeNavigation = () => {
         if (dx < 0 && idx < features.length - 1) nextIdx = idx + 1;
         if (dx > 0 && idx > 0) nextIdx = idx - 1;
 
-        if (nextIdx === -1) {
-            snapBack(true);
-            return;
-        }
+        if (nextIdx === -1) return;
 
         spaContent.style.transition = '';
         spaContent.style.transform = '';
