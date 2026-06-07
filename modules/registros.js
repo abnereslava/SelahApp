@@ -190,12 +190,12 @@ export function render(container) {
                         <details class="optional-fields">
                             <summary><i class="ph ph-bookmarks"></i> Passagens Relacionadas</summary>
                             <div class="details-content">
-                                <div class="passage-input-row">
-                                    <input type="text" id="relatedPassages" placeholder="Ex: Romanos 5:8">
-                                    <button type="button" id="btnRelatedPassagePicker" class="btn-secondary btn-passage-picker" title="Adicionar passagem relacionada">
-                                        <i class="ph ph-book-open"></i>
-                                    </button>
-                                </div>
+                                <div id="relatedPassagesList" class="related-passages-list"></div>
+                                <button type="button" id="btnAddRelatedPassage" class="passage-select-btn related-add-btn">
+                                    <span class="passage-select-placeholder">Adicionar passagem relacionada</span>
+                                    <i class="ph ph-plus"></i>
+                                </button>
+                                <input type="hidden" id="relatedPassages">
                             </div>
                         </details>
                         <details class="optional-fields" id="keywordsSection">
@@ -358,6 +358,8 @@ export function init(firebaseDb, firebaseAuth) {
             mainPassageLabel.textContent = 'Selecionar livro e capítulo';
             mainPassageLabel.classList.add('passage-select-placeholder');
         }
+        relatedPassagesArr = [];
+        renderRelatedPassages();
     };
 
     const doCloseRegistros = () => {
@@ -669,7 +671,8 @@ export function init(firebaseDb, firebaseAuth) {
         }
         document.getElementById('recordType').value = d.recordType || 'devocional';
         if (authorManager) authorManager.setTags(d.author || []);
-        document.getElementById('relatedPassages').value = d.relatedPassages || '';
+        relatedPassagesArr = parseRelated(d.relatedPassages || '');
+        renderRelatedPassages();
         if (tagManager) tagManager.setTags(d.keywords || []);
         if (d.recordFormat === 'orientado') {
             document.querySelector('[data-type="orientado"]').click();
@@ -814,6 +817,7 @@ export function init(firebaseDb, firebaseAuth) {
 
     // --- CRUD: BUSCAR E RENDERIZAR (com paginação) ---
     let allRecords = [];
+    let statsRecords = []; // todos os registros do usuário (para estatísticas/analytics corretos)
     let lastDoc = null;
     let allLoaded = false;
     let isFetching = false;
@@ -1343,7 +1347,8 @@ export function init(firebaseDb, firebaseAuth) {
             }
         }
         document.getElementById('recordType').value = r.recordType;
-        document.getElementById('relatedPassages').value = r.relatedPassages || '';
+        relatedPassagesArr = parseRelated(r.relatedPassages || '');
+        renderRelatedPassages();
 
         let authorsArr = [];
         if (Array.isArray(r.author)) {
@@ -1443,7 +1448,7 @@ export function init(firebaseDb, firebaseAuth) {
 
     // --- PASSAGE PICKER ---
     const openPassagePicker = (opts = {}) => {
-        const { targetId = 'mainPassage', append = false, labelId = null } = opts;
+        const { targetId = 'mainPassage', append = false, labelId = null, onSelect = null } = opts;
         const overlay = document.createElement('div');
         overlay.className = 'reading-overlay passage-picker-overlay';
 
@@ -1504,17 +1509,21 @@ export function init(firebaseDb, firebaseAuth) {
                     content.querySelectorAll('.pp-chapter-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             const passage = `${currentBook.name} ${btn.dataset.c}`;
-                            const input = document.getElementById(targetId);
-                            if (input) {
-                                if (append && input.value.trim()) {
-                                    input.value = input.value.trim() + '; ' + passage;
-                                } else {
-                                    input.value = passage;
+                            if (typeof onSelect === 'function') {
+                                onSelect(passage);
+                            } else {
+                                const input = document.getElementById(targetId);
+                                if (input) {
+                                    if (append && input.value.trim()) {
+                                        input.value = input.value.trim() + '; ' + passage;
+                                    } else {
+                                        input.value = passage;
+                                    }
                                 }
-                            }
-                            if (labelId) {
-                                const lbl = document.getElementById(labelId);
-                                if (lbl) { lbl.textContent = passage; lbl.classList.remove('passage-select-placeholder'); }
+                                if (labelId) {
+                                    const lbl = document.getElementById(labelId);
+                                    if (lbl) { lbl.textContent = passage; lbl.classList.remove('passage-select-placeholder'); }
+                                }
                             }
                             close();
                         });
@@ -1536,8 +1545,46 @@ export function init(firebaseDb, firebaseAuth) {
     const btnPassagePicker = document.getElementById('btnOpenPassagePicker');
     if (btnPassagePicker) btnPassagePicker.addEventListener('click', () => openPassagePicker({ targetId: 'mainPassage', labelId: 'mainPassageLabel' }));
 
-    const btnRelatedPicker = document.getElementById('btnRelatedPassagePicker');
-    if (btnRelatedPicker) btnRelatedPicker.addEventListener('click', () => openPassagePicker({ targetId: 'relatedPassages', append: true }));
+    // --- PASSAGENS RELACIONADAS (lista de até 10, via seletor) ---
+    const MAX_RELATED = 10;
+    let relatedPassagesArr = [];
+    const parseRelated = (str) => (str || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
+
+    const renderRelatedPassages = () => {
+        const list = document.getElementById('relatedPassagesList');
+        const hidden = document.getElementById('relatedPassages');
+        const addBtn = document.getElementById('btnAddRelatedPassage');
+        if (!list) return;
+        list.innerHTML = relatedPassagesArr.map((p, i) =>
+            `<span class="tag-chip related-chip">${p}<button type="button" class="tag-chip-remove" data-idx="${i}" title="Remover"><i class="ph ph-x"></i></button></span>`
+        ).join('');
+        list.querySelectorAll('.tag-chip-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                relatedPassagesArr.splice(parseInt(btn.dataset.idx), 1);
+                renderRelatedPassages();
+                saveDraftDebounced();
+            });
+        });
+        if (hidden) hidden.value = relatedPassagesArr.join('; ');
+        if (addBtn) addBtn.style.display = relatedPassagesArr.length >= MAX_RELATED ? 'none' : '';
+    };
+
+    const btnAddRelated = document.getElementById('btnAddRelatedPassage');
+    if (btnAddRelated) {
+        btnAddRelated.addEventListener('click', () => {
+            if (relatedPassagesArr.length >= MAX_RELATED) {
+                showAlert(`Você pode adicionar no máximo ${MAX_RELATED} passagens relacionadas.`);
+                return;
+            }
+            openPassagePicker({ onSelect: (passage) => {
+                if (relatedPassagesArr.length >= MAX_RELATED) return;
+                relatedPassagesArr.push(passage);
+                renderRelatedPassages();
+                saveDraftDebounced();
+            }});
+        });
+    }
+    renderRelatedPassages();
 
     // --- ANALYTICS OVERLAY ---
     const extractBibleBook = (passage) => {
@@ -1549,14 +1596,15 @@ export function init(firebaseDb, firebaseAuth) {
         const overlay = document.createElement('div');
         overlay.className = 'reading-overlay analytics-overlay';
 
+        const data = statsRecords;
         const now = new Date();
         const monthlyData = Array.from({length:6}, (_, i) => {
             const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
             const prefix = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-            return { label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()], count: allRecords.filter(r => r.date.startsWith(prefix)).length };
+            return { label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()], count: data.filter(r => r.date && r.date.startsWith(prefix)).length };
         });
-        const yearCount = allRecords.filter(r => r.date.startsWith(now.getFullYear().toString())).length;
-        const monthCount = allRecords.filter(r => r.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
+        const yearCount = data.filter(r => r.date && r.date.startsWith(now.getFullYear().toString())).length;
+        const monthCount = data.filter(r => r.date && r.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
 
         overlay.innerHTML = `
             <div class="reading-toolbar">
@@ -1566,7 +1614,7 @@ export function init(firebaseDb, firebaseAuth) {
             </div>
             <div class="reading-scroll analytics-scroll">
                 <div class="analytics-stats-row">
-                    <div class="analytics-stat-item"><span class="analytics-stat-num">${allRecords.length}</span><span class="analytics-stat-lbl">Total</span></div>
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${data.length}</span><span class="analytics-stat-lbl">Total</span></div>
                     <div class="analytics-stat-item"><span class="analytics-stat-num">${monthCount}</span><span class="analytics-stat-lbl">Este mês</span></div>
                     <div class="analytics-stat-item"><span class="analytics-stat-num">${yearCount}</span><span class="analytics-stat-lbl">Este ano</span></div>
                 </div>
@@ -1581,8 +1629,8 @@ export function init(firebaseDb, firebaseAuth) {
         const lc = '#D4AF37', gc = 'rgba(212,175,55,0.12)';
         const chartOpts = { responsive:true, maintainAspectRatio:false };
 
-        const typeCounts = allRecords.reduce((acc,r) => { acc[r.recordType]=(acc[r.recordType]||0)+1; return acc; }, {});
-        const bookCounts = allRecords.reduce((acc,r) => { if(r.mainPassage){const b=extractBibleBook(r.mainPassage); acc[b]=(acc[b]||0)+1;} return acc; }, {});
+        const typeCounts = data.reduce((acc,r) => { acc[r.recordType]=(acc[r.recordType]||0)+1; return acc; }, {});
+        const bookCounts = data.reduce((acc,r) => { if(r.mainPassage){const b=extractBibleBook(r.mainPassage); acc[b]=(acc[b]||0)+1;} return acc; }, {});
         const sortedBooks = Object.entries(bookCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
 
         const cA = new Chart(document.getElementById('aTypeChart'), {
@@ -1610,16 +1658,29 @@ export function init(firebaseDb, firebaseAuth) {
     };
 
     const updateStatsCard = () => {
-        const total = allRecords.length;
+        const total = statsRecords.length;
         const el = document.getElementById('statsTotalReg');
         if (el) el.innerText = total;
 
         const now = new Date();
         const monthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-        const monthCount = allRecords.filter(r => r.date.startsWith(monthPrefix)).length;
+        const monthCount = statsRecords.filter(r => r.date && r.date.startsWith(monthPrefix)).length;
         const elMonth = document.getElementById('statsMonthReg');
         if (elMonth) elMonth.innerText = monthCount;
+    };
 
+    // Busca a contagem completa (não paginada) para estatísticas e analytics corretos
+    const refreshStats = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            const snap = await getDocs(query(collection(db, "devotionals"), where("userId", "==", user.uid)));
+            statsRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+            console.error("Erro ao carregar estatísticas:", err);
+            statsRecords = allRecords.slice(); // fallback: usa o que estiver carregado
+        }
+        updateStatsCard();
     };
 
     // --- PAGINAÇÃO ---
@@ -1747,6 +1808,7 @@ export function init(firebaseDb, firebaseAuth) {
         isFetching = false;
         allRecords = [];
         await fetchPage(true);
+        await refreshStats();
     };
 
     // --- FILTROS E BUSCA ---

@@ -2604,6 +2604,24 @@ select:focus {
     color: var(--text-muted);
 }
 
+/* Lista de passagens relacionadas (chips + botão adicionar) */
+.related-passages-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.related-passages-list:not(:empty) {
+    margin-bottom: 12px;
+}
+.related-chip {
+    background: rgba(212,175,55,0.12);
+    border: 1px solid rgba(212,175,55,0.3);
+    color: var(--text-main);
+}
+.related-add-btn .ph-plus {
+    font-size: 1.2rem;
+}
+
 /* ── TOAST ───────────────────────────────────────────── */
 .selah-toast {
     position: fixed;

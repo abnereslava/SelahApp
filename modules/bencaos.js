@@ -363,6 +363,7 @@ export function init(firebaseDb, firebaseAuth) {
     // --- TAGS INDEX & TAGMANAGER ---
     const globalBlessingTagIndex = new Map();
     let allBlessings = [];
+    let statsBlessings = []; // todas as bênçãos do usuário (estatísticas/analytics corretos)
     let lastDoc = null;
     let allLoaded = false;
     let isFetching = false;
@@ -700,16 +701,29 @@ export function init(firebaseDb, firebaseAuth) {
     };
 
     const renderStats = () => {
-        const total = allBlessings.length;
+        const total = statsBlessings.length;
         const elTotal = document.getElementById('statsTotalBlessings');
         if (elTotal) elTotal.innerText = total;
 
         const now = new Date();
         const monthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-        const monthCount = allBlessings.filter(b => b.date.startsWith(monthPrefix)).length;
+        const monthCount = statsBlessings.filter(b => b.date && b.date.startsWith(monthPrefix)).length;
         const elMonth = document.getElementById('statsMonthBlessings');
         if (elMonth) elMonth.innerText = monthCount;
+    };
 
+    // Busca a contagem completa (não paginada) para estatísticas/analytics corretos
+    const refreshStats = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            const snap = await getDocs(query(collection(db, "blessings"), where("userId", "==", user.uid)));
+            statsBlessings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+            console.error("Erro ao carregar estatísticas de bênçãos:", err);
+            statsBlessings = allBlessings.slice();
+        }
+        renderStats();
     };
 
     // --- PAGINAÇÃO ---
@@ -853,6 +867,7 @@ export function init(firebaseDb, firebaseAuth) {
         isFetching = false;
         allBlessings = [];
         await fetchPage(true);
+        await refreshStats();
     };
 
     // --- FORM SUBMIT (CREATE & UPDATE) ---
@@ -1012,17 +1027,18 @@ export function init(firebaseDb, firebaseAuth) {
         const overlay = document.createElement('div');
         overlay.className = 'reading-overlay analytics-overlay';
 
+        const data = statsBlessings;
         const now = new Date();
         const monthlyData = Array.from({length:6}, (_, i) => {
             const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
             const prefix = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-            return { label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()], count: allBlessings.filter(b => b.date.startsWith(prefix)).length };
+            return { label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()], count: data.filter(b => b.date && b.date.startsWith(prefix)).length };
         });
-        const yearCount = allBlessings.filter(b => b.date.startsWith(now.getFullYear().toString())).length;
-        const monthCount = allBlessings.filter(b => b.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
+        const yearCount = data.filter(b => b.date && b.date.startsWith(now.getFullYear().toString())).length;
+        const monthCount = data.filter(b => b.date && b.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
 
         const tagCounts = {};
-        allBlessings.forEach(b => (b.tags||[]).forEach(t => { tagCounts[t] = (tagCounts[t]||0)+1; }));
+        data.forEach(b => (b.tags||[]).forEach(t => { tagCounts[t] = (tagCounts[t]||0)+1; }));
         const sortedTags = Object.entries(tagCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
         const hasTagChart = sortedTags.length > 0;
 
@@ -1034,7 +1050,7 @@ export function init(firebaseDb, firebaseAuth) {
             </div>
             <div class="reading-scroll analytics-scroll">
                 <div class="analytics-stats-row">
-                    <div class="analytics-stat-item"><span class="analytics-stat-num">${allBlessings.length}</span><span class="analytics-stat-lbl">Total</span></div>
+                    <div class="analytics-stat-item"><span class="analytics-stat-num">${data.length}</span><span class="analytics-stat-lbl">Total</span></div>
                     <div class="analytics-stat-item"><span class="analytics-stat-num">${monthCount}</span><span class="analytics-stat-lbl">Este mês</span></div>
                     <div class="analytics-stat-item"><span class="analytics-stat-num">${yearCount}</span><span class="analytics-stat-lbl">Este ano</span></div>
                 </div>

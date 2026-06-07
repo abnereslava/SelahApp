@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v19'; // confirmação ao cancelar registro, remove overscroll global (corrige scroll principal)
+const CACHE_NAME = 'selah-pwa-spa-v20'; // analytics conta total real (corrige exclusão), passagens relacionadas via seletor (até 10)
 const urlsToCache = [
   './',
   './index.html',
