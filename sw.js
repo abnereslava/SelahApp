@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v17'; // overscroll-behavior, desempate same-day, quill reposiciona ao focar, capítulo via botão único
+const CACHE_NAME = 'selah-pwa-spa-v18'; // rascunho automático + recuperação de registro/bênção, toast
 const urlsToCache = [
   './',
   './index.html',

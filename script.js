@@ -126,6 +126,75 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener('scroll', reposQuillToolbar);
 }
 
+// --- RASCUNHO AUTOMÁTICO (auto-save de registros em andamento) ---
+window.SelahDraft = {
+    _uid() {
+        try { return (auth.currentUser && auth.currentUser.uid) || 'anon'; }
+        catch (e) { return 'anon'; }
+    },
+    key(module) { return `selah_draft_v2_${module}_${this._uid()}`; },
+    save(module, data) {
+        try {
+            const payload = { ...data, savedAt: new Date().toISOString() };
+            localStorage.setItem(this.key(module), JSON.stringify(payload));
+        } catch (e) { /* cota cheia ou indisponível — ignora */ }
+    },
+    load(module) {
+        try {
+            const raw = localStorage.getItem(this.key(module));
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    },
+    clear(module) {
+        try { localStorage.removeItem(this.key(module)); } catch (e) { /* ignora */ }
+    }
+};
+
+// --- TOAST LEVE ---
+window.showToast = (msg, ms = 3200) => {
+    let toast = document.getElementById('selahToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'selahToast';
+        toast.className = 'selah-toast';
+        document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<i class="ph ph-bookmark-simple"></i> <span>${msg}</span>`;
+    clearTimeout(window._selahToastTimer);
+    // força reflow para reiniciar a animação
+    void toast.offsetWidth;
+    toast.classList.add('visible');
+    window._selahToastTimer = setTimeout(() => toast.classList.remove('visible'), ms);
+};
+
+// Escolhe o módulo (registros/bencaos) com o rascunho mais recente e com conteúdo,
+// limitado às features liberadas para o usuário. Retorna o nome do módulo ou null.
+const pickDraftModuleToRestore = () => {
+    const candidates = ['registros', 'bencaos'].filter(m => currentUserFeatures.includes(m));
+    let best = null;
+    candidates.forEach(m => {
+        const d = window.SelahDraft.load(m);
+        if (d && d.hasContent && d.savedAt) {
+            if (!best || d.savedAt > best.savedAt) best = { module: m, savedAt: d.savedAt };
+        }
+    });
+    return best ? best.module : null;
+};
+
+// Garante salvamento nos momentos críticos (app vai para segundo plano / descarrega).
+// Cada módulo registra seu flush em window._draftFlushers[modulo]; cada flush só
+// grava se o overlay de criação daquele módulo estiver aberto.
+const initDraftFlushHandlers = () => {
+    if (window._draftGlobalBound) return;
+    window._draftGlobalBound = true;
+    const flush = () => {
+        const flushers = window._draftFlushers || {};
+        Object.keys(flushers).forEach(k => { try { flushers[k](); } catch (e) {} });
+    };
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+    window.addEventListener('pagehide', flush);
+};
+
 // --- OVERLAY STACK (back-button handling) ---
 window._overlayCloseStack = [];
 
@@ -465,14 +534,29 @@ onAuthStateChanged(auth, async (user) => {
                 // Inicializa navegação por swipe
                 initSwipeNavigation();
 
+                // Inicializa flush global de rascunho (uma única vez)
+                initDraftFlushHandlers();
+
+                // Recuperação de rascunho: escolhe o módulo com o rascunho mais recente
+                const restoreModule = pickDraftModuleToRestore();
+                window._restorePendingModule = restoreModule;
+
                 // Executa rota inicial (na ordem visual do menu)
                 const orderedFeatures = getOrderedFeatures();
                 const currentHash = window.location.hash.substring(1);
-                _prevHash = currentHash || orderedFeatures[0];
-                if (!currentHash || !userFeatures.includes(currentHash)) {
+
+                // Se houver rascunho a recuperar, a rota inicial vai para o módulo dele
+                const initialHash = (restoreModule && orderedFeatures.includes(restoreModule))
+                    ? restoreModule
+                    : currentHash;
+
+                _prevHash = initialHash || orderedFeatures[0];
+                if (!initialHash || !userFeatures.includes(initialHash)) {
                     window.location.hash = orderedFeatures[0];
-                } else {
+                } else if (window.location.hash.substring(1) === initialHash) {
                     handleRouteChange();
+                } else {
+                    window.location.hash = initialHash;
                 }
             } else {
                 await signOut(auth);

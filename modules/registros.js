@@ -307,6 +307,8 @@ export function init(firebaseDb, firebaseAuth) {
         const bottomNav = document.getElementById('mobileBottomNav');
         if (bottomNav) bottomNav.style.display = '';
         window.activeQuillEditor = null;
+        // Fechar/cancelar/salvar é uma saída intencional → descarta o rascunho
+        if (window.SelahDraft) window.SelahDraft.clear('registros');
         const idx = window._overlayCloseStack.indexOf(window._closeRegistros);
         if (idx > -1) window._overlayCloseStack.splice(idx, 1);
     };
@@ -343,9 +345,8 @@ export function init(firebaseDb, firebaseAuth) {
         const btnDel = document.getElementById('btnDeleteFromEdit');
         if (btnDel) btnDel.style.display = 'none';
 
-        const draft = localStorage.getItem('selah_draft_livre');
         if (editors.livre) {
-            editors.livre.root.innerHTML = draft ? draft : "<p><br></p>";
+            editors.livre.root.innerHTML = "<p><br></p>";
         }
         renderGuidedQuestions();
         tempActions = [];
@@ -373,17 +374,10 @@ export function init(firebaseDb, firebaseAuth) {
         livre: new Quill('#quillEditorLivre', { theme: 'snow', modules: { toolbar } })
     };
 
-    const savedDraft = localStorage.getItem('selah_draft_livre');
-    if (savedDraft && editors.livre) {
-        editors.livre.root.innerHTML = savedDraft;
-    }
-
     if (editors.livre) {
         editors.livre.on('text-change', () => {
             const editId = document.getElementById('editId');
-            if (editId && !editId.value) {
-                localStorage.setItem('selah_draft_livre', editors.livre.root.innerHTML);
-            }
+            if (editId && !editId.value) saveDraftDebounced();
         });
     }
 
@@ -585,6 +579,95 @@ export function init(firebaseDb, firebaseAuth) {
 
     renderGuidedQuestions();
 
+    // --- RASCUNHO AUTOMÁTICO ---
+    let _draftTimer = null;
+
+    const isRegOverlayOpen = () => {
+        const ov = document.getElementById('createRegistrosOverlay');
+        return ov && ov.classList.contains('open');
+    };
+
+    const stripTags = (html) => (html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+
+    const collectDraft = () => {
+        const titleV = document.getElementById('title')?.value || '';
+        const mainPassageV = document.getElementById('mainPassage')?.value || '';
+        const isLivre = (document.querySelector('.btn-toggle.active')?.dataset.type || 'livre') === 'livre';
+        const livreHtml = editors.livre ? editors.livre.root.innerHTML : '';
+        const guided = getGuidedData();
+        const bodyHasContent = isLivre
+            ? stripTags(livreHtml) !== ''
+            : guided.some(q => stripTags(q.a) !== '');
+        const hasContent = !!(titleV.trim() || mainPassageV.trim() || bodyHasContent);
+        return {
+            hasContent,
+            title: titleV,
+            date: document.getElementById('date')?.value || '',
+            continuationOf: document.getElementById('continuationOf')?.value || '',
+            continuationSearch: document.getElementById('continuationSearch')?.value || '',
+            mainPassage: mainPassageV,
+            recordType: document.getElementById('recordType')?.value || 'devocional',
+            author: authorManager ? authorManager.getTags() : [],
+            relatedPassages: document.getElementById('relatedPassages')?.value || '',
+            keywords: tagManager ? tagManager.getTags() : [],
+            recordFormat: isLivre ? 'livre' : 'orientado',
+            content: isLivre ? { texto: livreHtml } : { questions: guided },
+            actions: tempActions || [],
+            links: tempLinks || []
+        };
+    };
+
+    const saveDraftNow = () => {
+        if (!isRegOverlayOpen()) return;
+        if (document.getElementById('editId')?.value) return; // só registros novos
+        const d = collectDraft();
+        if (!d.hasContent) { window.SelahDraft.clear('registros'); return; }
+        window.SelahDraft.save('registros', d);
+    };
+
+    const saveDraftDebounced = () => {
+        clearTimeout(_draftTimer);
+        _draftTimer = setTimeout(saveDraftNow, 800);
+    };
+
+    // Registra o flush deste módulo (chamado em visibilitychange/pagehide)
+    window._draftFlushers = window._draftFlushers || {};
+    window._draftFlushers.registros = saveDraftNow;
+
+    const devFormDraft = document.getElementById('devotionalForm');
+    if (devFormDraft) {
+        devFormDraft.addEventListener('input', saveDraftDebounced);
+        devFormDraft.addEventListener('change', saveDraftDebounced);
+    }
+
+    const applyDraft = (d) => {
+        document.getElementById('title').value = d.title || '';
+        document.getElementById('date').value = d.date || '';
+        document.getElementById('continuationOf').value = d.continuationOf || '';
+        document.getElementById('continuationSearch').value = d.continuationSearch || '';
+        document.getElementById('mainPassage').value = d.mainPassage || '';
+        const lbl = document.getElementById('mainPassageLabel');
+        if (lbl) {
+            if (d.mainPassage) { lbl.textContent = d.mainPassage; lbl.classList.remove('passage-select-placeholder'); }
+            else { lbl.textContent = 'Selecionar livro e capítulo'; lbl.classList.add('passage-select-placeholder'); }
+        }
+        document.getElementById('recordType').value = d.recordType || 'devocional';
+        if (authorManager) authorManager.setTags(d.author || []);
+        document.getElementById('relatedPassages').value = d.relatedPassages || '';
+        if (tagManager) tagManager.setTags(d.keywords || []);
+        if (d.recordFormat === 'orientado') {
+            document.querySelector('[data-type="orientado"]').click();
+            const qs = (d.content && d.content.questions) || [];
+            renderGuidedQuestions(qs.map(q => q.q), qs.map(q => q.a));
+        } else {
+            document.querySelector('[data-type="livre"]').click();
+            if (editors.livre) editors.livre.root.innerHTML = (d.content && d.content.texto) || '<p><br></p>';
+        }
+        tempActions = d.actions || [];
+        tempLinks = d.links || [];
+        renderLists();
+    };
+
     // --- ALTERNÂNCIA DE FORMATO ---
     document.querySelectorAll('.btn-toggle').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -699,7 +782,6 @@ export function init(firebaseDb, firebaseAuth) {
                     data.createdAt = data.updatedAt;
                     await addDoc(collection(db, "devotionals"), data);
                     showAlert("Salvo com sucesso!");
-                    localStorage.removeItem('selah_draft_livre');
                 }
 
                 window.closeCreateRegistrosOverlay();
@@ -1685,5 +1767,16 @@ export function init(firebaseDb, firebaseAuth) {
         };
     }
 
-    fetchAll();
+    fetchAll().then(() => {
+        // Recuperação automática de rascunho (apenas se este módulo foi escolhido no login)
+        if (window._restorePendingModule === 'registros') {
+            window._restorePendingModule = null;
+            const d = window.SelahDraft.load('registros');
+            if (d && d.hasContent) {
+                applyDraft(d);
+                window.openCreateRegistrosOverlay();
+                if (window.showToast) window.showToast('Rascunho recuperado');
+            }
+        }
+    });
 }

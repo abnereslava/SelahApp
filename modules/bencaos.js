@@ -178,6 +178,8 @@ export function init(firebaseDb, firebaseAuth) {
         const bottomNav = document.getElementById('mobileBottomNav');
         if (bottomNav) bottomNav.style.display = '';
         window.activeQuillEditor = null;
+        // Fechar/cancelar/salvar é uma saída intencional → descarta o rascunho
+        if (window.SelahDraft) window.SelahDraft.clear('bencaos');
         const idx = window._overlayCloseStack.indexOf(window._closeBencaos);
         if (idx > -1) window._overlayCloseStack.splice(idx, 1);
     };
@@ -212,8 +214,7 @@ export function init(firebaseDb, firebaseAuth) {
         const btnDelB = document.getElementById('btnDeleteBlessingFromEdit');
         if (btnDelB) btnDelB.style.display = 'none';
 
-        const draft = localStorage.getItem('selah_draft_bencaos');
-        if (editor) editor.root.innerHTML = draft ? draft : "<p><br></p>";
+        if (editor) editor.root.innerHTML = "<p><br></p>";
         setTodayDate();
         if (tagManager) tagManager.clear();
     };
@@ -228,13 +229,10 @@ export function init(firebaseDb, firebaseAuth) {
     const toolbar = [['bold', 'italic', 'underline'], [{ 'color': customColors }], [{ 'header': [1, 2, false] }], ['clean']];
     const editor = new Quill('#quillEditorBencaos', { theme: 'snow', modules: { toolbar } });
 
-    const savedDraft = localStorage.getItem('selah_draft_bencaos');
-    if (savedDraft && editor) editor.root.innerHTML = savedDraft;
-
     if (editor) {
         editor.on('text-change', () => {
             const editId = document.getElementById('editBlessingId');
-            if (editId && !editId.value) localStorage.setItem('selah_draft_bencaos', editor.root.innerHTML);
+            if (editId && !editId.value) saveDraftDebounced();
         });
     }
 
@@ -502,6 +500,59 @@ export function init(firebaseDb, firebaseAuth) {
     }
 
     const tagManager = new TagManager();
+
+    // --- RASCUNHO AUTOMÁTICO ---
+    let _draftTimer = null;
+
+    const isBenOverlayOpen = () => {
+        const ov = document.getElementById('createBencaosOverlay');
+        return ov && ov.classList.contains('open');
+    };
+
+    const stripTags = (html) => (html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+
+    const collectDraft = () => {
+        const titleV = document.getElementById('blessingTitle')?.value || '';
+        const descHtml = editor ? editor.root.innerHTML : '';
+        const tags = tagManager ? tagManager.getTags() : [];
+        const hasContent = !!(titleV.trim() || stripTags(descHtml) !== '' || tags.length);
+        return {
+            hasContent,
+            title: titleV,
+            date: document.getElementById('blessingDate')?.value || '',
+            tags,
+            description: descHtml
+        };
+    };
+
+    const saveDraftNow = () => {
+        if (!isBenOverlayOpen()) return;
+        if (document.getElementById('editBlessingId')?.value) return; // só novos
+        const d = collectDraft();
+        if (!d.hasContent) { window.SelahDraft.clear('bencaos'); return; }
+        window.SelahDraft.save('bencaos', d);
+    };
+
+    const saveDraftDebounced = () => {
+        clearTimeout(_draftTimer);
+        _draftTimer = setTimeout(saveDraftNow, 800);
+    };
+
+    window._draftFlushers = window._draftFlushers || {};
+    window._draftFlushers.bencaos = saveDraftNow;
+
+    const blessingFormDraft = document.getElementById('blessingForm');
+    if (blessingFormDraft) {
+        blessingFormDraft.addEventListener('input', saveDraftDebounced);
+        blessingFormDraft.addEventListener('change', saveDraftDebounced);
+    }
+
+    const applyDraft = (d) => {
+        document.getElementById('blessingTitle').value = d.title || '';
+        document.getElementById('blessingDate').value = d.date || '';
+        if (tagManager) tagManager.setTags(d.tags || []);
+        if (editor) editor.root.innerHTML = d.description || '<p><br></p>';
+    };
 
     // --- FEED SKELETON ---
     const feedSkeletonHTML = `
@@ -814,7 +865,6 @@ export function init(firebaseDb, firebaseAuth) {
                     data.createdAt = data.updatedAt;
                     await addDoc(collection(db, "blessings"), data);
                     showAlert("Bênção registrada! Guarde e recorde a fidelidade de Deus.");
-                    localStorage.removeItem('selah_draft_bencaos');
                 }
 
                 window.closeCreateBencaosOverlay();
@@ -1008,5 +1058,15 @@ export function init(firebaseDb, firebaseAuth) {
         overlay.querySelector('#bAnalyticsClose').addEventListener('click', close);
     };
 
-    fetchBlessings();
+    fetchBlessings().then(() => {
+        if (window._restorePendingModule === 'bencaos') {
+            window._restorePendingModule = null;
+            const d = window.SelahDraft.load('bencaos');
+            if (d && d.hasContent) {
+                applyDraft(d);
+                window.openCreateBencaosOverlay();
+                if (window.showToast) window.showToast('Rascunho recuperado');
+            }
+        }
+    });
 }
