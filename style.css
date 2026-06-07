@@ -42,8 +42,6 @@ body {
 html, body {
     overflow-x: hidden;
     max-width: 100%;
-    /* Impede pull-to-refresh e overscroll que recarrega/sai da página no mobile */
-    overscroll-behavior-y: contain;
 }
 
 /* O título "Registro de Leitura" estava vinculado ao formulário inline,

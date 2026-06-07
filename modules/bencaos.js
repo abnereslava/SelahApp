@@ -64,7 +64,7 @@ export function render(container) {
         <!-- Create / Edit Overlay -->
         <div class="create-overlay" id="createBencaosOverlay">
             <div class="create-overlay-header">
-                <button type="button" class="create-overlay-close" id="btnCloseCreateBencaos" onclick="if(window._closeBencaos)window._closeBencaos()">
+                <button type="button" class="create-overlay-close" id="btnCloseCreateBencaos">
                     <i class="ph ph-arrow-left"></i>
                 </button>
                 <h2 id="createBencaosTitleLabel">Nova Bênção</h2>
@@ -190,12 +190,10 @@ export function init(firebaseDb, firebaseAuth) {
         btnCloseCreate.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            window.closeCreateBencaosOverlay();
-            resetFormFields();
+            window._requestCloseBencaos();
         }, { passive: false });
         btnCloseCreate.addEventListener('click', () => {
-            window.closeCreateBencaosOverlay();
-            resetFormFields();
+            window._requestCloseBencaos();
         });
     }
 
@@ -219,10 +217,28 @@ export function init(firebaseDb, firebaseAuth) {
         if (tagManager) tagManager.clear();
     };
 
-    window._closeBencaos = () => {
+    const doCloseBencaos = () => {
         window.closeCreateBencaosOverlay();
         resetFormFields();
     };
+
+    // Fecha pedindo confirmação quando há conteúdo não salvo (evita perda acidental)
+    window._requestCloseBencaos = async () => {
+        const ov = document.getElementById('createBencaosOverlay');
+        const open = ov && ov.classList.contains('open');
+        if (open) {
+            let hasStuff = false;
+            try { hasStuff = collectDraft().hasContent || !!document.getElementById('editBlessingId')?.value; } catch (e) {}
+            if (hasStuff) {
+                const ok = await showConfirm('Descartar este registro de bênção? As anotações não salvas serão perdidas.');
+                if (!ok) return;
+            }
+        }
+        doCloseBencaos();
+    };
+
+    // Usado pelo botão Voltar do sistema (popstate) e pelo botão de fechar do overlay
+    window._closeBencaos = window._requestCloseBencaos;
 
     // --- EDITOR QUILL INDEPENDENTE ---
     const customColors = [false, '#e60000', '#ff9900', '#d4af37', '#008a00', '#0066cc', '#9933ff'];
@@ -941,12 +957,10 @@ export function init(firebaseDb, firebaseAuth) {
         btnCancelBlessingEdit.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            resetFormFields();
-            window.closeCreateBencaosOverlay();
+            window._requestCloseBencaos();
         }, { passive: false });
         btnCancelBlessingEdit.onclick = () => {
-            resetFormFields();
-            window.closeCreateBencaosOverlay();
+            window._requestCloseBencaos();
         };
     }
 

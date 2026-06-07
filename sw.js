@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v18'; // rascunho automático + recuperação de registro/bênção, toast
+const CACHE_NAME = 'selah-pwa-spa-v19'; // confirmação ao cancelar registro, remove overscroll global (corrige scroll principal)
 const urlsToCache = [
   './',
   './index.html',

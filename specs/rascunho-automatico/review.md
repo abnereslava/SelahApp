@@ -71,3 +71,16 @@ Tarefas 1 a 7 (ver tasks.md) — todas concluídas.
 ## 10. Conclusão
 
 Funcionalidade pronta para uso, sujeita à validação manual nos cenários reais.
+
+## 11. Addendum (ajustes pós-feedback)
+
+- **Confirmação ao fechar/cancelar**: fechar o overlay de criação (X, "Cancelar
+  Edição" ou botão Voltar do sistema) passa a pedir confirmação
+  ("Descartar este registro?") quando há conteúdo não salvo. Isso evita perda
+  acidental por gesto de voltar/recolher no mobile. Só descarta após confirmação.
+- **Scroll da tela principal**: removido `overscroll-behavior-y: contain` de
+  `html, body` (estava bloqueando o scroll da visualização principal em alguns
+  dispositivos). A contenção permanece nos containers de scroll dos overlays
+  (`.create-overlay-scroll`, `.reading-scroll`). A proteção contra perda de dados
+  por recarregamento continua garantida pelo auto-save (flush em
+  `pagehide`/`visibilitychange`) + recuperação na próxima abertura.

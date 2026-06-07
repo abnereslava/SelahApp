@@ -128,7 +128,7 @@ export function render(container) {
         <!-- Create / Edit Overlay -->
         <div class="create-overlay" id="createRegistrosOverlay">
             <div class="create-overlay-header">
-                <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros" onclick="if(window._closeRegistros)window._closeRegistros()">
+                <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros">
                     <i class="ph ph-arrow-left"></i>
                 </button>
                 <h2 id="createRegistrosTitleLabel">Novo Registro</h2>
@@ -319,12 +319,10 @@ export function init(firebaseDb, firebaseAuth) {
         btnCloseCreate.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            window.closeCreateRegistrosOverlay();
-            resetFormFields();
+            window._requestCloseRegistros();
         }, { passive: false });
         btnCloseCreate.addEventListener('click', () => {
-            window.closeCreateRegistrosOverlay();
-            resetFormFields();
+            window._requestCloseRegistros();
         });
     }
 
@@ -362,10 +360,28 @@ export function init(firebaseDb, firebaseAuth) {
         }
     };
 
-    window._closeRegistros = () => {
+    const doCloseRegistros = () => {
         window.closeCreateRegistrosOverlay();
         resetFormFields();
     };
+
+    // Fecha pedindo confirmação quando há conteúdo não salvo (evita perda acidental)
+    window._requestCloseRegistros = async () => {
+        const ov = document.getElementById('createRegistrosOverlay');
+        const open = ov && ov.classList.contains('open');
+        if (open) {
+            let hasStuff = false;
+            try { hasStuff = collectDraft().hasContent || !!document.getElementById('editId')?.value; } catch (e) {}
+            if (hasStuff) {
+                const ok = await showConfirm('Descartar este registro? As anotações não salvas serão perdidas.');
+                if (!ok) return;
+            }
+        }
+        doCloseRegistros();
+    };
+
+    // Usado pelo botão Voltar do sistema (popstate) e pelo botão de fechar do overlay
+    window._closeRegistros = window._requestCloseRegistros;
 
     // --- EDITORES E PERGUNTAS DINÂMICAS ---
     const customColors = [false, '#e60000', '#ff9900', '#d4af37', '#008a00', '#0066cc', '#9933ff'];
@@ -1377,12 +1393,10 @@ export function init(firebaseDb, firebaseAuth) {
         btnCancelEdit.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            resetFormFields();
-            window.closeCreateRegistrosOverlay();
+            window._requestCloseRegistros();
         }, { passive: false });
         btnCancelEdit.onclick = () => {
-            resetFormFields();
-            window.closeCreateRegistrosOverlay();
+            window._requestCloseRegistros();
         };
     }
 
