@@ -217,6 +217,26 @@ const fabSheet = document.getElementById('fabSheet');
 const fabSheetOverlay = document.getElementById('fabSheetOverlay');
 const btnFab = document.getElementById('btnFab');
 const btnDesktopFab = document.getElementById('btnDesktopFab');
+const desktopFabDropdown = document.getElementById('desktopFabDropdown');
+
+const openDesktopDropdown = () => {
+    if (!desktopFabDropdown) return;
+    const hasReg = currentUserFeatures.includes('registros');
+    const hasBen = currentUserFeatures.includes('bencaos');
+    const optReg = document.getElementById('desktopFabOptRegistros');
+    const optBen = document.getElementById('desktopFabOptBencaos');
+    if (optReg) optReg.style.display = hasReg ? '' : 'none';
+    if (optBen) optBen.style.display = hasBen ? '' : 'none';
+
+    if (hasReg && !hasBen) { window.openCreateOverlay('registros'); return; }
+    if (!hasReg && hasBen) { window.openCreateOverlay('bencaos'); return; }
+
+    desktopFabDropdown.classList.add('open');
+};
+
+const closeDesktopDropdown = () => {
+    if (desktopFabDropdown) desktopFabDropdown.classList.remove('open');
+};
 
 const openFabSheet = () => {
     if (!fabSheet) return;
@@ -245,6 +265,7 @@ const closeFabSheet = () => {
 
 window.openCreateOverlay = (type) => {
     closeFabSheet();
+    closeDesktopDropdown();
     const fn = type === 'registros' ? window.openCreateRegistrosOverlay : window.openCreateBencaosOverlay;
     if (fn) {
         fn();
@@ -255,8 +276,34 @@ window.openCreateOverlay = (type) => {
 };
 
 if (btnFab) btnFab.addEventListener('click', openFabSheet);
-if (btnDesktopFab) btnDesktopFab.addEventListener('click', openFabSheet);
+if (btnDesktopFab) btnDesktopFab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (window.innerWidth > 768) {
+        if (desktopFabDropdown && desktopFabDropdown.classList.contains('open')) {
+            closeDesktopDropdown();
+        } else {
+            openDesktopDropdown();
+        }
+    } else {
+        openFabSheet();
+    }
+});
 if (fabSheetOverlay) fabSheetOverlay.addEventListener('click', closeFabSheet);
+
+// Close desktop dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (desktopFabDropdown && desktopFabDropdown.classList.contains('open')) {
+        if (!desktopFabDropdown.contains(e.target) && e.target !== btnDesktopFab) {
+            closeDesktopDropdown();
+        }
+    }
+});
+
+// Desktop dropdown option handlers
+const desktopOptReg = document.getElementById('desktopFabOptRegistros');
+const desktopOptBen = document.getElementById('desktopFabOptBencaos');
+if (desktopOptReg) desktopOptReg.addEventListener('click', () => window.openCreateOverlay('registros'));
+if (desktopOptBen) desktopOptBen.addEventListener('click', () => window.openCreateOverlay('bencaos'));
 
 // --- ROTEADOR CLIENT-SIDE SPA ---
 let currentUserFeatures = [];

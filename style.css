@@ -3113,4 +3113,169 @@ select:focus {
     to { transform: rotate(360deg); }
 }
 
+/* ══════════════════════════════════════════════════════════
+   DESKTOP DIALOG LAYOUT  (≥ 769px)
+   ══════════════════════════════════════════════════════════ */
+@keyframes dialogIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes dialogOut {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(0.96); }
+}
+
+@media (min-width: 769px) {
+    /* ── Overlay backdrop ── */
+    .reading-overlay {
+        background: rgba(0, 0, 0, 0.68) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        animation: none !important; /* backdrop não anima, só o dialog interno */
+    }
+    .reading-overlay.closing {
+        animation: fadeOutOverlay 0.18s ease forwards !important;
+    }
+
+    /* ── Dialog box ── */
+    .overlay-dialog {
+        background: var(--bg-color);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 24px 72px rgba(0, 0, 0, 0.75);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        max-height: 88vh;
+        width: min(760px, 92vw); /* default: reading overlay */
+        animation: dialogIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    .reading-overlay.closing .overlay-dialog {
+        animation: dialogOut 0.15s ease forwards;
+    }
+
+    /* Tamanhos específicos por tipo de overlay */
+    .analytics-overlay .overlay-dialog {
+        width: min(900px, 92vw);
+    }
+    .passage-picker-overlay .overlay-dialog {
+        width: min(480px, 90vw);
+        max-height: 82vh;
+    }
+
+    /* ── Reset max-width herdado para elementos dentro do dialog ── */
+    .overlay-dialog .reading-scroll,
+    .overlay-dialog .reading-toolbar,
+    .overlay-dialog .reading-bottom-bar {
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+
+    /* ── Reading bottom-bar sobe para o topo no desktop ── */
+    .overlay-dialog .reading-bottom-bar {
+        order: -1;
+        border-top: none;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px; /* remove safe-area inset no desktop */
+    }
+
+    /* ── Create overlay: backdrop em vez de slide-up ── */
+    .create-overlay {
+        background: rgba(0, 0, 0, 0.68) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transform: none !important;
+        transition: opacity 0.18s ease, visibility 0.18s ease !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+    .create-overlay.open {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+    .create-overlay .overlay-dialog {
+        width: min(700px, 90vw);
+        max-height: 88vh;
+    }
+    .create-overlay.open .overlay-dialog {
+        animation: dialogIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* ── Scroll do conteúdo dentro do dialog ── */
+    .overlay-dialog .reading-scroll {
+        overflow-y: auto;
+        flex: 1;
+    }
+    .overlay-dialog .create-overlay-scroll {
+        overflow-y: auto;
+        flex: 1;
+    }
+    .overlay-dialog .pp-content {
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* ── Passage picker: search row sem max-width interno ── */
+    .passage-picker-overlay .overlay-dialog .pp-search-row,
+    .passage-picker-overlay .overlay-dialog .pp-content {
+        max-width: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    /* ── Analytics overlay: override max-width herdado ── */
+    .analytics-overlay .overlay-dialog .reading-scroll {
+        max-width: none !important;
+        margin: 0 !important;
+    }
+
+    /* ── Quill: mostrar toolbar snow no desktop, ocultar floating mobile ── */
+    .mobile-floating-toolbar { display: none !important; }
+    .create-overlay .ql-toolbar.ql-snow { display: flex !important; }
+    .create-overlay .ql-container.ql-snow { border-top: none; }
+
+    /* ── Desktop FAB dropdown ── */
+    .desktop-fab-dropdown {
+        position: fixed;
+        bottom: 88px;
+        right: 28px;
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        padding: 6px;
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+        z-index: 1500;
+        min-width: 180px;
+        animation: dialogIn 0.14s ease forwards;
+    }
+    .desktop-fab-dropdown.open { display: flex; }
+    .desktop-fab-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: var(--text-main);
+        font-size: 0.95rem;
+        font-weight: 500;
+        text-align: left;
+        transition: background 0.12s;
+        width: 100%;
+    }
+    .desktop-fab-dropdown-item:hover { background: rgba(212, 175, 55, 0.1); }
+    .desktop-fab-dropdown-item i { color: var(--primary-color); font-size: 1.1rem; }
+}
+
 

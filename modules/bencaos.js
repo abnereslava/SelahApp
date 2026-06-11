@@ -63,6 +63,7 @@ export function render(container) {
 
         <!-- Create / Edit Overlay -->
         <div class="create-overlay" id="createBencaosOverlay">
+            <div class="overlay-dialog">
             <div class="create-overlay-header">
                 <button type="button" class="create-overlay-close" id="btnCloseCreateBencaos">
                     <i class="ph ph-arrow-left"></i>
@@ -110,6 +111,7 @@ export function render(container) {
                     </form>
                 </main>
             </div>
+            </div><!-- /.overlay-dialog -->
         </div>
     `;
 }
@@ -169,6 +171,18 @@ export function init(firebaseDb, firebaseAuth) {
             window._overlayCloseStack.push(window._closeBencaos);
         }
     };
+
+    // Desktop backdrop click
+    (() => {
+        const overlay = document.getElementById('createBencaosOverlay');
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (window.innerWidth > 768 && e.target === overlay) {
+                    window._requestCloseBencaos();
+                }
+            });
+        }
+    })();
 
     window.closeCreateBencaosOverlay = () => {
         const overlay = document.getElementById('createBencaosOverlay');
@@ -656,6 +670,7 @@ export function init(firebaseDb, firebaseAuth) {
         overlay.className = 'reading-overlay';
         overlay.id = 'readingOverlayBencaos';
         overlay.innerHTML = `
+            <div class="overlay-dialog">
             <div class="reading-scroll">
                 <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
                 <h1 class="reading-title">${b.title}</h1>
@@ -670,6 +685,7 @@ export function init(firebaseDb, firebaseAuth) {
                     <button class="rc-btn" id="readingEditBencaos"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
             </div>
+            </div><!-- /.overlay-dialog -->
         `;
 
         document.body.appendChild(overlay);
@@ -681,6 +697,10 @@ export function init(firebaseDb, firebaseAuth) {
             setTimeout(() => overlay.remove(), 200);
         };
         window._overlayCloseStack.push(close);
+
+        overlay.addEventListener('click', (e) => {
+            if (window.innerWidth > 768 && e.target === overlay) close();
+        });
 
         document.getElementById('readingCloseBencaos').addEventListener('click', close);
         document.getElementById('readingEditBencaos').addEventListener('click', () => {
@@ -1043,6 +1063,7 @@ export function init(firebaseDb, firebaseAuth) {
         const hasTagChart = sortedTags.length > 0;
 
         overlay.innerHTML = `
+            <div class="overlay-dialog">
             <div class="reading-toolbar">
                 <button class="reading-close-btn" id="bAnalyticsClose"><i class="ph ph-arrow-left"></i></button>
                 <span class="analytics-overlay-title">Analytics · Bênçãos</span>
@@ -1056,7 +1077,8 @@ export function init(firebaseDb, firebaseAuth) {
                 </div>
                 ${hasTagChart ? `<div class="analytics-card"><h3 class="analytics-card-title">Por Tag</h3><div class="analytics-chart-box"><canvas id="bTagChart"></canvas></div></div>` : ''}
                 <div class="analytics-card"><h3 class="analytics-card-title">Últimos 6 Meses</h3><div class="analytics-chart-box"><canvas id="bMonthlyChart"></canvas></div></div>
-            </div>`;
+            </div>
+            </div><!-- /.overlay-dialog -->`;
 
         document.body.appendChild(overlay);
 
@@ -1086,6 +1108,9 @@ export function init(firebaseDb, firebaseAuth) {
         };
         window._overlayCloseStack.push(close);
         overlay.querySelector('#bAnalyticsClose').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => {
+            if (window.innerWidth > 768 && e.target === overlay) close();
+        });
     };
 
     fetchBlessings().then(() => {

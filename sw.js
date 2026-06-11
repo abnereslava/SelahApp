@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v20'; // analytics conta total real (corrige exclusão), passagens relacionadas via seletor (até 10)
+const CACHE_NAME = 'selah-pwa-spa-v21'; // desktop: overlays como dialogs centrados, FAB dropdown, Quill snow toolbar
 const urlsToCache = [
   './',
   './index.html',

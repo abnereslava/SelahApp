@@ -127,6 +127,7 @@ export function render(container) {
 
         <!-- Create / Edit Overlay -->
         <div class="create-overlay" id="createRegistrosOverlay">
+            <div class="overlay-dialog">
             <div class="create-overlay-header">
                 <button type="button" class="create-overlay-close" id="btnCloseCreateRegistros">
                     <i class="ph ph-arrow-left"></i>
@@ -239,6 +240,7 @@ export function render(container) {
                     </form>
                 </main>
             </div>
+            </div><!-- /.overlay-dialog -->
         </div>
     `;
 }
@@ -298,6 +300,18 @@ export function init(firebaseDb, firebaseAuth) {
             window._overlayCloseStack.push(window._closeRegistros);
         }
     };
+
+    // Desktop backdrop click: click on the overlay outside the dialog box closes it
+    (() => {
+        const overlay = document.getElementById('createRegistrosOverlay');
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (window.innerWidth > 768 && e.target === overlay) {
+                    window._requestCloseRegistros();
+                }
+            });
+        }
+    })();
 
     window.closeCreateRegistrosOverlay = () => {
         const overlay = document.getElementById('createRegistrosOverlay');
@@ -1162,6 +1176,7 @@ export function init(firebaseDb, firebaseAuth) {
         overlay.className = 'reading-overlay';
         overlay.id = 'readingOverlay';
         overlay.innerHTML = `
+            <div class="overlay-dialog">
             <div class="reading-scroll">
                 <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
                 <h1 class="reading-title">${r.title || r.mainPassage}</h1>
@@ -1179,6 +1194,7 @@ export function init(firebaseDb, firebaseAuth) {
                     <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
             </div>
+            </div><!-- /.overlay-dialog -->
         `;
 
         document.body.appendChild(overlay);
@@ -1190,6 +1206,11 @@ export function init(firebaseDb, firebaseAuth) {
             setTimeout(() => overlay.remove(), 200);
         };
         window._overlayCloseStack.push(close);
+
+        // Desktop: clicar no backdrop (fora do .overlay-dialog) fecha
+        overlay.addEventListener('click', (e) => {
+            if (window.innerWidth > 768 && e.target === overlay) close();
+        });
 
         document.getElementById('readingCloseBtn').addEventListener('click', close);
         document.getElementById('readingEditBtn').addEventListener('click', () => {
@@ -1468,6 +1489,7 @@ export function init(firebaseDb, firebaseAuth) {
              <div class="pp-chapter-grid">${Array.from({length:book.chapters},(_,i)=>`<button type="button" class="pp-chapter-btn" data-c="${i+1}">${i+1}</button>`).join('')}</div>`;
 
         overlay.innerHTML = `
+            <div class="overlay-dialog">
             <div class="reading-toolbar">
                 <button class="reading-close-btn" id="ppClose"><i class="ph ph-x"></i></button>
                 <span class="analytics-overlay-title">Selecionar Passagem</span>
@@ -1477,7 +1499,8 @@ export function init(firebaseDb, firebaseAuth) {
                 <i class="ph ph-magnifying-glass"></i>
                 <input type="text" id="ppSearch" placeholder="Pesquisar livro..." autocomplete="off" autocorrect="off" spellcheck="false">
             </div>
-            <div class="pp-content" id="ppContent">${renderBookList()}</div>`;
+            <div class="pp-content" id="ppContent">${renderBookList()}</div>
+            </div><!-- /.overlay-dialog -->`;
 
         document.body.appendChild(overlay);
 
@@ -1493,6 +1516,9 @@ export function init(firebaseDb, firebaseAuth) {
         };
         window._overlayCloseStack.push(close);
         overlay.querySelector('#ppClose').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => {
+            if (window.innerWidth > 768 && e.target === overlay) close();
+        });
 
         const bindBookClicks = () => {
             content.querySelectorAll('.pp-book-item').forEach(item => {
@@ -1607,6 +1633,7 @@ export function init(firebaseDb, firebaseAuth) {
         const monthCount = data.filter(r => r.date && r.date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).length;
 
         overlay.innerHTML = `
+            <div class="overlay-dialog">
             <div class="reading-toolbar">
                 <button class="reading-close-btn" id="analyticsClose"><i class="ph ph-arrow-left"></i></button>
                 <span class="analytics-overlay-title">Analytics · Registros</span>
@@ -1621,7 +1648,8 @@ export function init(firebaseDb, firebaseAuth) {
                 <div class="analytics-card"><h3 class="analytics-card-title">Por Tipo de Registro</h3><div class="analytics-chart-box"><canvas id="aTypeChart"></canvas></div></div>
                 <div class="analytics-card"><h3 class="analytics-card-title">Livros Mais Frequentes</h3><div class="analytics-chart-box"><canvas id="aBooksChart"></canvas></div></div>
                 <div class="analytics-card"><h3 class="analytics-card-title">Últimos 6 Meses</h3><div class="analytics-chart-box"><canvas id="aMonthlyChart"></canvas></div></div>
-            </div>`;
+            </div>
+            </div><!-- /.overlay-dialog -->`;
 
         document.body.appendChild(overlay);
 
@@ -1655,6 +1683,9 @@ export function init(firebaseDb, firebaseAuth) {
         };
         window._overlayCloseStack.push(close);
         overlay.querySelector('#analyticsClose').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => {
+            if (window.innerWidth > 768 && e.target === overlay) close();
+        });
     };
 
     const updateStatsCard = () => {
