@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v23'; // fix: scroll do modal de leitura no mobile (.overlay-dialog flex)
+const CACHE_NAME = 'selah-pwa-spa-v24'; // feat: randomSeed para botão Aleatório (sorteio de todo o banco)
 const urlsToCache = [
   './',
   './index.html',

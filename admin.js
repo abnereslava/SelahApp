@@ -1190,7 +1190,8 @@ if (btnRunImport) {
                 actions: it.doc.actions,
                 links: it.doc.links,
                 createdAt: nowIso,
-                updatedAt: nowIso
+                updatedAt: nowIso,
+                randomSeed: Math.random()
             };
             try {
                 const ref = await addDoc(collection(db, 'devotionals'), docData);
@@ -1264,3 +1265,56 @@ if (btnClearImportLogs) {
 
 // Popula o seletor caso a whitelist já tenha sido carregada
 populateImportTargets();
+
+// ── MIGRAÇÃO: gerar randomSeed nos devocionais existentes ───────────────────
+{
+    const btnMigrateRandomSeed = document.getElementById('btnMigrateRandomSeed');
+    const randomSeedLog        = document.getElementById('randomSeedMigrateLog');
+
+    if (btnMigrateRandomSeed) {
+        btnMigrateRandomSeed.addEventListener('click', async () => {
+            const targetUid = document.getElementById('randomSeedTargetUid')?.value?.trim();
+            if (!targetUid) { alert('Informe o UID de destino.'); return; }
+
+            const log = (msg, type = 'info') => {
+                if (!randomSeedLog) return;
+                const el = document.createElement('p');
+                el.style.color = type === 'error' ? '#f87171' : type === 'ok' ? '#86efac' : '#cbd5e1';
+                el.style.margin = '2px 0';
+                el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                randomSeedLog.appendChild(el);
+                randomSeedLog.scrollTop = randomSeedLog.scrollHeight;
+            };
+
+            btnMigrateRandomSeed.disabled = true;
+            if (randomSeedLog) randomSeedLog.innerHTML = '';
+            log('Buscando devocionais sem randomSeed...');
+
+            try {
+                const snap = await getDocs(query(
+                    collection(db, 'devotionals'),
+                    where('userId', '==', targetUid)
+                ));
+                const toMigrate = snap.docs.filter(d => d.data().randomSeed == null);
+                log(`Total de registros: ${snap.size} | Sem randomSeed: ${toMigrate.length}`);
+                if (toMigrate.length === 0) { log('Nada a migrar.', 'ok'); btnMigrateRandomSeed.disabled = false; return; }
+
+                let ok = 0, fail = 0;
+                for (const d of toMigrate) {
+                    try {
+                        await updateDoc(doc(db, 'devotionals', d.id), { randomSeed: Math.random() });
+                        ok++;
+                        if (ok % 10 === 0) log(`Progresso: ${ok}/${toMigrate.length}...`);
+                    } catch (err) {
+                        fail++;
+                        log(`Falha em ${d.id}: ${err.message}`, 'error');
+                    }
+                }
+                log(`Concluído! Migrados: ${ok} | Falhas: ${fail}`, 'ok');
+            } catch (err) {
+                log(`Erro: ${err.message}`, 'error');
+            }
+            btnMigrateRandomSeed.disabled = false;
+        });
+    }
+}

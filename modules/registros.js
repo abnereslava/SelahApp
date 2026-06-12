@@ -813,6 +813,7 @@ export function init(firebaseDb, firebaseAuth) {
                     showAlert("Atualizado com sucesso!");
                 } else {
                     data.createdAt = data.updatedAt;
+                    data.randomSeed = Math.random();
                     await addDoc(collection(db, "devotionals"), data);
                     showAlert("Salvo com sucesso!");
                 }
@@ -1923,10 +1924,47 @@ export function init(firebaseDb, firebaseAuth) {
 
     const btnRandom = document.getElementById('btnRandom');
     if (btnRandom) {
-        btnRandom.onclick = () => {
-            if (allRecords.length === 0) return showAlert("Nenhum registro encontrado.");
-            const randomIdx = Math.floor(Math.random() * allRecords.length);
-            window.openReadingMode(allRecords[randomIdx].id, true);
+        btnRandom.onclick = async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            try {
+                const r = Math.random();
+                // Tenta pegar um doc com randomSeed >= r (1 leitura)
+                let q = query(
+                    collection(db, 'devotionals'),
+                    where('userId', '==', user.uid),
+                    where('randomSeed', '>=', r),
+                    orderBy('randomSeed'),
+                    limit(1)
+                );
+                let snap = await getDocs(q);
+                if (snap.empty) {
+                    // Wrap: pega o menor randomSeed disponível
+                    q = query(
+                        collection(db, 'devotionals'),
+                        where('userId', '==', user.uid),
+                        orderBy('randomSeed'),
+                        limit(1)
+                    );
+                    snap = await getDocs(q);
+                }
+                if (!snap.empty) {
+                    window.openReadingMode(snap.docs[0].id, true);
+                } else if (allRecords.length > 0) {
+                    // Fallback: registros sem randomSeed (pré-migração)
+                    window.openReadingMode(allRecords[Math.floor(Math.random() * allRecords.length)].id, true);
+                } else {
+                    showAlert("Nenhum registro encontrado.");
+                }
+            } catch (err) {
+                console.error('Erro ao sortear registro:', err);
+                // Fallback se o índice ainda não existe
+                if (allRecords.length > 0) {
+                    window.openReadingMode(allRecords[Math.floor(Math.random() * allRecords.length)].id, true);
+                } else {
+                    showAlert("Nenhum registro encontrado.");
+                }
+            }
         };
     }
 
