@@ -725,12 +725,20 @@
                         </h3>
                         <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0 0 18px;">Adiciona o campo <code>randomSeed</code> nos devocionais existentes de uma conta, necessário para que o botão "Aleatório" do app sorteie de todo o banco, não só dos registros carregados na tela.</p>
                         <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom: 14px;">
-                            <input type="text" id="randomSeedTargetUid" placeholder="UID do usuário" style="flex:1; min-width:200px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: var(--radius); color: var(--text-main); padding: 10px 14px; font-size: 0.95rem;" />
+                            <input type="text" id="randomSeedTargetUid" placeholder="UID do usuário (vazio = seu próprio)" style="flex:1; min-width:200px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: var(--radius); color: var(--text-main); padding: 10px 14px; font-size: 0.95rem;" />
                             <button type="button" id="btnMigrateRandomSeed" style="height:42px; padding:0 20px; background: var(--primary-color); color: #fff; border:none; border-radius: var(--radius); font-weight:600; cursor:pointer; white-space:nowrap;">
                                 <i class="ph ph-play"></i> Executar migração
                             </button>
                         </div>
-                        <div id="randomSeedMigrateLog" style="max-height:120px; overflow-y:auto; font-family:monospace; font-size:0.82rem; background:rgba(0,0,0,0.35); border-radius:8px; padding:10px 12px; color: #a5d6a7; line-height:1.5;"></div>
+                        <div id="randomSeedMigrateLog" style="max-height:120px; overflow-y:auto; font-family:monospace; font-size:0.82rem; background:rgba(0,0,0,0.35); border-radius:8px; padding:10px 12px; color: #a5d6a7; line-height:1.5; margin-bottom: 20px;"></div>
+
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 18px;">
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0 0 12px;"><strong style="color: var(--text-main);">Índice do Firestore:</strong> o botão Aleatório precisa de um índice composto. Clique abaixo para disparar a consulta — se o índice faltar, aparecerá um link direto para criá-lo.</p>
+                            <button type="button" id="btnCreateRandomIndex" style="height:42px; padding:0 20px; background: var(--secondary-color); color: var(--text-main); border:1px solid var(--border-color); border-radius: var(--radius); font-weight:600; cursor:pointer; white-space:nowrap;">
+                                <i class="ph ph-database"></i> Testar / criar índice do Aleatório
+                            </button>
+                            <div id="randomIndexResult" style="margin-top: 14px; font-size: 0.88rem; line-height: 1.5;"></div>
+                        </div>
                     </section>
 
                     </div>

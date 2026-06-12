@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { collection, getFirestore, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, where, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, getFirestore, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, where, updateDoc, addDoc, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBgD8fxcab5A8jVmedYsoUnuq6fgWKWPUA",
@@ -1265,6 +1265,51 @@ if (btnClearImportLogs) {
 
 // Popula o seletor caso a whitelist já tenha sido carregada
 populateImportTargets();
+
+// ── ÍNDICE: disparar a query do Aleatório e revelar o link de criação ───────
+{
+    const btnCreateRandomIndex = document.getElementById('btnCreateRandomIndex');
+    const randomIndexResult    = document.getElementById('randomIndexResult');
+
+    if (btnCreateRandomIndex) {
+        btnCreateRandomIndex.addEventListener('click', async () => {
+            const uid = document.getElementById('randomSeedTargetUid')?.value?.trim()
+                || auth.currentUser?.uid;
+            if (!uid) { alert('Informe um UID (ou faça login) para testar a query.'); return; }
+            if (!randomIndexResult) return;
+
+            btnCreateRandomIndex.disabled = true;
+            randomIndexResult.innerHTML = '<span style="color:#cbd5e1;">Disparando a consulta do botão Aleatório...</span>';
+
+            try {
+                const snap = await getDocs(query(
+                    collection(db, 'devotionals'),
+                    where('userId', '==', uid),
+                    where('randomSeed', '>=', Math.random()),
+                    orderBy('randomSeed'),
+                    limit(1)
+                ));
+                randomIndexResult.innerHTML =
+                    `<span style="color:#86efac;">✓ O índice já existe e a consulta funciona. O botão Aleatório está pronto.${snap.empty ? ' (nenhum registro com randomSeed nesta conta ainda — rode a migração acima.)' : ''}</span>`;
+            } catch (err) {
+                // Firestore devolve a URL de criação do índice na mensagem do erro
+                const match = (err.message || '').match(/https?:\/\/[^\s]+/);
+                if (match) {
+                    const url = match[0];
+                    randomIndexResult.innerHTML =
+                        `<p style="color:#fbbf24; margin:0 0 8px;">O índice ainda não existe. Clique no botão abaixo para criá-lo no Firebase Console (depois aguarde ~2 min e teste de novo):</p>
+                         <a href="${url}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background: var(--primary-color); color:#fff; text-decoration:none; padding:10px 18px; border-radius: var(--radius); font-weight:600;">
+                            <i class="ph ph-arrow-square-out"></i> Criar índice no Firebase Console
+                         </a>`;
+                } else {
+                    randomIndexResult.innerHTML =
+                        `<span style="color:#f87171;">Erro inesperado: ${err.message}</span>`;
+                }
+            }
+            btnCreateRandomIndex.disabled = false;
+        });
+    }
+}
 
 // ── MIGRAÇÃO: gerar randomSeed nos devocionais existentes ───────────────────
 {

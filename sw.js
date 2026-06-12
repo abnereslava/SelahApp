@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v24'; // feat: randomSeed para botão Aleatório (sorteio de todo o banco)
+const CACHE_NAME = 'selah-pwa-spa-v25'; // admin: botão para revelar link de criação do índice do Aleatório
 const urlsToCache = [
   './',
   './index.html',
