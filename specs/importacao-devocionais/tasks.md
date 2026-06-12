@@ -148,3 +148,44 @@ novos documentos.
 ### Observações
 
 Importação não-transacional: falha isolada não interrompe o restante; reportar no log.
+
+---
+
+## Tarefa 5 — Encadeamento por `continuationOf` (por título, v1.1)
+
+Status: Concluída
+
+### Objetivo
+
+Suportar o campo `continuationOf` (título do registro anterior) na importação,
+resolvendo-o para o ID do Firestore após a criação dos documentos.
+
+### Arquivos afetados
+
+- `admin.js`
+
+### Dependências
+
+Tarefas 3 e 4.
+
+### Critério de conclusão
+
+- `normalizeImportItem` captura `continuationRef` (raw + normalizado) a partir de
+  `continuationOf`/`continuationOfTitle`.
+- Validação monta o mapa `título → ID` dos registros existentes e marca a
+  resolvibilidade da continuação (lote + existentes) no preview.
+- Preview exibe tag "continuação de: X" (verde se resolvível, vermelha se não).
+- Importação em duas fases: cria documentos (Fase 1) e grava os vínculos
+  `continuationOf` via `updateDoc` (Fase 2), pulando auto-referência.
+- Resumo final inclui contagem de vínculos resolvidos / não resolvidos.
+
+### Teste manual
+
+Importar um lote onde o item B tem `continuationOf` = título do item A; após a
+importação, abrir B no app e verificar a trilha apontando para A. Referência a um
+título existente na conta também deve vincular.
+
+### Observações
+
+`continuationOf` é resolvido por título (o usuário não tem IDs do Firestore).
+Referências não encontradas ficam sem vínculo e são sinalizadas.

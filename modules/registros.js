@@ -1507,8 +1507,61 @@ export function init(firebaseDb, firebaseAuth) {
         const content = overlay.querySelector('#ppContent');
         const searchInput = overlay.querySelector('#ppSearch');
         let currentBook = null;
+        let focusIdx = -1; // navegação por teclado (desktop)
+
+        // --- NAVEGAÇÃO POR TECLADO ---
+        const getNavItems = () => Array.from(
+            content.querySelectorAll(currentBook ? '.pp-chapter-btn' : '.pp-book-item')
+        );
+        const clearFocus = () => content.querySelectorAll('.pp-focused').forEach(el => el.classList.remove('pp-focused'));
+        const setFocus = (idx) => {
+            const items = getNavItems();
+            clearFocus();
+            if (idx < 0 || idx >= items.length) { focusIdx = -1; return; }
+            focusIdx = idx;
+            items[idx].classList.add('pp-focused');
+            items[idx].scrollIntoView({ block: 'nearest' });
+        };
+        const getCols = (items) => {
+            if (items.length < 2) return 1;
+            const top0 = items[0].offsetTop;
+            let c = 1;
+            while (c < items.length && items[c].offsetTop === top0) c++;
+            return c;
+        };
+        const onKeydown = (e) => {
+            const items = getNavItems();
+            if (currentBook) {
+                const cols = getCols(items);
+                if (e.key === 'ArrowRight') { e.preventDefault(); setFocus(Math.min(focusIdx < 0 ? 0 : focusIdx + 1, items.length - 1)); }
+                else if (e.key === 'ArrowLeft') { e.preventDefault(); setFocus(Math.max(focusIdx < 0 ? 0 : focusIdx - 1, 0)); }
+                else if (e.key === 'ArrowDown') { e.preventDefault(); setFocus(Math.min(focusIdx < 0 ? 0 : focusIdx + cols, items.length - 1)); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setFocus(Math.max(focusIdx < 0 ? 0 : focusIdx - cols, 0)); }
+                else if (e.key === 'Enter') { e.preventDefault(); if (focusIdx >= 0 && items[focusIdx]) items[focusIdx].click(); }
+                else if (e.key === 'Escape' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    const back = content.querySelector('#ppBack');
+                    if (back) back.click();
+                }
+            } else {
+                if (e.key === 'ArrowDown') { e.preventDefault(); setFocus(Math.min(focusIdx < 0 ? 0 : focusIdx + 1, items.length - 1)); }
+                else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (focusIdx <= 0) { setFocus(-1); searchInput.focus(); }
+                    else setFocus(focusIdx - 1);
+                }
+                else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (focusIdx >= 0 && items[focusIdx]) items[focusIdx].click();
+                    else if (items.length === 1) items[0].click();
+                }
+                else if (e.key === 'Escape') { e.preventDefault(); close(); }
+            }
+        };
+        document.addEventListener('keydown', onKeydown);
 
         const close = () => {
+            document.removeEventListener('keydown', onKeydown);
             const idx = window._overlayCloseStack.indexOf(close);
             if (idx > -1) window._overlayCloseStack.splice(idx, 1);
             overlay.classList.add('closing');
@@ -1524,10 +1577,12 @@ export function init(firebaseDb, firebaseAuth) {
             content.querySelectorAll('.pp-book-item').forEach(item => {
                 item.addEventListener('click', () => {
                     currentBook = { name: item.dataset.name, chapters: parseInt(item.dataset.ch) };
+                    focusIdx = -1;
                     searchInput.style.display = 'none';
                     content.innerHTML = renderChapterGrid(currentBook);
                     content.querySelector('#ppBack').addEventListener('click', () => {
                         currentBook = null;
+                        focusIdx = -1;
                         searchInput.style.display = '';
                         content.innerHTML = renderBookList(searchInput.value);
                         bindBookClicks();
@@ -1561,6 +1616,7 @@ export function init(firebaseDb, firebaseAuth) {
 
         searchInput.addEventListener('input', () => {
             currentBook = null;
+            focusIdx = -1;
             content.innerHTML = renderBookList(searchInput.value);
             bindBookClicks();
         });

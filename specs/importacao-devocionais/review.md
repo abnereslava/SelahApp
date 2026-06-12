@@ -71,8 +71,18 @@ Tarefas 1 a 4 (ver tasks.md) — todas concluídas.
 ## 8. Pendências
 
 - Validação manual final pelo usuário com dados reais.
-- [Futuro] Suporte opcional a `actions`/`links`/`continuationOf` e upload de
-  múltiplos arquivos.
+- [Futuro] Suporte opcional a `actions`/`links` e upload de múltiplos arquivos.
+
+### Addendum v1.1 — `continuationOf`
+
+A pedido do usuário, o encadeamento por `continuationOf` foi implementado após a
+v1 (ver Tarefa 5 em tasks.md):
+- No JSON, `continuationOf` é o **título** do registro anterior.
+- Resolução em duas fases: cria os documentos e depois grava os vínculos via
+  `updateDoc`, procurando o título no lote e nos registros existentes da conta.
+- Preview sinaliza a resolvibilidade; resumo final conta vínculos resolvidos e não
+  resolvidos. Auto-referência é ignorada.
+- `node --check admin.js`: OK.
 
 ## 9. Recomendações
 

@@ -99,10 +99,25 @@ Para cada item do array, o importador monta um documento da coleção
 | `author` | `author` | lista de strings; default `[]` |
 | `relatedPassages` | `relatedPassages` | string; default `""` |
 | `keywords` | `keywords` | lista (máx. 3); default `[]` |
+| `continuationOf` | `continuationOf` | **título** do registro anterior; resolvido para o ID após a importação (ver 4.5) |
 | — | `userId` | UID da conta de destino (preenchido pelo sistema) |
-| — | `continuationOf` | `null` (não suportado na importação inicial) |
 | — | `actions` / `links` | `[]` (não suportado na importação inicial) |
 | — | `createdAt` / `updatedAt` | ISO do momento da importação |
+
+### 4.5 Resolução de `continuationOf` (encadeamento)
+
+No JSON, `continuationOf` é o **título** do devocional anterior (o usuário não tem
+IDs do Firestore ao transcrever). A importação resolve em duas fases:
+
+1. **Fase 1** — cria todos os documentos (com `continuationOf: null`), capturando
+   o novo ID de cada um e montando um mapa `título → ID` do lote.
+2. **Fase 2** — para cada item com referência de continuação, resolve o título
+   para um ID, procurando primeiro no **lote** recém-criado e depois nos
+   **registros já existentes** da conta de destino; se encontrado, atualiza o
+   documento com `continuationOf` = ID alvo. Se não encontrado, o item fica sem
+   vínculo e é sinalizado no preview/log.
+
+Auto-referência (item que aponta para o próprio título) é ignorada.
 
 ### 4.4 Conversão Markdown → HTML
 
@@ -214,7 +229,9 @@ suportar todo o CommonMark.
   comparando contra os registros existentes da conta e também entre itens do
   próprio lote. Duplicatas são sinalizadas no preview e **puladas** por padrão na
   importação (com log).
-- **Escopo v1:** `actions`, `links` e `continuationOf` ficam **fora** da primeira
-  versão (gravados como `[]`/`null`). Podem entrar numa versão futura.
+- **Escopo v1:** `actions` e `links` ficam **fora** da primeira versão (gravados
+  como `[]`). Podem entrar numa versão futura.
+- **`continuationOf` (v1.1):** passou a ser suportado a pedido do usuário —
+  referenciado por **título** e resolvido para ID em duas fases (ver 4.5).
 - **Upload de arquivo:** além da colagem de texto, a v1 também aceita upload de
   arquivo `.json` (preenche a textarea).

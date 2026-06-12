@@ -67,8 +67,8 @@ Tarefas 1 a 5 (ver tasks.md) — todas concluídas.
 
 ## 8. Pendências
 
-- [Sugestão / não confirmada] Navegação por teclado (Tab/Enter/setas) no passage
-  picker do desktop — não solicitada explicitamente; aguardando decisão.
+- Nenhuma. A navegação por teclado do passage picker (antes [Sugestão]) foi
+  confirmada e implementada — ver Addendum (seção 11).
 
 ## 9. Recomendações
 
@@ -87,3 +87,7 @@ Funcionalidade pronta e em uso. Mobile preservado.
   `openCreateOverlay` passou a verificar se o elemento do overlay existe no DOM;
   se não existir (usuário em outra aba), navega para a aba e abre o overlay via
   `_pendingCreateOverlay`.
+- **Navegação por teclado no passage picker:** setas (↑/↓ na lista de livros;
+  ↑/↓/←/→ na grade de capítulos) movem o destaque de foco (`.pp-focused`), Enter
+  seleciona, Escape/Backspace volta ou fecha. Funciona em desktop e mobile com
+  teclado; sem impacto no toque. `sw.js` → cache `v22`.

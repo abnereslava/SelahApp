@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v21'; // desktop: overlays como dialogs centrados, FAB dropdown, Quill snow toolbar
+const CACHE_NAME = 'selah-pwa-spa-v22'; // seletor de passagem: navegação por teclado (desktop) com destaque de foco
 const urlsToCache = [
   './',
   './index.html',

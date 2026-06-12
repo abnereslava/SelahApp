@@ -972,12 +972,18 @@ const normalizeImportItem = (raw, index) => {
     out.keywords = toList(raw.keywords).slice(0, 3);
     out.relatedPassages = typeof raw.relatedPassages === 'string' ? raw.relatedPassages.trim() : '';
 
-    // Campos fora do escopo v1
-    out.continuationOf = null;
+    out.continuationOf = null; // resolvido após a importação (Fase 2)
     out.actions = [];
     out.links = [];
 
-    return { doc: out, warnings, index };
+    // Referência de continuação (pelo TÍTULO do registro anterior)
+    let continuationRef = null;
+    const cont = raw.continuationOf || raw.continuationOfTitle;
+    if (typeof cont === 'string' && cont.trim()) {
+        continuationRef = { raw: cont.trim(), norm: norm(cont) };
+    }
+
+    return { doc: out, warnings, index, continuationRef };
 };
 
 // Assinatura de deduplicação
@@ -1035,6 +1041,10 @@ const renderImportPreview = (items, summary) => {
         const tags = [];
         if (dup) tags.push('<span style="color:#ffb74d;">duplicata (será pulada)</span>');
         it.warnings.forEach(w => tags.push(`<span style="color:#ffe082;">${escapeHtml(w)}</span>`));
+        if (it.continuationRef) {
+            const okRes = it.continuationResolvable;
+            tags.push(`<span style="color:${okRes ? '#80cbc4' : '#ef9a9a'};">continuação de: ${escapeHtml(it.continuationRef.raw)}${okRes ? '' : ' (não encontrada)'}</span>`);
+        }
         row.innerHTML = `
             <div style="display:flex; justify-content:space-between; gap:10px; align-items:baseline;">
                 <strong style="color: var(--text-main); font-size:0.92rem;">${(it.index + 1)}. ${escapeHtml(it.doc.title || '(sem título)')}</strong>
@@ -1081,13 +1091,18 @@ if (btnValidateImport) {
         // Normaliza
         const items = parsed.map((raw, i) => normalizeImportItem(raw || {}, i));
 
-        // Carrega assinaturas existentes da conta de destino
+        // Carrega assinaturas existentes da conta de destino (+ mapa título→ID p/ continuação)
         let existingSignatures = new Set();
+        const existingTitleToId = new Map();
         try {
             logToImportConsole('Carregando registros existentes da conta de destino para deduplicação...', 'info');
             const q = query(collection(db, 'devotionals'), where('userId', '==', targetUid));
             const snap = await getDocs(q);
-            snap.forEach(docSnap => existingSignatures.add(buildSignature(docSnap.data())));
+            snap.forEach(docSnap => {
+                const d = docSnap.data();
+                existingSignatures.add(buildSignature(d));
+                if (d.title) existingTitleToId.set(norm(d.title), docSnap.id);
+            });
             logToImportConsole(`${snap.size} registro(s) já existente(s) na conta.`, 'info');
         } catch (err) {
             logToImportConsole(`Erro ao carregar registros existentes: ${err.message}`, 'error');
@@ -1108,12 +1123,21 @@ if (btnValidateImport) {
             }
         });
 
+        // Resolvibilidade da continuação (para preview): títulos do lote a importar + existentes
+        const batchTitles = new Set(
+            items.filter(it => !it.duplicate && it.doc.title).map(it => norm(it.doc.title))
+        );
+        items.forEach(it => {
+            if (!it.continuationRef) return;
+            it.continuationResolvable = batchTitles.has(it.continuationRef.norm) || existingTitleToId.has(it.continuationRef.norm);
+        });
+
         const importable = items.filter(it => !it.duplicate).length;
         const summary = `${items.length} item(ns) · ${importable} a importar · ${dupCount} duplicata(s)`;
         renderImportPreview(items, summary);
         logToImportConsole(`Validação concluída. ${summary}.`, 'info');
 
-        importValidated = { items, targetUid, targetEmail: importTargetEmail ? importTargetEmail.value : '' };
+        importValidated = { items, targetUid, targetEmail: importTargetEmail ? importTargetEmail.value : '', existingTitleToId };
         if (btnRunImport) btnRunImport.disabled = importable === 0;
         if (importable === 0) {
             logToImportConsole('Nada a importar (todos os itens são duplicatas).', 'warning');
@@ -1128,7 +1152,7 @@ if (btnRunImport) {
         if (!importValidated) {
             return showAlert('Valide e pré-visualize o JSON antes de importar.');
         }
-        const { items, targetUid, targetEmail } = importValidated;
+        const { items, targetUid, targetEmail, existingTitleToId } = importValidated;
         const toImport = items.filter(it => !it.duplicate);
         if (toImport.length === 0) {
             return showAlert('Não há itens para importar (todos são duplicatas).');
@@ -1146,13 +1170,16 @@ if (btnRunImport) {
         const nowIso = new Date().toISOString();
         logToImportConsole(`Iniciando importação de ${toImport.length} item(ns) para ${targetEmail || targetUid}...`, 'warning');
 
+        // --- FASE 1: cria os documentos (continuationOf resolvido na fase 2) ---
+        const batchTitleToId = new Map();
+        const created = []; // { it, newId }
         for (let i = 0; i < toImport.length; i++) {
             const it = toImport[i];
             const docData = {
                 userId: targetUid,
                 title: it.doc.title,
                 date: it.doc.date,
-                continuationOf: it.doc.continuationOf,
+                continuationOf: null,
                 mainPassage: it.doc.mainPassage,
                 recordType: it.doc.recordType,
                 author: it.doc.author,
@@ -1166,8 +1193,10 @@ if (btnRunImport) {
                 updatedAt: nowIso
             };
             try {
-                await addDoc(collection(db, 'devotionals'), docData);
+                const ref = await addDoc(collection(db, 'devotionals'), docData);
                 ok++;
+                if (it.doc.title) batchTitleToId.set(norm(it.doc.title), ref.id);
+                created.push({ it, newId: ref.id });
                 if (ok % 5 === 0 || i === toImport.length - 1) {
                     logToImportConsole(`Progresso: ${ok}/${toImport.length} importado(s)...`, 'info');
                 }
@@ -1177,9 +1206,28 @@ if (btnRunImport) {
             }
         }
 
+        // --- FASE 2: resolve e grava os vínculos de continuação (por título) ---
+        const existingMap = existingTitleToId || new Map();
+        let linked = 0, unresolved = 0;
+        for (const { it, newId } of created) {
+            if (!it.continuationRef) continue;
+            const targetId = batchTitleToId.get(it.continuationRef.norm) || existingMap.get(it.continuationRef.norm);
+            if (targetId && targetId !== newId) {
+                try {
+                    await updateDoc(doc(db, 'devotionals', newId), { continuationOf: targetId });
+                    linked++;
+                } catch (err) {
+                    logToImportConsole(`Falha ao vincular continuação do item ${it.index + 1}: ${err.message}`, 'error');
+                }
+            } else {
+                unresolved++;
+                logToImportConsole(`Continuação não resolvida para item ${it.index + 1} ("${it.continuationRef.raw}").`, 'warning');
+            }
+        }
+
         const skipped = items.length - toImport.length;
-        logToImportConsole(`IMPORTAÇÃO CONCLUÍDA! Importados: ${ok} | Pulados (duplicatas): ${skipped} | Falhas: ${fail}`, 'info');
-        showAlert(`Importação concluída.\nImportados: ${ok}\nPulados (duplicatas): ${skipped}\nFalhas: ${fail}`);
+        logToImportConsole(`IMPORTAÇÃO CONCLUÍDA! Importados: ${ok} | Pulados (duplicatas): ${skipped} | Falhas: ${fail} | Vínculos de continuação: ${linked}${unresolved ? ` (${unresolved} não resolvido[s])` : ''}`, 'info');
+        showAlert(`Importação concluída.\nImportados: ${ok}\nPulados (duplicatas): ${skipped}\nFalhas: ${fail}\nVínculos de continuação: ${linked}${unresolved ? `\nContinuações não resolvidas: ${unresolved}` : ''}`);
 
         btnRunImport.innerHTML = originalHtml;
         btnRunImport.disabled = true; // exige nova validação para reimportar
