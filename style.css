@@ -2912,16 +2912,17 @@ select:focus {
 
 @media (min-width: 769px) {
     .create-overlay {
-        max-width: 720px;
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%) translateY(100%);
-        border-radius: var(--radius) var(--radius) 0 0;
-        top: 60px;
+        /* substituído pelo layout de dialog centrado no bloco DESKTOP DIALOG abaixo */
+        max-width: none;
+        left: 0;
+        right: 0;
+        top: 0;
         bottom: 0;
+        transform: none;
+        border-radius: 0;
     }
     .create-overlay.open {
-        transform: translateX(-50%) translateY(0);
+        transform: none;
     }
 }
 
