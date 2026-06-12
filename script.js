@@ -266,8 +266,10 @@ const closeFabSheet = () => {
 window.openCreateOverlay = (type) => {
     closeFabSheet();
     closeDesktopDropdown();
+    // Verifica se o elemento do overlay existe no DOM (só existe quando o tab correto está ativo)
+    const overlayId = type === 'registros' ? 'createRegistrosOverlay' : 'createBencaosOverlay';
     const fn = type === 'registros' ? window.openCreateRegistrosOverlay : window.openCreateBencaosOverlay;
-    if (fn) {
+    if (fn && document.getElementById(overlayId)) {
         fn();
     } else {
         window._pendingCreateOverlay = type;
