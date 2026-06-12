@@ -2374,6 +2374,19 @@ select:focus {
     .reading-body { font-size: 0.95rem; }
 }
 
+/* ── Overlay dialog wrapper: no mobile, preenche o overlay e propaga o flex
+   para o conteúdo rolável (.reading-scroll / .create-overlay-scroll / .pp-content).
+   Sem isto, o wrapper vira um bloco sem altura e o scroll interno não funciona. ── */
+@media (max-width: 768px) {
+    .overlay-dialog {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+    }
+}
+
 /* ── VISUAL DESKTOP = MOBILE ─────────────────────────── */
 @media (min-width: 769px) {
     .header-titles { display: none; }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v22'; // seletor de passagem: navegação por teclado (desktop) com destaque de foco
+const CACHE_NAME = 'selah-pwa-spa-v23'; // fix: scroll do modal de leitura no mobile (.overlay-dialog flex)
 const urlsToCache = [
   './',
   './index.html',
