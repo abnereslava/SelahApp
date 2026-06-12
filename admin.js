@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { collection, getFirestore, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, where, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, getFirestore, getDocs, getDoc, setDoc, deleteDoc, doc, query, orderBy, where, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBgD8fxcab5A8jVmedYsoUnuq6fgWKWPUA",
@@ -232,6 +232,7 @@ const fetchInvitedEmails = async () => {
         invitedEmails = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         applyInvitedFilters();
         populateMigrationTargets();
+        if (typeof populateImportTargets === 'function') populateImportTargets();
     } catch (err) {
         console.error("Erro ao carregar whitelist:", err);
         showAlert(`Erro ao carregar a lista de e-mails convidados. Detalhes: ${err.message}`);
@@ -815,3 +816,403 @@ if (btnRunMigration) {
 // ==========================================
 // // FIM DA ÁREA DE MIGRAÇÃO TEMPORÁRIA   //
 // ==========================================
+
+
+// ============================================================
+// IMPORTAÇÃO DE DEVOCIONAIS EM LOTE (JSON → devotionals)
+// ============================================================
+
+const VALID_RECORD_TYPES = ['devocional', 'culto_domestico', 'aula', 'ebd', 'pregacao', 'anotacoes_gerais', 'outros'];
+
+// --- DOM ---
+const importTargetEmail = document.getElementById('importTargetEmail');
+const importTargetUid = document.getElementById('importTargetUid');
+const importJsonInput = document.getElementById('importJsonInput');
+const importFileInput = document.getElementById('importFileInput');
+const btnValidateImport = document.getElementById('btnValidateImport');
+const btnRunImport = document.getElementById('btnRunImport');
+const importPreviewContainer = document.getElementById('importPreviewContainer');
+const importPreviewList = document.getElementById('importPreviewList');
+const importPreviewSummary = document.getElementById('importPreviewSummary');
+const importLogs = document.getElementById('importLogs');
+const btnClearImportLogs = document.getElementById('btnClearImportLogs');
+
+// Estado validado, consumido na importação
+let importValidated = null;
+
+const logToImportConsole = (msg, type = 'info') => {
+    if (!importLogs) return;
+    const timestamp = new Date().toLocaleTimeString();
+    let color = '#a5d6a7';
+    if (type === 'error') color = '#ef9a9a';
+    if (type === 'warning') color = '#ffe082';
+    const div = document.createElement('div');
+    div.style.color = color;
+    div.innerText = `[${timestamp}] ${msg}`;
+    importLogs.appendChild(div);
+    importLogs.scrollTop = importLogs.scrollHeight;
+};
+
+// --- UTILITÁRIOS (Tarefa 2) ---
+
+// Escapa caracteres perigosos antes de aplicar Markdown (sanitização mínima)
+const escapeHtml = (s) => String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+// Conversor Markdown → HTML leve, compatível com o conteúdo do editor Quill.
+// Suporta: títulos (#/##), negrito, itálico, listas (-/*), parágrafos e quebras.
+const mdToHtml = (md) => {
+    if (!md || typeof md !== 'string') return '';
+    const lines = escapeHtml(md.replace(/\r\n/g, '\n')).split('\n');
+    const html = [];
+    let listOpen = false;
+    const closeList = () => { if (listOpen) { html.push('</ul>'); listOpen = false; } };
+
+    const inline = (txt) => txt
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+        .replace(/(^|[^_])_([^_\n]+)_/g, '$1<em>$2</em>');
+
+    let paragraph = [];
+    const flushParagraph = () => {
+        if (paragraph.length) {
+            html.push(`<p>${inline(paragraph.join('<br>'))}</p>`);
+            paragraph = [];
+        }
+    };
+
+    lines.forEach(raw => {
+        const line = raw.trimEnd();
+        const trimmed = line.trim();
+        if (trimmed === '') { flushParagraph(); closeList(); return; }
+
+        const h2 = /^##\s+(.*)$/.exec(trimmed);
+        const h1 = /^#\s+(.*)$/.exec(trimmed);
+        const li = /^[-*]\s+(.*)$/.exec(trimmed);
+
+        if (h2) { flushParagraph(); closeList(); html.push(`<h2>${inline(h2[1])}</h2>`); return; }
+        if (h1) { flushParagraph(); closeList(); html.push(`<h1>${inline(h1[1])}</h1>`); return; }
+        if (li) { flushParagraph(); if (!listOpen) { html.push('<ul>'); listOpen = true; } html.push(`<li>${inline(li[1])}</li>`); return; }
+        paragraph.push(trimmed);
+    });
+    flushParagraph();
+    closeList();
+    return html.join('') || '';
+};
+
+// Extrai texto puro de um HTML (para assinatura de deduplicação)
+const htmlToPlain = (html) => {
+    if (!html) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+};
+
+const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+// Normaliza um item cru do JSON em um doc-parcial + avisos
+const normalizeImportItem = (raw, index) => {
+    const warnings = [];
+    const out = {};
+
+    out.title = typeof raw.title === 'string' ? raw.title.trim() : '';
+    if (!out.title) warnings.push('sem título');
+
+    // Data
+    if (typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date.trim())) {
+        out.date = raw.date.trim();
+    } else {
+        out.date = '';
+        warnings.push('sem data (importado em branco)');
+    }
+
+    out.mainPassage = typeof raw.mainPassage === 'string' ? raw.mainPassage.trim() : '';
+
+    // Tipo
+    if (VALID_RECORD_TYPES.includes(raw.recordType)) {
+        out.recordType = raw.recordType;
+    } else {
+        out.recordType = 'devocional';
+        if (raw.recordType) warnings.push(`tipo "${raw.recordType}" inválido → devocional`);
+    }
+
+    // Formato
+    const fmt = raw.recordFormat === 'orientado' ? 'orientado' : 'livre';
+    if (raw.recordFormat && raw.recordFormat !== 'livre' && raw.recordFormat !== 'orientado') {
+        warnings.push(`formato "${raw.recordFormat}" inválido → livre`);
+    }
+    out.recordFormat = fmt;
+
+    // Conteúdo
+    if (fmt === 'orientado') {
+        const qs = Array.isArray(raw.questions) ? raw.questions : [];
+        if (!qs.length) warnings.push('formato orientado sem perguntas');
+        out.content = {
+            questions: qs.map(q => ({
+                q: typeof q.q === 'string' ? q.q.trim() : '',
+                a: mdToHtml(q.a_md || q.a || '')
+            }))
+        };
+    } else {
+        const body = raw.content_md || (raw.content && raw.content.texto) || '';
+        out.content = { texto: mdToHtml(body) || '<p><br></p>' };
+        if (!htmlToPlain(out.content.texto)) warnings.push('corpo vazio');
+    }
+
+    // Listas
+    const toList = (v) => {
+        if (Array.isArray(v)) return v.map(x => String(x).trim()).filter(Boolean);
+        if (typeof v === 'string' && v.trim()) return [v.trim()];
+        return [];
+    };
+    out.author = toList(raw.author);
+    out.keywords = toList(raw.keywords).slice(0, 3);
+    out.relatedPassages = typeof raw.relatedPassages === 'string' ? raw.relatedPassages.trim() : '';
+
+    // Campos fora do escopo v1
+    out.continuationOf = null;
+    out.actions = [];
+    out.links = [];
+
+    return { doc: out, warnings, index };
+};
+
+// Assinatura de deduplicação
+const buildSignature = (d) => {
+    const plain = d.content && d.content.texto
+        ? htmlToPlain(d.content.texto)
+        : (d.content && Array.isArray(d.content.questions)
+            ? d.content.questions.map(q => htmlToPlain(q.a)).join(' ')
+            : '');
+    return [norm(d.title), d.date || '', norm(d.mainPassage), plain.slice(0, 200)].join('␟');
+};
+
+// Popula o seletor de destino reutilizando a lista da migração
+function populateImportTargets() {
+    if (!importTargetEmail) return;
+    const selectedValue = importTargetEmail.value;
+    const options = (typeof getMigrationTargetOptions === 'function') ? getMigrationTargetOptions() : [];
+    importTargetEmail.innerHTML = '<option value="">Selecione a conta de destino...</option>';
+    options.forEach(option => {
+        const el = document.createElement('option');
+        el.value = option.email;
+        el.dataset.uid = option.uid || '';
+        el.innerText = option.label;
+        importTargetEmail.appendChild(el);
+    });
+    if (selectedValue && options.some(o => o.email === selectedValue)) {
+        importTargetEmail.value = selectedValue;
+    }
+}
+
+const syncImportTargetUid = (overwrite = true) => {
+    if (!importTargetEmail || !importTargetUid) return;
+    const selected = importTargetEmail.selectedOptions[0];
+    const knownUid = selected?.dataset?.uid || '';
+    if (overwrite || !importTargetUid.value.trim()) {
+        importTargetUid.value = knownUid;
+    }
+    if (!knownUid && importTargetEmail.value) {
+        logToImportConsole(`UID da conta "${importTargetEmail.value}" não está salvo no sistema. Informe o UID manualmente antes de importar.`, 'warning');
+    }
+};
+
+// --- VALIDAÇÃO + PREVIEW + DEDUP (Tarefa 3) ---
+
+const renderImportPreview = (items, summary) => {
+    if (!importPreviewList || !importPreviewContainer) return;
+    importPreviewContainer.style.display = '';
+    importPreviewList.innerHTML = '';
+    items.forEach((it) => {
+        const dup = it.duplicate;
+        const row = document.createElement('div');
+        row.style.cssText = 'padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:4px;';
+        const dateLabel = it.doc.date || 'sem data';
+        const fmtLabel = it.doc.recordFormat === 'orientado' ? 'orientado' : 'livre';
+        const tags = [];
+        if (dup) tags.push('<span style="color:#ffb74d;">duplicata (será pulada)</span>');
+        it.warnings.forEach(w => tags.push(`<span style="color:#ffe082;">${escapeHtml(w)}</span>`));
+        row.innerHTML = `
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:baseline;">
+                <strong style="color: var(--text-main); font-size:0.92rem;">${(it.index + 1)}. ${escapeHtml(it.doc.title || '(sem título)')}</strong>
+                <span style="color: var(--text-muted); font-size:0.78rem; white-space:nowrap;">${escapeHtml(dateLabel)} · ${escapeHtml(it.doc.recordType)} · ${fmtLabel}</span>
+            </div>
+            ${tags.length ? `<div style="font-size:0.78rem; display:flex; gap:10px; flex-wrap:wrap;">${tags.join('')}</div>` : ''}
+        `;
+        importPreviewList.appendChild(row);
+    });
+    if (importPreviewSummary) importPreviewSummary.innerText = summary;
+};
+
+if (btnValidateImport) {
+    btnValidateImport.addEventListener('click', async () => {
+        importValidated = null;
+        if (btnRunImport) btnRunImport.disabled = true;
+
+        const targetUid = importTargetUid ? importTargetUid.value.trim() : '';
+        if (!targetUid) {
+            return showAlert('Selecione a conta de destino (e o UID) antes de validar.');
+        }
+
+        const rawText = importJsonInput ? importJsonInput.value.trim() : '';
+        if (!rawText) {
+            return showAlert('Cole o JSON dos devocionais ou carregue um arquivo .json.');
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(rawText);
+        } catch (err) {
+            logToImportConsole(`JSON inválido: ${err.message}`, 'error');
+            return showAlert('JSON inválido. Verifique a estrutura e tente novamente.');
+        }
+        if (!Array.isArray(parsed)) {
+            return showAlert('O conteúdo precisa ser uma lista (array) de devocionais.');
+        }
+        if (parsed.length === 0) {
+            return showAlert('Nenhum devocional encontrado no JSON.');
+        }
+
+        logToImportConsole(`Validando ${parsed.length} item(ns)...`, 'warning');
+
+        // Normaliza
+        const items = parsed.map((raw, i) => normalizeImportItem(raw || {}, i));
+
+        // Carrega assinaturas existentes da conta de destino
+        let existingSignatures = new Set();
+        try {
+            logToImportConsole('Carregando registros existentes da conta de destino para deduplicação...', 'info');
+            const q = query(collection(db, 'devotionals'), where('userId', '==', targetUid));
+            const snap = await getDocs(q);
+            snap.forEach(docSnap => existingSignatures.add(buildSignature(docSnap.data())));
+            logToImportConsole(`${snap.size} registro(s) já existente(s) na conta.`, 'info');
+        } catch (err) {
+            logToImportConsole(`Erro ao carregar registros existentes: ${err.message}`, 'error');
+            return showAlert(`Não foi possível verificar duplicatas. Detalhes: ${err.message}`);
+        }
+
+        // Marca duplicatas (existentes + intra-lote)
+        const batchSignatures = new Set();
+        let dupCount = 0;
+        items.forEach(it => {
+            const sig = buildSignature(it.doc);
+            if (existingSignatures.has(sig) || batchSignatures.has(sig)) {
+                it.duplicate = true;
+                dupCount++;
+            } else {
+                it.duplicate = false;
+                batchSignatures.add(sig);
+            }
+        });
+
+        const importable = items.filter(it => !it.duplicate).length;
+        const summary = `${items.length} item(ns) · ${importable} a importar · ${dupCount} duplicata(s)`;
+        renderImportPreview(items, summary);
+        logToImportConsole(`Validação concluída. ${summary}.`, 'info');
+
+        importValidated = { items, targetUid, targetEmail: importTargetEmail ? importTargetEmail.value : '' };
+        if (btnRunImport) btnRunImport.disabled = importable === 0;
+        if (importable === 0) {
+            logToImportConsole('Nada a importar (todos os itens são duplicatas).', 'warning');
+        }
+    });
+}
+
+// --- GRAVAÇÃO + LOG + RESUMO (Tarefa 4) ---
+
+if (btnRunImport) {
+    btnRunImport.addEventListener('click', async () => {
+        if (!importValidated) {
+            return showAlert('Valide e pré-visualize o JSON antes de importar.');
+        }
+        const { items, targetUid, targetEmail } = importValidated;
+        const toImport = items.filter(it => !it.duplicate);
+        if (toImport.length === 0) {
+            return showAlert('Não há itens para importar (todos são duplicatas).');
+        }
+
+        const confirmMsg = `Importar ${toImport.length} devocional(is) para ${targetEmail || targetUid}? Esta ação grava diretamente na conta selecionada.`;
+        if (!(await showConfirm(confirmMsg))) return;
+
+        btnRunImport.disabled = true;
+        btnValidateImport.disabled = true;
+        const originalHtml = btnRunImport.innerHTML;
+        btnRunImport.innerHTML = '<i class="ph ph-circle-notch"></i> Importando...';
+
+        let ok = 0, fail = 0;
+        const nowIso = new Date().toISOString();
+        logToImportConsole(`Iniciando importação de ${toImport.length} item(ns) para ${targetEmail || targetUid}...`, 'warning');
+
+        for (let i = 0; i < toImport.length; i++) {
+            const it = toImport[i];
+            const docData = {
+                userId: targetUid,
+                title: it.doc.title,
+                date: it.doc.date,
+                continuationOf: it.doc.continuationOf,
+                mainPassage: it.doc.mainPassage,
+                recordType: it.doc.recordType,
+                author: it.doc.author,
+                relatedPassages: it.doc.relatedPassages,
+                keywords: it.doc.keywords,
+                recordFormat: it.doc.recordFormat,
+                content: it.doc.content,
+                actions: it.doc.actions,
+                links: it.doc.links,
+                createdAt: nowIso,
+                updatedAt: nowIso
+            };
+            try {
+                await addDoc(collection(db, 'devotionals'), docData);
+                ok++;
+                if (ok % 5 === 0 || i === toImport.length - 1) {
+                    logToImportConsole(`Progresso: ${ok}/${toImport.length} importado(s)...`, 'info');
+                }
+            } catch (err) {
+                fail++;
+                logToImportConsole(`Falha no item ${it.index + 1} ("${it.doc.title || 'sem título'}"): ${err.message}`, 'error');
+            }
+        }
+
+        const skipped = items.length - toImport.length;
+        logToImportConsole(`IMPORTAÇÃO CONCLUÍDA! Importados: ${ok} | Pulados (duplicatas): ${skipped} | Falhas: ${fail}`, 'info');
+        showAlert(`Importação concluída.\nImportados: ${ok}\nPulados (duplicatas): ${skipped}\nFalhas: ${fail}`);
+
+        btnRunImport.innerHTML = originalHtml;
+        btnRunImport.disabled = true; // exige nova validação para reimportar
+        btnValidateImport.disabled = false;
+        importValidated = null;
+    });
+}
+
+// --- BINDINGS AUXILIARES ---
+if (importTargetEmail) importTargetEmail.addEventListener('change', () => syncImportTargetUid(true));
+
+if (importFileInput) {
+    importFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (importJsonInput) importJsonInput.value = reader.result;
+            logToImportConsole(`Arquivo "${file.name}" carregado na área de texto. Clique em "Validar e pré-visualizar".`, 'info');
+        };
+        reader.onerror = () => logToImportConsole(`Erro ao ler o arquivo "${file.name}".`, 'error');
+        reader.readAsText(file);
+    });
+}
+
+if (btnClearImportLogs) {
+    btnClearImportLogs.addEventListener('click', () => {
+        if (importLogs) {
+            importLogs.innerHTML = '';
+            logToImportConsole('Console de logs limpo. Aguardando comandos...');
+        }
+    });
+}
+
+// Popula o seletor caso a whitelist já tenha sido carregada
+populateImportTargets();

@@ -203,13 +203,18 @@ suportar todo o CommonMark.
 - [ ] Resumo final com contagem de sucessos/avisos/falhas.
 - [ ] Registros importados aparecem normalmente na conta de destino dentro do app.
 
-## 12. Dúvidas pendentes
+## 12. Decisões (resolvidas com o usuário)
 
-- [Pendente] As Regras de Segurança do Firestore já permitem que o Admin Master
-  grave em `devotionals` com `userId` de terceiros? (A migração faz `updateDoc`;
-  importar faz `addDoc`/`setDoc` — confirmar se o mesmo permissionamento cobre.)
-- [Pendente] Deduplicação: queremos alguma proteção contra reimportar o mesmo
-  devocional, ou o admin assume esse controle manualmente?
-- [Pendente] Suporte a `actions`/`links`/`continuationOf` na importação fica para
-  uma versão futura, ou já deve entrar agora? (Recomendação: deixar fora da v1.)
-- [Sugestão] Permitir upload de arquivo `.json` além da colagem de texto.
+- **Regras do Firestore:** confirmado — o Admin Master já tem permissão para
+  gravar em `devotionals` com `userId` de terceiros. Nenhum ajuste de regras
+  necessário.
+- **Deduplicação:** confirmada — o sistema deve detectar e evitar reimportar
+  devocionais já existentes na conta de destino. Detecção por assinatura
+  (`title` + `date` + `mainPassage` + trecho do conteúdo, normalizados),
+  comparando contra os registros existentes da conta e também entre itens do
+  próprio lote. Duplicatas são sinalizadas no preview e **puladas** por padrão na
+  importação (com log).
+- **Escopo v1:** `actions`, `links` e `continuationOf` ficam **fora** da primeira
+  versão (gravados como `[]`/`null`). Podem entrar numa versão futura.
+- **Upload de arquivo:** além da colagem de texto, a v1 também aceita upload de
+  arquivo `.json` (preenche a textarea).
