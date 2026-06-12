@@ -8,7 +8,7 @@ Cinco tarefas sequenciais: CSS → registros.js → bencaos.js → FAB dropdown 
 
 ## Tarefa 1 — CSS: overlay-dialog + backdrop + animações + Quill desktop
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -43,7 +43,7 @@ O `.create-overlay` no desktop atualmente usa `transform: translateX(-50%) trans
 
 ## Tarefa 2 — registros.js: wrappers overlay-dialog + backdrop handlers
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -78,7 +78,7 @@ O create overlay é HTML estático em `container.innerHTML`. O wrapper `.overlay
 
 ## Tarefa 3 — bencaos.js: wrappers overlay-dialog + backdrop handlers
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -107,7 +107,7 @@ No desktop: criar bênção, abrir leitura de bênção, abrir analytics de bên
 
 ## Tarefa 4 — FAB desktop: dropdown em vez do drawer mobile
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -141,7 +141,7 @@ Quando apenas uma feature está disponível (registros OU bencaos), `openFabShee
 
 ## Tarefa 5 — sw.js: bump de versão do cache
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
