@@ -113,13 +113,33 @@ const reposQuillToolbar = () => {
     const toolbar = document.getElementById('mobileQuillToolbar');
     if (!toolbar || toolbar.style.display === 'none') return;
     if (window.innerWidth > 768) return; // no desktop a posição é fixa (CSS)
-    if (window.visualViewport) {
-        const vv = window.visualViewport;
-        // Distância entre o bottom do viewport visual e o bottom do layout viewport
-        const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
-        // setProperty com 'important' para vencer o `bottom: 0 !important` do CSS
-        toolbar.style.setProperty('bottom', Math.max(0, offsetFromBottom) + 'px', 'important');
-    }
+    if (!window.visualViewport) return;
+    const vv = window.visualViewport;
+    // Distância entre o bottom do viewport visual e o bottom do layout viewport
+    const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
+    // setProperty com 'important' para vencer o `bottom: 0 !important` do CSS
+    toolbar.style.setProperty('bottom', Math.max(0, offsetFromBottom) + 'px', 'important');
+
+    // Rola o container do formulário para manter o cursor do Quill visível acima do teclado.
+    const editor = window.activeQuillEditor;
+    if (!editor) return;
+    const range = editor.getSelection();
+    if (!range) return;
+    try {
+        const bounds = editor.getBounds(range.index); // posição do cursor relativa ao editor
+        const editorEl = editor.root;
+        const scrollEl = editorEl.closest('.create-overlay-scroll');
+        if (!scrollEl) return;
+        const editorRect = editorEl.getBoundingClientRect();
+        // Posição vertical do cursor relativa à tela
+        const cursorBottom = editorRect.top + bounds.top + bounds.height;
+        // Limite inferior visível: topo do teclado menos a altura da toolbar flutuante
+        const toolbarH = toolbar.offsetHeight || 48;
+        const visibleBottom = vv.offsetTop + vv.height - toolbarH - 8;
+        if (cursorBottom > visibleBottom) {
+            scrollEl.scrollTop += cursorBottom - visibleBottom + 16;
+        }
+    } catch (_) {}
 };
 // Exposto para que os módulos reposicionem assim que a toolbar é exibida
 window._reposQuillToolbar = reposQuillToolbar;

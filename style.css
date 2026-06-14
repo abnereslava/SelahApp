@@ -817,18 +817,10 @@ select:focus {
 .reading-body hr,
 .record-text hr {
     border: none;
-    border-top: 1px solid var(--border-color);
+    border-top: 2px solid var(--text-muted);
     margin: 18px 0;
     height: 0;
-}
-
-/* No mobile, dá folga no fim do editor para o cursor não ficar embaixo do
-   teclado conforme o texto cresce (o navegador consegue rolar a linha pra cima). */
-@media (max-width: 768px) {
-    #quillEditorLivre .ql-editor,
-    #quillEditorBencaos .ql-editor {
-        padding-bottom: 45vh;
-    }
+    opacity: 0.45;
 }
 
 .guided-question {
