@@ -1003,7 +1003,8 @@ export function init(firebaseDb, firebaseAuth) {
                 const li = document.createElement('li');
                 li.className = 'tag-suggestion-item';
                 li.dataset.tag = key;
-                const highlighted = label.replace(
+                const displayLabel = this.config.uppercase ? label.toUpperCase() : label;
+                const highlighted = displayLabel.replace(
                     new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
                     '<mark>$1</mark>'
                 );
@@ -1038,7 +1039,8 @@ export function init(firebaseDb, firebaseAuth) {
             this.tags.forEach((tag, i) => {
                 const chip = document.createElement('span');
                 chip.className = 'tag-chip';
-                const label = this.config.indexMap.get(tag) || tag;
+                const raw = this.config.indexMap.get(tag) || tag;
+                const label = this.config.uppercase ? raw.toUpperCase() : raw;
                 chip.innerHTML = `${label}<button type="button" class="tag-chip-remove" title="Remover"><i class="ph ph-x"></i></button>`;
                 chip.querySelector('.tag-chip-remove').addEventListener('click', (e) => {
                     e.stopPropagation(); this._removeTag(i);
@@ -1195,7 +1197,7 @@ export function init(firebaseDb, firebaseAuth) {
         const infoRows = [];
         if (authorsArr.length) {
             const label = r.recordType === 'pregacao' ? 'Pregador' : 'Autor';
-            infoRows.push(`<div class="reading-info-row"><span class="reading-info-label">${label}</span><span class="reading-info-value">${authorsArr.join(', ')}</span></div>`);
+            infoRows.push(`<div class="reading-info-row"><span class="reading-info-label">${label}</span><span class="reading-info-value">${authorsArr.map(a => a.toUpperCase()).join(', ')}</span></div>`);
         }
         if (r.relatedPassages) {
             infoRows.push(`<div class="reading-info-row"><span class="reading-info-label">Passagens</span><span class="reading-info-value">${r.relatedPassages}</span></div>`);
@@ -1291,7 +1293,7 @@ export function init(firebaseDb, firebaseAuth) {
         if (r.author) {
             const authorsArr = Array.isArray(r.author) ? r.author.map(a => globalAuthorIndex.get(a) || a) : [r.author];
             if (authorsArr.length > 0 && authorsArr[0] !== '') {
-                html += `<div class="meta-item full-width"><span class="meta-label">Autor(es)</span><span class="meta-value capitalize">${authorsArr.join(', ')}</span></div>`;
+                html += `<div class="meta-item full-width"><span class="meta-label">Autor(es)</span><span class="meta-value">${authorsArr.map(a => a.toUpperCase()).join(', ')}</span></div>`;
             }
         }
 
@@ -1893,7 +1895,8 @@ export function init(firebaseDb, firebaseAuth) {
                 maxTagsMsg: "Você pode adicionar no máximo 5 autores.",
                 indexMap: globalAuthorIndex,
                 iconClass: 'ph-user',
-                placeholderMobile: "Adicionar autores..."
+                placeholderMobile: "Adicionar autores...",
+                uppercase: true
             });
 
             if (isFirst) {
