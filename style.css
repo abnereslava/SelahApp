@@ -491,7 +491,7 @@ select:focus {
 
 .btn-toggle {
     flex: 1;
-    padding: 7px 12px;
+    padding: 3px 12px;
     background: transparent;
     border: none;
     border-radius: var(--radius);
@@ -499,7 +499,7 @@ select:focus {
     font-weight: 600;
     transition: var(--transition);
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .btn-toggle.active {
@@ -801,6 +801,15 @@ select:focus {
     color: var(--text-muted);
     opacity: 0.6;
     font-style: italic;
+}
+
+.ql-editor ul,
+.ql-editor ol {
+    padding-left: 1.5em;
+}
+
+.ql-editor li {
+    list-style: inherit;
 }
 
 .guided-question {
