@@ -2395,7 +2395,53 @@ select:focus {
 }
 .reading-type-chip {
     display: inline-block;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
+}
+
+/* Grade de metadados abaixo do chip: autor, passagens relacionadas, palavras-chave */
+.reading-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+    margin-top: 4px;
+}
+
+.reading-info-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.82rem;
+}
+
+.reading-info-label {
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.reading-info-value {
+    color: var(--text-main);
+    line-height: 1.4;
+}
+
+.reading-info-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.reading-info-tag {
+    font-size: 0.72rem;
+    background: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: var(--radius);
+    padding: 2px 7px;
 }
 .reading-divider {
     border: none;
@@ -2406,6 +2452,22 @@ select:focus {
     font-size: 1.05rem;
     line-height: 1.8;
     color: var(--text-main);
+}
+
+/* Indentação correta de listas no corpo da leitura */
+.reading-body ul,
+.reading-body ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+}
+
+.reading-body li {
+    list-style: inherit;
+    margin-bottom: 0.25em;
+}
+
+.reading-body p {
+    margin-bottom: 0.6em;
 }
 .reading-body h4 {
     font-family: 'Playfair Display', serif;

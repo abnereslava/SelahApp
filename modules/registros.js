@@ -1188,6 +1188,24 @@ export function init(firebaseDb, firebaseAuth) {
                 .join('');
         }
 
+        // Monta grade de metadados extras para o cabeçalho da leitura
+        const authorsArr = r.author
+            ? (Array.isArray(r.author) ? r.author.map(a => globalAuthorIndex.get(a) || a) : [r.author])
+            : [];
+        const infoRows = [];
+        if (authorsArr.length) {
+            const label = r.recordType === 'pregacao' ? 'Pregador' : 'Autor';
+            infoRows.push(`<div class="reading-info-row"><span class="reading-info-label">${label}</span><span class="reading-info-value">${authorsArr.join(', ')}</span></div>`);
+        }
+        if (r.relatedPassages) {
+            infoRows.push(`<div class="reading-info-row"><span class="reading-info-label">Passagens</span><span class="reading-info-value">${r.relatedPassages}</span></div>`);
+        }
+        if (r.keywords && r.keywords.length) {
+            const chips = r.keywords.map(k => `<span class="reading-info-tag">${globalKeywordIndex.get(k) || k}</span>`).join('');
+            infoRows.push(`<div class="reading-info-row"><span class="reading-info-label">Temas</span><span class="reading-info-value reading-info-tags">${chips}</span></div>`);
+        }
+        const infoGridHtml = infoRows.length ? `<div class="reading-info-grid">${infoRows.join('')}</div>` : '';
+
         const overlay = document.createElement('div');
         overlay.className = 'reading-overlay';
         overlay.id = 'readingOverlay';
@@ -1198,6 +1216,7 @@ export function init(firebaseDb, firebaseAuth) {
                 <h1 class="reading-title">${r.title || r.mainPassage}</h1>
                 ${r.title ? `<div class="reading-passage">${r.mainPassage}</div>` : ''}
                 <span class="record-type-chip chip-${r.recordType} reading-type-chip">${typeLabel}</span>
+                ${infoGridHtml}
                 ${chainHtml}
                 <hr class="reading-divider">
                 <div class="reading-body">${bodyHtml}</div>
