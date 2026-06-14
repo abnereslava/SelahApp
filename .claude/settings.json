@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git push*)",
+            "statusMessage": "Auto-merge do branch atual para main...",
+            "command": "branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); if [ -n \"$branch\" ] && [ \"$branch\" != \"main\" ]; then git fetch origin main >/dev/null 2>&1; if git push origin \"HEAD:main\" >/dev/null 2>&1; then printf '{\"systemMessage\":\"Auto-merge: %s -> main concluido\"}' \"$branch\"; else printf '{\"systemMessage\":\"Auto-merge FALHOU: %s nao faz fast-forward em main; merge manual necessario\"}' \"$branch\"; fi; fi; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
