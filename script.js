@@ -112,11 +112,13 @@ if (sidebar) {
 const reposQuillToolbar = () => {
     const toolbar = document.getElementById('mobileQuillToolbar');
     if (!toolbar || toolbar.style.display === 'none') return;
+    if (window.innerWidth > 768) return; // no desktop a posição é fixa (CSS)
     if (window.visualViewport) {
         const vv = window.visualViewport;
         // Distância entre o bottom do viewport visual e o bottom do layout viewport
         const offsetFromBottom = window.innerHeight - (vv.offsetTop + vv.height);
-        toolbar.style.bottom = Math.max(0, offsetFromBottom) + 'px';
+        // setProperty com 'important' para vencer o `bottom: 0 !important` do CSS
+        toolbar.style.setProperty('bottom', Math.max(0, offsetFromBottom) + 'px', 'important');
     }
 };
 // Exposto para que os módulos reposicionem assim que a toolbar é exibida
@@ -405,7 +407,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=28`);
+        const module = await import(`./modules/${hash}.js?v=29`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);

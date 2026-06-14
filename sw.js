@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v28'; // visual: light mode ativo (dark preservado), bordas retas, botões padronizados
+const CACHE_NAME = 'selah-pwa-spa-v29'; // editor: toolbar acima do teclado (mobile), toggles menores, dourado mais escuro
 const urlsToCache = [
   './',
   './index.html',

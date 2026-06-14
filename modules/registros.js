@@ -400,7 +400,7 @@ export function init(firebaseDb, firebaseAuth) {
     window._closeRegistros = window._requestCloseRegistros;
 
     // --- EDITORES E PERGUNTAS DINÂMICAS ---
-    const customColors = [false, '#e60000', '#ff9900', '#d4af37', '#008a00', '#0066cc', '#9933ff'];
+    const customColors = [false, '#e60000', '#ff9900', '#A07E1A', '#008a00', '#0066cc', '#9933ff'];
     const toolbar = [['bold', 'italic', 'underline'], [{ 'color': customColors }], [{ 'header': [1, 2, false] }], ['clean']];
     const editors = {
         livre: new Quill('#quillEditorLivre', { theme: 'snow', modules: { toolbar } })

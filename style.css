@@ -491,7 +491,7 @@ select:focus {
 
 .btn-toggle {
     flex: 1;
-    padding: 12px;
+    padding: 7px 12px;
     background: transparent;
     border: none;
     border-radius: var(--radius);
@@ -499,7 +499,7 @@ select:focus {
     font-weight: 600;
     transition: var(--transition);
     color: var(--text-muted);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .btn-toggle.active {
@@ -692,10 +692,21 @@ select:focus {
 
 .ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#e60000"] { background-color: #e60000; }
 .ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#ff9900"] { background-color: #ff9900; }
-.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#d4af37"] { background-color: #d4af37; }
+.ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#A07E1A"] { background-color: #A07E1A; }
 .ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#008a00"] { background-color: #008a00; }
 .ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#0066cc"] { background-color: #0066cc; }
 .ql-snow .ql-picker.ql-color .ql-picker-item[data-value="#9933ff"] { background-color: #9933ff; }
+
+/* Remapeia o dourado antigo (#d4af37 / rgb(212,175,55) — claro demais) já
+   aplicado em textos salvos para o novo tom mais escuro, sem migrar dados. */
+.ql-editor [style*="rgb(212, 175, 55)"],
+.reading-body [style*="rgb(212, 175, 55)"],
+.record-text [style*="rgb(212, 175, 55)"],
+.ql-editor [style*="#d4af37"],
+.reading-body [style*="#d4af37"],
+.record-text [style*="#d4af37"] {
+    color: #A07E1A !important;
+}
 
 .mobile-floating-toolbar {
     position: fixed !important;
