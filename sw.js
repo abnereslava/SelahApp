@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v29'; // editor: toolbar acima do teclado (mobile), toggles menores, dourado mais escuro
+const CACHE_NAME = 'selah-pwa-spa-v30'; // fix: restaura </script> de fechamento em index.html/admin.html (página em branco)
 const urlsToCache = [
   './',
   './index.html',
