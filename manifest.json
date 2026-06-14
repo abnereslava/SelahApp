@@ -3,8 +3,8 @@
   "short_name": "Selah",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#2B1E17",
-  "theme_color": "#2B1E17",
+  "background_color": "#F4F2EC",
+  "theme_color": "#F4F2EC",
   "orientation": "portrait",
   "icons": [
     {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v27'; // visual: paleta neutra escura, bordas retas, snow toolbar oculta globalmente
+const CACHE_NAME = 'selah-pwa-spa-v28'; // visual: light mode ativo (dark preservado), bordas retas, botões padronizados
 const urlsToCache = [
   './',
   './index.html',

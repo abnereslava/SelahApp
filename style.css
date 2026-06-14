@@ -1,27 +1,61 @@
+/* ───────────────────────────────────────────────────────────────
+   TEMA — LIGHT MODE (ativo por padrão)
+   O dark mode está preservado em [data-theme="dark"] mais abaixo.
+   Um futuro botão de transição só precisa alternar o atributo
+   data-theme="dark" no <html>.
+   ─────────────────────────────────────────────────────────────── */
 :root {
-    --bg-color: #0F0F0F;           /* Preto neutro — sem cast marrom */
-    --surface-color: #191919;      /* Superfície de cartões e painéis */
-    --surface-glass: rgba(25, 25, 25, 0.88);
-    --border-color: #2C2C2C;       /* Borda neutra, nítida */
-    --text-main: #F0EDE6;          /* Branco levemente creme, confortável */
-    --text-muted: #6A6A6A;         /* Cinza médio — hierarquia clara */
-    --primary-color: #D4AF37;      /* Dourado: acento único, identidade do app */
-    --primary-hover: #E8C547;
-    --secondary-color: #111111;    /* Fundo de inputs e painéis profundos */
-    --secondary-hover: #1E1E1E;
-    --accent-color: #D4AF37;
-    --accent-red: #E05252;
+    --bg-color: #F4F2EC;           /* Fundo claro neutro e quente */
+    --surface-color: #FFFFFF;      /* Cartões e painéis */
+    --surface-glass: rgba(255, 255, 255, 0.85);
+    --border-color: #E3DED4;       /* Borda clara, nítida */
+    --text-main: #1F1D1A;          /* Quase preto, quente — leitura */
+    --text-muted: #7B7569;         /* Cinza quente — hierarquia clara */
+    --primary-color: #8A6D1D;      /* Dourado profundo, legível sobre claro */
+    --primary-hover: #6F5616;
+    --on-primary: #FFFFFF;         /* Texto sobre preenchimento primário */
+    --secondary-color: #ECE8E0;    /* Fundo de inputs e painéis */
+    --secondary-hover: #E1DCD2;
+    --accent-color: #8A6D1D;
+    --accent-red: #C0392B;
+    --danger-color: #C0392B;
+    --hover-overlay: rgba(0, 0, 0, 0.04); /* realce de hover neutro */
+
     --radius: 4px;                 /* Quase reto — aspecto moderno */
     --radius-lg: 6px;
     --radius-md: 4px;
-    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.55);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.65);
-    --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.75);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.10);
+    --shadow-lg: 0 14px 32px rgba(0, 0, 0, 0.14);
+    --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.18);
     --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --backdrop-blur: blur(12px);
     --sidebar-width: 280px;
     --sidebar-collapsed-width: 85px;
+}
+
+/* ── DARK MODE (preservado para o futuro toggle) ── */
+[data-theme="dark"] {
+    --bg-color: #0F0F0F;
+    --surface-color: #191919;
+    --surface-glass: rgba(25, 25, 25, 0.88);
+    --border-color: #2C2C2C;
+    --text-main: #F0EDE6;
+    --text-muted: #8A8A8A;
+    --primary-color: #D4AF37;
+    --primary-hover: #E8C547;
+    --on-primary: #1A1A1A;
+    --secondary-color: #111111;
+    --secondary-hover: #1E1E1E;
+    --accent-color: #D4AF37;
+    --accent-red: #E05252;
+    --danger-color: #E05252;
+    --hover-overlay: rgba(255, 255, 255, 0.06);
+
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.65);
+    --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.75);
 }
 
 * {
@@ -202,7 +236,7 @@ h6,
     right: -14px;
     top: 24px;
     background: var(--primary-color);
-    color: var(--secondary-color);
+    color: var(--on-primary);
     border: 3px solid var(--surface-color);
     width: 28px;
     height: 28px;
@@ -352,7 +386,7 @@ select:focus {
     padding: 12px 15px;
     background: var(--secondary-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius);
     color: var(--text-main);
     font-size: 1rem;
     transition: var(--transition);
@@ -371,10 +405,10 @@ select:focus {
 
 .btn-primary {
     background: var(--primary-color);
-    color: var(--secondary-color);
-    border: none;
+    color: var(--on-primary);
+    border: 1px solid var(--primary-color);
     padding: 12px 25px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
@@ -387,7 +421,9 @@ select:focus {
 
 .btn-primary:hover {
     background: var(--primary-hover);
+    border-color: var(--primary-hover);
     transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-block {
@@ -399,7 +435,7 @@ select:focus {
     color: var(--text-muted);
     border: 1px solid var(--border-color);
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
@@ -419,7 +455,7 @@ select:focus {
     color: var(--text-main);
     border: 1px solid var(--border-color);
     padding: 14px 25px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
@@ -458,7 +494,7 @@ select:focus {
     padding: 12px;
     background: transparent;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius);
     cursor: pointer;
     font-weight: 600;
     transition: var(--transition);
@@ -473,7 +509,7 @@ select:focus {
 }
 
 .btn-toggle:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hover-overlay);
 }
 
 /* Main App Styles */
@@ -697,7 +733,7 @@ select:focus {
     font-size: 1.2rem;
     cursor: pointer;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -960,7 +996,7 @@ select:focus {
     background: rgba(212, 175, 55, 0.12);
     border: 1px solid rgba(212, 175, 55, 0.3);
     color: var(--primary-color);
-    border-radius: 20px;
+    border-radius: var(--radius);
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
@@ -1023,14 +1059,14 @@ select:focus {
     background: rgba(212, 175, 55, 0.1);
     color: var(--primary-color);
     padding: 4px 10px;
-    border-radius: 20px;
+    border-radius: var(--radius);
     font-size: 0.75rem;
     border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 .tag:hover {
     background: var(--primary-color);
-    color: #0F0F0F;
+    color: var(--on-primary);
 }
 
 /* ESTILOS RESTAURADOS - Modais (Completamente ausentes no novo deploy) */
@@ -1113,7 +1149,7 @@ select:focus {
     flex-direction: column;
     gap: 6px;
     margin-bottom: 20px;
-    background: rgba(0,0,0,0.15);
+    background: var(--secondary-color);
     padding: 12px 15px;
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
@@ -1143,14 +1179,14 @@ select:focus {
     padding: 2px 8px;
     background: rgba(212, 175, 55, 0.1);
     color: var(--primary-color);
-    border-radius: 20px;
+    border-radius: var(--radius);
     font-size: 0.8rem;
     border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 /* Chain (Trilha) Visualization */
 .chain-details {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--secondary-color);
     border-radius: var(--radius);
     padding: 12px 15px;
     border: 1px solid var(--border-color);
@@ -1212,7 +1248,7 @@ select:focus {
 .chain-item a.tag:hover {
     transform: translateX(4px);
     background: var(--primary-color);
-    color: var(--bg-color);
+    color: var(--on-primary);
 }
 .view-content-area {
     line-height: 1.7;
@@ -1301,7 +1337,7 @@ select:focus {
     padding: 10px;
     flex: 0 0 auto;
     width: 42px;
-    border-radius: 8px;
+    border-radius: var(--radius);
 }
 
 .modern-item-list {
@@ -1319,7 +1355,7 @@ select:focus {
     padding: 12px 15px;
     background: var(--secondary-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius);
     margin-bottom: 8px;
     transition: var(--transition);
 }
@@ -1356,7 +1392,7 @@ select:focus {
     color: var(--text-main);
     background: var(--bg-color);
     padding: 2px 8px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
 }
 
@@ -1380,7 +1416,7 @@ select:focus {
 
 .read-content::-webkit-scrollbar-thumb {
     background: var(--border-color);
-    border-radius: 10px;
+    border-radius: var(--radius);
 }
 
 .read-content h4 {
@@ -1401,7 +1437,7 @@ select:focus {
     gap: 8px;
     background: var(--secondary-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius);
     padding: 8px 12px;
     transition: var(--transition);
 }
@@ -1424,7 +1460,7 @@ select:focus {
     background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%);
     border: 1px solid rgba(212, 175, 55, 0.45);
     color: var(--primary-color);
-    border-radius: 20px;
+    border-radius: var(--radius);
     padding: 3px 10px 3px 12px;
     font-size: 0.82rem;
     font-weight: 500;
@@ -1669,7 +1705,7 @@ select:focus {
         color: var(--primary-color);
         width: 44px;
         height: 44px;
-        border-radius: 8px;
+        border-radius: var(--radius);
         cursor: pointer;
         font-size: 1.5rem;
         box-shadow: var(--shadow-sm);
@@ -2136,19 +2172,19 @@ select:focus {
     font-size: 0.62rem;
     font-weight: 600;
     padding: 3px 8px;
-    border-radius: 20px;
+    border-radius: var(--radius);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     white-space: nowrap;
     flex-shrink: 0;
 }
-.chip-devocional       { background: rgba(212,175,55,0.15); color: var(--primary-color); }
-.chip-culto_domestico  { background: rgba(96,165,250,0.15); color: #60a5fa; }
-.chip-aula             { background: rgba(52,211,153,0.15); color: #34d399; }
-.chip-ebd              { background: rgba(167,139,250,0.15); color: #a78bfa; }
-.chip-pregacao         { background: rgba(251,146,60,0.15); color: #fb923c; }
-.chip-anotacoes_gerais { background: rgba(148,163,184,0.15); color: #94a3b8; }
-.chip-outros           { background: rgba(148,163,184,0.12); color: #94a3b8; }
+.chip-devocional       { background: rgba(212,175,55,0.16); color: var(--primary-color); }
+.chip-culto_domestico  { background: rgba(37,99,235,0.14);  color: #2563eb; }
+.chip-aula             { background: rgba(5,150,105,0.14);  color: #059669; }
+.chip-ebd              { background: rgba(124,58,237,0.14); color: #7c3aed; }
+.chip-pregacao         { background: rgba(234,88,12,0.14);  color: #ea580c; }
+.chip-anotacoes_gerais { background: rgba(100,116,139,0.16); color: #64748b; }
+.chip-outros           { background: rgba(100,116,139,0.13); color: #64748b; }
 
 .record-card-chevron {
     font-size: 1rem;
@@ -2201,7 +2237,7 @@ select:focus {
     align-items: center;
     gap: 5px;
     padding: 7px 14px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-size: 0.8rem;
     font-weight: 500;
     border: none;
@@ -2211,11 +2247,11 @@ select:focus {
     color: var(--text-muted);
     border: 1px solid var(--border-color);
 }
-.rc-btn:hover { background: rgba(255,255,255,0.07); color: var(--text-main); }
+.rc-btn:hover { background: var(--hover-overlay); color: var(--text-main); }
 .rc-btn.rc-btn-read  { background: rgba(212,175,55,0.12); color: var(--primary-color); border-color: rgba(212,175,55,0.3); }
 .rc-btn.rc-btn-read:hover { background: rgba(212,175,55,0.22); }
-.rc-btn.rc-btn-delete { color: var(--danger-color, #ef4444); }
-.rc-btn.rc-btn-delete:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); }
+.rc-btn.rc-btn-delete { color: var(--danger-color); }
+.rc-btn.rc-btn-delete:hover { background: rgba(192,57,43,0.10); border-color: rgba(192,57,43,0.35); }
 .rc-btn.rc-btn-shuffle { color: var(--primary-color); border-color: rgba(212,175,55,0.3); }
 .rc-btn.rc-btn-shuffle:hover { background: rgba(212,175,55,0.12); }
 
@@ -2294,7 +2330,7 @@ select:focus {
     border-radius: 50%;
     transition: background 0.15s;
 }
-.reading-close-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+.reading-close-btn:hover { background: var(--hover-overlay); color: var(--text-main); }
 .reading-actions-row {
     display: flex;
     gap: 8px;
@@ -2492,7 +2528,7 @@ select:focus {
 }
 .pp-book-item {
     padding: 15px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border-color);
     cursor: pointer;
     font-size: 1rem;
     color: var(--text-main);
@@ -2526,7 +2562,7 @@ select:focus {
 .pp-chapter-btn {
     background: var(--secondary-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius);
     color: var(--text-main);
     font-size: 0.95rem;
     font-weight: 500;
@@ -2538,7 +2574,7 @@ select:focus {
 }
 .pp-chapter-btn:active {
     background: var(--primary-color);
-    color: var(--bg-color);
+    color: var(--on-primary);
     border-color: var(--primary-color);
 }
 /* Destaque de navegação por teclado (desktop) */
@@ -2548,7 +2584,7 @@ select:focus {
 }
 .pp-chapter-btn.pp-focused {
     background: var(--primary-color);
-    color: var(--bg-color);
+    color: var(--on-primary);
     border-color: var(--primary-color);
 }
 @media (min-width: 769px) {
@@ -2591,9 +2627,9 @@ select:focus {
     justify-content: space-between;
     gap: 10px;
     padding: 13px 16px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(212,175,55,0.2);
-    border-radius: 10px;
+    background: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
     color: var(--text-main);
     font-size: 1rem;
     font-family: inherit;
@@ -2603,7 +2639,7 @@ select:focus {
 }
 .passage-select-btn:hover,
 .passage-select-btn:active {
-    background: rgba(255,255,255,0.06);
+    background: var(--secondary-hover);
     border-color: var(--primary-color);
 }
 .passage-select-btn i {
@@ -2648,7 +2684,7 @@ select:focus {
     background: var(--surface-color);
     color: var(--text-main);
     border: 1px solid rgba(212,175,55,0.35);
-    border-radius: 999px;
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     font-size: 0.9rem;
     font-weight: 500;
@@ -2678,7 +2714,7 @@ select:focus {
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    color: var(--bg-color);
+    color: var(--on-primary);
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(212,175,55,0.5);
     margin-top: -22px;
@@ -2717,7 +2753,7 @@ select:focus {
     right: 0;
     background: var(--surface-color);
     border-top: 1px solid var(--border-color);
-    border-radius: 20px 20px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding: 12px 0 calc(env(safe-area-inset-bottom, 0px) + 20px);
     z-index: 1100;
     transform: translateY(100%);
@@ -2782,7 +2818,7 @@ select:focus {
     border-radius: 50%;
     background: var(--primary-color);
     border: none;
-    color: var(--bg-color);
+    color: var(--on-primary);
     font-size: 1.6rem;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(212,175,55,0.5);
@@ -2851,7 +2887,7 @@ select:focus {
     justify-content: center;
     width: 36px;
     height: 36px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     transition: background 0.15s ease;
 }
 
@@ -2883,19 +2919,19 @@ select:focus {
 }
 .create-overlay .form-group input,
 .create-overlay .form-group select {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(212,175,55,0.2);
-    border-radius: 10px;
+    background: var(--secondary-color);
+    border-color: var(--border-color);
+    border-radius: var(--radius);
     padding: 13px 16px;
 }
 .create-overlay .form-group input:focus,
 .create-overlay .form-group select:focus {
-    background: rgba(255,255,255,0.06);
+    background: var(--surface-color);
     border-color: var(--primary-color);
 }
 .create-overlay .optional-fields {
-    background: rgba(0,0,0,0.2);
-    border-color: rgba(212,175,55,0.15);
+    background: var(--secondary-color);
+    border-color: var(--border-color);
 }
 .create-overlay .optional-fields summary {
     color: var(--primary-color);
@@ -2903,11 +2939,11 @@ select:focus {
     font-size: 0.85rem;
 }
 .btn-danger {
-    background: rgba(239,68,68,0.08);
-    color: #ef4444;
-    border: 1px solid rgba(239,68,68,0.3);
+    background: rgba(192,57,43,0.08);
+    color: var(--danger-color);
+    border: 1px solid rgba(192,57,43,0.35);
     padding: 12px 20px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-weight: 500;
     font-size: 0.95rem;
     cursor: pointer;
@@ -2919,7 +2955,7 @@ select:focus {
     width: 100%;
     margin-top: 12px;
 }
-.btn-danger:hover, .btn-danger:active { background: rgba(239,68,68,0.16); }
+.btn-danger:hover, .btn-danger:active { background: rgba(192,57,43,0.16); }
 
 @media (min-width: 769px) {
     .create-overlay {
@@ -3153,7 +3189,7 @@ select:focus {
     /* ── Dialog box ── */
     .overlay-dialog {
         background: var(--bg-color);
-        border-radius: 16px;
+        border-radius: var(--radius-lg);
         border: 1px solid var(--border-color);
         box-shadow: 0 24px 72px rgba(0, 0, 0, 0.75);
         display: flex;
@@ -3259,7 +3295,7 @@ select:focus {
         bottom: 24px !important;
         width: auto !important;
         max-width: min(560px, 90vw) !important;
-        border-radius: 14px !important;
+        border-radius: var(--radius-lg) !important;
         border: 1px solid var(--border-color) !important;
         box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55) !important;
         padding: 8px 12px !important;
@@ -3274,7 +3310,7 @@ select:focus {
         right: 28px;
         background: var(--surface-color);
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: var(--radius-md);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
         padding: 6px;
         display: none;
@@ -3290,7 +3326,7 @@ select:focus {
         align-items: center;
         gap: 10px;
         padding: 10px 14px;
-        border-radius: 8px;
+        border-radius: var(--radius);
         cursor: pointer;
         border: none;
         background: none;
