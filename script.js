@@ -128,6 +128,57 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener('scroll', reposQuillToolbar);
 }
 
+// --- QUILL: LINHA HORIZONTAL (HR) ---
+// Quill 1.3.6 não tem HR nativo; registramos um blot de bloco embutido.
+if (window.Quill && !window._hrBlotRegistered) {
+    const BlockEmbed = Quill.import('blots/block/embed');
+    class HrBlot extends BlockEmbed {}
+    HrBlot.blotName = 'hr';
+    HrBlot.tagName = 'hr';
+    Quill.register(HrBlot, true);
+    window._hrBlotRegistered = true;
+}
+
+// Insere uma linha horizontal na posição do cursor do editor informado.
+window._insertQuillHr = (editor) => {
+    if (!editor) return;
+    const range = editor.getSelection(true);
+    const index = range ? range.index : editor.getLength();
+    editor.insertText(index, '\n', 'user');
+    editor.insertEmbed(index + 1, 'hr', true, 'user');
+    editor.setSelection(index + 2, 'silent');
+};
+
+// Atalho markdown: uma linha contendo apenas "---" vira uma linha horizontal.
+window._setupQuillHrShortcut = (editor) => {
+    if (!editor || editor.__hrShortcutBound) return;
+    editor.__hrShortcutBound = true;
+    editor.on('text-change', (delta, oldDelta, source) => {
+        if (source !== 'user' || editor.__hrConverting) return;
+        const sel = editor.getSelection();
+        if (!sel) return;
+        const [line, offset] = editor.getLine(sel.index);
+        if (!line || !line.domNode) return;
+        if (line.domNode.textContent === '---') {
+            const lineStart = sel.index - offset;
+            editor.__hrConverting = true;
+            editor.deleteText(lineStart, 3, 'user');
+            editor.insertEmbed(lineStart, 'hr', true, 'user');
+            editor.setSelection(lineStart + 1, 'silent');
+            editor.__hrConverting = false;
+        }
+    });
+};
+
+// Atualiza o ícone do botão único de lista conforme o estado atual.
+window._refreshFtListIcon = (format) => {
+    const b = document.getElementById('ftBtnList');
+    if (!b) return;
+    const i = b.querySelector('i');
+    if (i) i.className = (format && format.list === 'ordered') ? 'ph ph-list-numbers' : 'ph ph-list-bullets';
+};
+
+
 // --- RASCUNHO AUTOMÁTICO (auto-save de registros em andamento) ---
 window.SelahDraft = {
     _uid() {
@@ -407,7 +458,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=31`);
+        const module = await import(`./modules/${hash}.js?v=32`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);

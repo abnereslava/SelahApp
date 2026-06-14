@@ -259,6 +259,9 @@ export function init(firebaseDb, firebaseAuth) {
     const toolbar = [['bold', 'italic', 'underline'], [{ 'color': customColors }], [{ 'header': [1, 2, false] }], ['clean']];
     const editor = new Quill('#quillEditorBencaos', { theme: 'snow', modules: { toolbar } });
 
+    // Atalho "---" → linha horizontal
+    if (editor) window._setupQuillHrShortcut && window._setupQuillHrShortcut(editor);
+
     if (editor) {
         editor.on('text-change', () => {
             const editId = document.getElementById('editBlessingId');
@@ -293,6 +296,7 @@ export function init(firebaseDb, firebaseAuth) {
                     let isActive = v ? (format[f] == v) : format[f];
                     btn.classList.toggle('active-format', !!isActive);
                 });
+                window._refreshFtListIcon && window._refreshFtListIcon(format);
             } else {
                 setTimeout(() => {
                     if (window.activeQuillEditor === editor && !editor.hasFocus()) {
@@ -330,6 +334,13 @@ export function init(firebaseDb, firebaseAuth) {
 
             if (f === 'clean') {
                 activeEditor.removeFormat(range.index, range.length);
+            } else if (f === 'hr') {
+                window._insertQuillHr && window._insertQuillHr(activeEditor);
+            } else if (f === 'list') {
+                // Botão único que cicla: nenhum → marcador → numerado → nenhum
+                const cur = activeEditor.getFormat(range).list;
+                const next = cur === 'bullet' ? 'ordered' : (cur === 'ordered' ? false : 'bullet');
+                activeEditor.format('list', next);
             } else {
                 const currentFormat = activeEditor.getFormat(range);
                 if (v) {
@@ -355,6 +366,7 @@ export function init(firebaseDb, firebaseAuth) {
                         let isActive = bv ? (format[bf] == bv) : format[bf];
                         b.classList.toggle('active-format', !!isActive);
                     });
+                    window._refreshFtListIcon && window._refreshFtListIcon(format);
                 }
             }, 50);
         };

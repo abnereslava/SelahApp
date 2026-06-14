@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v32'; // analytics: cores dos gráficos derivadas do tema (corrige bordas escuras e legenda sem contraste no claro)
+const CACHE_NAME = 'selah-pwa-spa-v33'; // quill: botão de lista único (cicla), linha horizontal (HR + atalho ---), folga no fim do editor no mobile
 const urlsToCache = [
   './',
   './index.html',
