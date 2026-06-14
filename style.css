@@ -3259,10 +3259,28 @@ select:focus {
         margin: 0 !important;
     }
 
-    /* ── Quill: mostrar toolbar snow no desktop, ocultar floating mobile ── */
-    .mobile-floating-toolbar { display: none !important; }
-    .create-overlay .ql-toolbar.ql-snow { display: flex !important; }
-    .create-overlay .ql-container.ql-snow { border-top: none; }
+    /* ── Quill: oculta a toolbar nativa (snow) e usa a flutuante também no
+       desktop — mais confiável e posicionada abaixo do texto. ── */
+    .ql-toolbar.ql-snow { display: none !important; }
+    .create-overlay .ql-container.ql-snow { border-top: 1px solid var(--border-color); }
+
+    /* Toolbar flutuante no desktop: pílula centralizada flutuando na base do
+       diálogo (aparece via JS quando o editor recebe foco). */
+    .mobile-floating-toolbar {
+        position: fixed !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        bottom: 24px !important;
+        width: auto !important;
+        max-width: min(560px, 90vw) !important;
+        border-radius: 14px !important;
+        border: 1px solid var(--border-color) !important;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55) !important;
+        padding: 8px 12px !important;
+        gap: 6px !important;
+        z-index: 10001 !important; /* acima do diálogo (z 10000) */
+    }
 
     /* ── Desktop FAB dropdown ── */
     .desktop-fab-dropdown {

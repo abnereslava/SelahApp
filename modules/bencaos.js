@@ -271,14 +271,15 @@ export function init(firebaseDb, firebaseAuth) {
 
     if (editor && mobileToolbar) {
         editor.on('selection-change', (range) => {
-            if (window.innerWidth > 768) return;
-
             if (range) {
                 window.activeQuillEditor = editor;
-                const bottomNav = document.getElementById('mobileBottomNav');
-                if (bottomNav) bottomNav.style.display = 'none';
+                const isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    const bottomNav = document.getElementById('mobileBottomNav');
+                    if (bottomNav) bottomNav.style.display = 'none';
+                }
                 mobileToolbar.style.display = 'flex';
-                if (window._reposQuillToolbar) {
+                if (isMobile && window._reposQuillToolbar) {
                     window._reposQuillToolbar();
                     setTimeout(window._reposQuillToolbar, 150);
                     setTimeout(window._reposQuillToolbar, 350);
@@ -296,8 +297,10 @@ export function init(firebaseDb, firebaseAuth) {
                 setTimeout(() => {
                     if (window.activeQuillEditor === editor && !editor.hasFocus()) {
                         mobileToolbar.style.display = 'none';
-                        const bottomNav = document.getElementById('mobileBottomNav');
-                        if (bottomNav) bottomNav.style.display = 'flex';
+                        if (window.innerWidth <= 768) {
+                            const bottomNav = document.getElementById('mobileBottomNav');
+                            if (bottomNav) bottomNav.style.display = 'flex';
+                        }
                         window.activeQuillEditor = null;
                         const ftColorGroup = document.getElementById('ftColorGroup');
                         const ftMainGroup = document.getElementById('ftMainGroup');

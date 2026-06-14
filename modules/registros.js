@@ -420,15 +420,16 @@ export function init(firebaseDb, firebaseAuth) {
         if (!mobileToolbar) return;
 
         qEditor.on('selection-change', (range) => {
-            if (window.innerWidth > 768) return;
-
             if (range) {
                 window.activeQuillEditor = qEditor;
-                const bottomNav = document.getElementById('mobileBottomNav');
-                if (bottomNav) bottomNav.style.display = 'none';
+                const isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    const bottomNav = document.getElementById('mobileBottomNav');
+                    if (bottomNav) bottomNav.style.display = 'none';
+                }
                 mobileToolbar.style.display = 'flex';
-                // Reposiciona logo acima do teclado assim que aparece (e durante a animação do teclado)
-                if (window._reposQuillToolbar) {
+                // Reposiciona logo acima do teclado assim que aparece (só no mobile)
+                if (isMobile && window._reposQuillToolbar) {
                     window._reposQuillToolbar();
                     setTimeout(window._reposQuillToolbar, 150);
                     setTimeout(window._reposQuillToolbar, 350);
@@ -446,8 +447,10 @@ export function init(firebaseDb, firebaseAuth) {
                 setTimeout(() => {
                     if (window.activeQuillEditor === qEditor && !qEditor.hasFocus()) {
                         mobileToolbar.style.display = 'none';
-                        const bottomNav = document.getElementById('mobileBottomNav');
-                        if (bottomNav) bottomNav.style.display = 'flex';
+                        if (window.innerWidth <= 768) {
+                            const bottomNav = document.getElementById('mobileBottomNav');
+                            if (bottomNav) bottomNav.style.display = 'flex';
+                        }
                         window.activeQuillEditor = null;
                         const ftColorGroup = document.getElementById('ftColorGroup');
                         const ftMainGroup = document.getElementById('ftMainGroup');

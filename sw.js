@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v25'; // admin: botão para revelar link de criação do índice do Aleatório
+const CACHE_NAME = 'selah-pwa-spa-v26'; // editor: toolbar flutuante (abaixo do texto) também no desktop; snow toolbar desativada
 const urlsToCache = [
   './',
   './index.html',
