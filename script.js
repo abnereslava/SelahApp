@@ -407,7 +407,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=29`);
+        const module = await import(`./modules/${hash}.js?v=31`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);

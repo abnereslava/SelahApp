@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v31'; // fix: restaura </script> de fechamento em index.html/admin.html (página em branco)
+const CACHE_NAME = 'selah-pwa-spa-v32'; // analytics: cores dos gráficos derivadas do tema (corrige bordas escuras e legenda sem contraste no claro)
 const urlsToCache = [
   './',
   './index.html',

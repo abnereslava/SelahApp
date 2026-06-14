@@ -1714,7 +1714,13 @@ export function init(firebaseDb, firebaseAuth) {
         document.body.appendChild(overlay);
 
         const gold = ['#D4AF37','#B8860B','#E6C566','#8C6D1F','#F2C94C','#A0722C','#5C4A2E'];
-        const lc = '#D4AF37', gc = 'rgba(212,175,55,0.12)';
+        // Cores derivadas do tema atual (claro/escuro) — lidas em runtime
+        const cs = getComputedStyle(document.documentElement);
+        const cText = cs.getPropertyValue('--text-main').trim() || '#1F1D1A';
+        const cMuted = cs.getPropertyValue('--text-muted').trim() || '#7B7569';
+        const cCardBg = cs.getPropertyValue('--secondary-color').trim() || '#ECE8E0';
+        const cBorder = cs.getPropertyValue('--border-color').trim() || '#E3DED4';
+        const cBar = cs.getPropertyValue('--primary-color').trim() || '#8A6D1D';
         const chartOpts = { responsive:true, maintainAspectRatio:false };
 
         const typeCounts = data.reduce((acc,r) => { acc[r.recordType]=(acc[r.recordType]||0)+1; return acc; }, {});
@@ -1722,16 +1728,16 @@ export function init(firebaseDb, firebaseAuth) {
         const sortedBooks = Object.entries(bookCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
 
         const cA = new Chart(document.getElementById('aTypeChart'), {
-            type:'doughnut', data:{ labels:Object.keys(typeCounts).map(t=>RECORD_TYPE_LABELS[t]||t), datasets:[{data:Object.values(typeCounts),backgroundColor:gold,borderColor:'#1A0F0A',borderWidth:2}] },
-            options:{...chartOpts,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#FBF7EB',boxWidth:12,padding:10,font:{size:11}}}}}
+            type:'doughnut', data:{ labels:Object.keys(typeCounts).map(t=>RECORD_TYPE_LABELS[t]||t), datasets:[{data:Object.values(typeCounts),backgroundColor:gold,borderColor:cCardBg,borderWidth:2}] },
+            options:{...chartOpts,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:cText,boxWidth:12,padding:10,font:{size:11}}}}}
         });
         const cB = new Chart(document.getElementById('aBooksChart'), {
-            type:'bar', data:{ labels:sortedBooks.map(b=>b[0]), datasets:[{label:'Registros',data:sortedBooks.map(b=>b[1]),backgroundColor:'#D4AF37',borderRadius:4}] },
-            options:{...chartOpts,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:lc,font:{size:10}},grid:{color:gc}},x:{ticks:{color:lc,font:{size:10},maxRotation:45},grid:{display:false}}}}
+            type:'bar', data:{ labels:sortedBooks.map(b=>b[0]), datasets:[{label:'Registros',data:sortedBooks.map(b=>b[1]),backgroundColor:cBar,borderRadius:4}] },
+            options:{...chartOpts,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:cMuted,font:{size:10}},grid:{color:cBorder}},x:{ticks:{color:cMuted,font:{size:10},maxRotation:45},grid:{display:false}}}}
         });
         const cC = new Chart(document.getElementById('aMonthlyChart'), {
-            type:'bar', data:{ labels:monthlyData.map(m=>m.label), datasets:[{label:'Registros',data:monthlyData.map(m=>m.count),backgroundColor:'rgba(212,175,55,0.7)',borderRadius:4}] },
-            options:{...chartOpts,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:lc,font:{size:10}},grid:{color:gc}},x:{ticks:{color:lc,font:{size:10}},grid:{display:false}}}}
+            type:'bar', data:{ labels:monthlyData.map(m=>m.label), datasets:[{label:'Registros',data:monthlyData.map(m=>m.count),backgroundColor:cBar,borderRadius:4}] },
+            options:{...chartOpts,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:cMuted,font:{size:10}},grid:{color:cBorder}},x:{ticks:{color:cMuted,font:{size:10}},grid:{display:false}}}}
         });
 
         const close = () => {
