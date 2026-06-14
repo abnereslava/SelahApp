@@ -1139,7 +1139,8 @@ export function init(firebaseDb, firebaseAuth) {
         if (card) card.classList.toggle('expanded');
     };
 
-    window.openReadingMode = (id, fromRandom = false) => {
+    window.openReadingMode = (id, fromRandom = false, opts = {}) => {
+        const { openChain = false } = typeof fromRandom === 'object' ? fromRandom : opts;
         const r = allRecords.find(x => x.id === id);
         if (!r) return;
 
@@ -1164,18 +1165,18 @@ export function init(firebaseDb, firebaseAuth) {
         }
         const fullChain = [...chainBack, r, ...chainForward];
         const chainHtml = fullChain.length > 1 ? `
-            <details class="chain-details mt-2 mb-2">
+            <details class="chain-details mt-2 mb-2"${openChain ? ' open' : ''}>
                 <summary>
                     <i class="ph ph-caret-down"></i>
                     <span>Trilha de Registros (${fullChain.length})</span>
                 </summary>
-                <div class="chain-list">
+                <div class="chain-timeline">
                     ${fullChain.map((item, idx) => {
                         const isCurrent = item.id === r.id;
-                        const tagHtml = isCurrent
-                            ? `<span class="tag" style="background:var(--primary-color);color:var(--bg-color);font-weight:600;">${item.title || item.mainPassage}</span>`
-                            : `<a href="#" class="tag chain-nav-link" data-chain-id="${item.id}">${item.title || item.mainPassage}</a>`;
-                        return `<div class="chain-item"><span class="chain-number">${idx + 1}.</span>${tagHtml}</div>`;
+                        const titleEl = isCurrent
+                            ? `<span class="chain-tl-title chain-tl-title--current">${item.title || item.mainPassage}</span>`
+                            : `<a href="#" class="chain-tl-title chain-nav-link" data-chain-id="${item.id}">${item.title || item.mainPassage}</a>`;
+                        return `<div class="chain-tl-item${isCurrent ? ' chain-tl-item--current' : ''}"><div class="chain-tl-dot"></div>${titleEl}</div>`;
                     }).join('')}
                 </div>
             </details>` : '';
@@ -1268,7 +1269,7 @@ export function init(firebaseDb, firebaseAuth) {
                 e.preventDefault();
                 const targetId = link.dataset.chainId;
                 close();
-                setTimeout(() => window.openReadingMode(targetId), 210);
+                setTimeout(() => window.openReadingMode(targetId, false, { openChain: true }), 210);
             });
         });
 
