@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v26'; // editor: toolbar flutuante (abaixo do texto) também no desktop; snow toolbar desativada
+const CACHE_NAME = 'selah-pwa-spa-v27'; // visual: paleta neutra escura, bordas retas, snow toolbar oculta globalmente
 const urlsToCache = [
   './',
   './index.html',
