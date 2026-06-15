@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v36'; // quill: botão de lista único (cicla), linha horizontal (HR + atalho ---), folga no fim do editor no mobile
+const CACHE_NAME = 'selah-pwa-spa-v37'; // favoritos: estrela no card, long-press, botão na leitura, filtro por favoritos, limpar filtros, sorteio filtrado
 const urlsToCache = [
   './',
   './index.html',

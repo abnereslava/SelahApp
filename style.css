@@ -2311,6 +2311,42 @@ a.chain-tl-title:hover {
 .rc-btn.rc-btn-delete:hover { background: rgba(192,57,43,0.10); border-color: rgba(192,57,43,0.35); }
 .rc-btn.rc-btn-shuffle { color: var(--primary-color); border-color: rgba(212,175,55,0.3); }
 .rc-btn.rc-btn-shuffle:hover { background: rgba(212,175,55,0.12); }
+.rc-btn.rc-btn-fav { color: var(--text-muted); }
+.rc-btn.rc-btn-fav.active { color: #c9a84c; border-color: rgba(201,168,76,0.4); }
+.rc-btn.rc-btn-fav:hover { background: rgba(201,168,76,0.1); color: #c9a84c; }
+
+/* Favorites star on card */
+.card-fav-star {
+    font-size: 0.9rem;
+    color: #c9a84c;
+    flex-shrink: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    margin-right: 4px;
+}
+.card-fav-star.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Clear filters button */
+.btn-clear-filters {
+    width: 100%;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-clear-filters:hover { background: var(--hover-overlay); color: var(--text-main); }
 
 /* Empty state */
 .records-empty-state {

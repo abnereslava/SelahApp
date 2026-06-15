@@ -46,7 +46,12 @@ export function render(container) {
                             <input type="date" id="filterDateEnd" title="Data Final" style="flex: 1;">
                         </div>
                         <input type="text" id="filterAuthor" placeholder="Filtrar por autor" style="width: 100%;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer;">
+                            <input type="checkbox" id="filterFavorites" style="width: auto; accent-color: var(--primary-color);">
+                            <i class="ph ph-star" style="color:#c9a84c;"></i> Apenas favoritos
+                        </label>
                         <button type="button" id="btnApplyFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
+                        <button type="button" id="btnClearFilters" class="btn-clear-filters" style="display: none;"><i class="ph ph-x-circle"></i> Limpar Filtros</button>
                     </div>
                 </details>
                 <button type="button" id="btnRandom" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Sortear Devocional Aleatório">
@@ -1107,7 +1112,7 @@ export function init(firebaseDb, firebaseAuth) {
                 ? `<div class="record-card-keywords">${r.keywords.map(k => `<span class="card-tag">${globalKeywordIndex.get(k) || k}</span>`).join('')}</div>`
                 : '';
             return `
-            <div class="record-card" id="rc-${r.id}">
+            <div class="record-card" id="rc-${r.id}" data-record-id="${r.id}">
                 <div class="record-card-header" onclick="window.openReadingMode('${r.id}')">
                     <div class="record-card-date">
                         <span class="rc-day">${dp.day}</span>
@@ -1121,6 +1126,7 @@ export function init(firebaseDb, firebaseAuth) {
                             <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
                         </div>
                     </div>
+                    <i class="ph ph-star card-fav-star${r.favorito ? ' active' : ''}" data-fav-id="${r.id}" title="Favoritar"></i>
                     <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
             </div>`;
@@ -1133,6 +1139,75 @@ export function init(firebaseDb, firebaseAuth) {
             feed.insertAdjacentHTML('beforeend', html);
         }
     };
+
+    // --- FAVORITOS ---
+    const toggleFavorito = async (id) => {
+        const r = allRecords.find(x => x.id === id);
+        if (!r) return;
+        const newVal = !r.favorito;
+        r.favorito = newVal;
+        try {
+            await updateDoc(doc(db, 'devotionals', id), { favorito: newVal });
+        } catch (err) {
+            r.favorito = !newVal; // revert on error
+            console.error('Erro ao atualizar favorito:', err);
+            return;
+        }
+        // Update card star icon
+        const star = document.querySelector(`.card-fav-star[data-fav-id="${id}"]`);
+        if (star) star.classList.toggle('active', newVal);
+        // Update reading overlay button if open
+        const favBtn = document.getElementById('readingFavBtn');
+        if (favBtn && favBtn.dataset.id === id) {
+            favBtn.classList.toggle('active', newVal);
+            favBtn.querySelector('i').className = newVal ? 'ph ph-star-fill' : 'ph ph-star';
+        }
+        // Vibrate feedback
+        navigator.vibrate?.(30);
+        // If favorites filter is active, remove card from view when deselected
+        if (filterState.favorites && !newVal) {
+            const card = document.getElementById(`rc-${id}`);
+            if (card) { card.style.transition = 'opacity 0.2s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 200); }
+        }
+    };
+    window._toggleRecordFavorito = toggleFavorito;
+
+    // Long-press on feed cards (delegated)
+    const feed = document.getElementById('devotionalsFeed');
+    if (feed) {
+        let lpTimer = null;
+        let lpStartX = 0, lpStartY = 0;
+
+        feed.addEventListener('pointerdown', (e) => {
+            // Allow direct tap on star to toggle without long-press
+            if (e.target.closest('.card-fav-star')) return;
+            const card = e.target.closest('[data-record-id]');
+            if (!card) return;
+            lpStartX = e.clientX; lpStartY = e.clientY;
+            lpTimer = setTimeout(() => {
+                lpTimer = null;
+                toggleFavorito(card.dataset.recordId);
+            }, 500);
+        });
+
+        feed.addEventListener('pointermove', (e) => {
+            if (!lpTimer) return;
+            if (Math.abs(e.clientX - lpStartX) > 8 || Math.abs(e.clientY - lpStartY) > 8) {
+                clearTimeout(lpTimer); lpTimer = null;
+            }
+        });
+
+        feed.addEventListener('pointerup', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+        feed.addEventListener('pointercancel', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+
+        // Direct tap on star icon toggles favorite
+        feed.addEventListener('click', (e) => {
+            const star = e.target.closest('.card-fav-star');
+            if (!star) return;
+            e.stopPropagation();
+            toggleFavorito(star.dataset.favId);
+        }, true); // capture phase to intercept before record-card-header onclick
+    }
 
     window.toggleRecordCard = (id) => {
         const card = document.getElementById(`rc-${id}`);
@@ -1228,6 +1303,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-bottom-bar">
                 <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
+                    <button class="rc-btn rc-btn-fav${r.favorito ? ' active' : ''}" id="readingFavBtn" data-id="${r.id}"><i class="ph ${r.favorito ? 'ph-star-fill' : 'ph-star'}"></i> Favorito</button>
                     <button class="rc-btn rc-btn-shuffle" id="readingShuffleBtn"><i class="ph ph-shuffle"></i> Aleatório</button>
                     <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
@@ -1251,6 +1327,7 @@ export function init(firebaseDb, firebaseAuth) {
         });
 
         document.getElementById('readingCloseBtn').addEventListener('click', close);
+        document.getElementById('readingFavBtn').addEventListener('click', () => toggleFavorito(r.id));
         document.getElementById('readingEditBtn').addEventListener('click', () => {
             close();
             setTimeout(() => editRecord(r.id), 210);
@@ -1258,8 +1335,8 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('readingShuffleBtn').addEventListener('click', () => {
             close();
             setTimeout(() => {
-                const others = allRecords.filter(x => x.id !== r.id);
-                const pool = others.length > 0 ? others : allRecords;
+                const pool = getShufflePool(r.id);
+                if (pool.length === 0) return showAlert('Nenhum item disponível com os filtros atuais.');
                 window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id);
             }, 210);
         });
@@ -1944,25 +2021,62 @@ export function init(firebaseDb, firebaseAuth) {
     };
 
     // --- FILTROS E BUSCA ---
+    const filterState = { keyword: '', type: '', author: '', dateStart: '', dateEnd: '', favorites: false };
+
+    const hasActiveFilter = () =>
+        !!(filterState.keyword || filterState.type || filterState.author || filterState.dateStart || filterState.dateEnd || filterState.favorites);
+
+    const applyFilterToArray = (arr) => arr.filter(r => {
+        if (filterState.type && r.recordType !== filterState.type) return false;
+        if (filterState.keyword) {
+            const k = filterState.keyword;
+            if (!(r.mainPassage?.toLowerCase().includes(k) || r.title?.toLowerCase().includes(k) || r.keywords?.some(kw => kw.toLowerCase().includes(k)))) return false;
+        }
+        if (filterState.author && !(r.author && (Array.isArray(r.author) ? r.author.join(' ') : r.author).toLowerCase().includes(filterState.author))) return false;
+        if (filterState.dateStart && r.date < filterState.dateStart) return false;
+        if (filterState.dateEnd && r.date > filterState.dateEnd) return false;
+        if (filterState.favorites && !r.favorito) return false;
+        return true;
+    });
+
+    const getShufflePool = (excludeId = null) => {
+        let pool = hasActiveFilter() ? applyFilterToArray(allRecords) : allRecords.slice();
+        if (excludeId) pool = pool.filter(x => x.id !== excludeId);
+        return pool;
+    };
+
+    const syncClearFiltersBtn = () => {
+        const btn = document.getElementById('btnClearFilters');
+        if (btn) btn.style.display = hasActiveFilter() ? 'flex' : 'none';
+    };
+
     const btnApplyFilters = document.getElementById('btnApplyFilters');
     if (btnApplyFilters) {
         btnApplyFilters.onclick = () => {
-            const k = document.getElementById('filterKeyword').value.toLowerCase();
-            const t = document.getElementById('filterType').value;
-            const author = document.getElementById('filterAuthor').value.toLowerCase();
-            const dStart = document.getElementById('filterDateStart').value;
-            const dEnd = document.getElementById('filterDateEnd').value;
+            filterState.keyword = document.getElementById('filterKeyword').value.toLowerCase().trim();
+            filterState.type = document.getElementById('filterType').value;
+            filterState.author = document.getElementById('filterAuthor').value.toLowerCase().trim();
+            filterState.dateStart = document.getElementById('filterDateStart').value;
+            filterState.dateEnd = document.getElementById('filterDateEnd').value;
+            filterState.favorites = document.getElementById('filterFavorites')?.checked || false;
+            syncClearFiltersBtn();
+            renderFeed(applyFilterToArray(allRecords), true);
+        };
+    }
 
-            const filtered = allRecords.filter(r => {
-                let match = true;
-                if (t && r.recordType !== t) match = false;
-                if (k && !(r.mainPassage.toLowerCase().includes(k) || (r.title && r.title.toLowerCase().includes(k)) || r.keywords?.some(kw => kw.includes(k)))) match = false;
-                if (author && (!r.author || !r.author.toLowerCase?.includes?.(author))) match = false;
-                if (dStart && r.date < dStart) match = false;
-                if (dEnd && r.date > dEnd) match = false;
-                return match;
-            });
-            renderFeed(filtered, true);
+    const btnClearFilters = document.getElementById('btnClearFilters');
+    if (btnClearFilters) {
+        btnClearFilters.onclick = () => {
+            filterState.keyword = ''; filterState.type = ''; filterState.author = '';
+            filterState.dateStart = ''; filterState.dateEnd = ''; filterState.favorites = false;
+            const kw = document.getElementById('filterKeyword'); if (kw) kw.value = '';
+            const tp = document.getElementById('filterType'); if (tp) tp.value = '';
+            const au = document.getElementById('filterAuthor'); if (au) au.value = '';
+            const ds = document.getElementById('filterDateStart'); if (ds) ds.value = '';
+            const de = document.getElementById('filterDateEnd'); if (de) de.value = '';
+            const fv = document.getElementById('filterFavorites'); if (fv) fv.checked = false;
+            syncClearFiltersBtn();
+            renderFeed(allRecords, true);
         };
     }
 
@@ -1971,6 +2085,13 @@ export function init(firebaseDb, firebaseAuth) {
         btnRandom.onclick = async () => {
             const user = auth.currentUser;
             if (!user) return;
+            // When filters active, draw from local filtered pool
+            if (hasActiveFilter()) {
+                const pool = getShufflePool();
+                if (pool.length === 0) return showAlert('Nenhum item disponível com os filtros atuais.');
+                window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id, true);
+                return;
+            }
             try {
                 const r = Math.random();
                 // Tenta pegar um doc com randomSeed >= r (1 leitura)

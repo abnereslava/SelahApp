@@ -35,7 +35,12 @@ export function render(container) {
                             <input type="date" id="filterBlessingDateStart" title="Data Inicial" style="flex: 1;">
                             <input type="date" id="filterBlessingDateEnd" title="Data Final" style="flex: 1;">
                         </div>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer;">
+                            <input type="checkbox" id="filterBlessingFavorites" style="width: auto; accent-color: var(--primary-color);">
+                            <i class="ph ph-star" style="color:#c9a84c;"></i> Apenas favoritas
+                        </label>
                         <button type="button" id="btnApplyBlessingFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
+                        <button type="button" id="btnClearBlessingFilters" class="btn-clear-filters" style="display: none;"><i class="ph ph-x-circle"></i> Limpar Filtros</button>
                     </div>
                 </details>
                 <button type="button" id="btnRandomBlessing" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Recordar Bênção Aleatória">
@@ -642,7 +647,7 @@ export function init(firebaseDb, firebaseAuth) {
                 : '';
             const firstTag = (b.tags && b.tags.length) ? (globalBlessingTagIndex.get(b.tags[0]) || b.tags[0]) : '';
             return `
-            <div class="record-card" id="bc-${b.id}">
+            <div class="record-card" id="bc-${b.id}" data-blessing-id="${b.id}">
                 <div class="record-card-header" onclick="window.openBlessingReadingMode('${b.id}')">
                     <div class="record-card-date">
                         <span class="rc-day">${dp.day}</span>
@@ -655,6 +660,7 @@ export function init(firebaseDb, firebaseAuth) {
                             <span class="record-type-chip chip-devocional"><i class="ph ph-gift" style="margin-right:3px;"></i>${firstTag || 'Bênção'}</span>
                         </div>
                     </div>
+                    <i class="ph ph-star card-fav-star${b.favorito ? ' active' : ''}" data-fav-id="${b.id}" title="Favoritar"></i>
                     <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
             </div>`;
@@ -696,6 +702,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-bottom-bar">
                 <button class="reading-close-btn" id="readingCloseBencaos"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
+                    <button class="rc-btn rc-btn-fav${b.favorito ? ' active' : ''}" id="readingFavBencaos" data-id="${b.id}"><i class="ph ${b.favorito ? 'ph-star-fill' : 'ph-star'}"></i> Favorito</button>
                     <button class="rc-btn rc-btn-shuffle" id="readingShuffleBencaos"><i class="ph ph-shuffle"></i> Aleatório</button>
                     <button class="rc-btn" id="readingEditBencaos"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
@@ -718,6 +725,7 @@ export function init(firebaseDb, firebaseAuth) {
         });
 
         document.getElementById('readingCloseBencaos').addEventListener('click', close);
+        document.getElementById('readingFavBencaos').addEventListener('click', () => toggleFavoritoBlessing(b.id));
         document.getElementById('readingEditBencaos').addEventListener('click', () => {
             close();
             setTimeout(() => editBlessing(b.id), 210);
@@ -725,8 +733,8 @@ export function init(firebaseDb, firebaseAuth) {
         document.getElementById('readingShuffleBencaos').addEventListener('click', () => {
             close();
             setTimeout(() => {
-                const others = allBlessings.filter(x => x.id !== b.id);
-                const pool = others.length > 0 ? others : allBlessings;
+                const pool = getBlessingShufflePool(b.id);
+                if (pool.length === 0) return showAlert('Nenhuma bênção disponível com os filtros atuais.');
                 window.openBlessingReadingMode(pool[Math.floor(Math.random() * pool.length)].id);
             }, 210);
         });
@@ -1029,31 +1037,119 @@ export function init(firebaseDb, firebaseAuth) {
         });
     }
 
+    // --- FAVORITOS (BÊNÇÃOS) ---
+    const toggleFavoritoBlessing = async (id) => {
+        const b = allBlessings.find(x => x.id === id);
+        if (!b) return;
+        const newVal = !b.favorito;
+        b.favorito = newVal;
+        try {
+            await updateDoc(doc(db, 'blessings', id), { favorito: newVal });
+        } catch (err) {
+            b.favorito = !newVal;
+            console.error('Erro ao atualizar favorito:', err);
+            return;
+        }
+        const star = document.querySelector(`.card-fav-star[data-fav-id="${id}"]`);
+        if (star) star.classList.toggle('active', newVal);
+        const favBtn = document.getElementById('readingFavBencaos');
+        if (favBtn && favBtn.dataset.id === id) {
+            favBtn.classList.toggle('active', newVal);
+            favBtn.querySelector('i').className = newVal ? 'ph ph-star-fill' : 'ph ph-star';
+        }
+        navigator.vibrate?.(30);
+        if (blessingFilterState.favorites && !newVal) {
+            const card = document.getElementById(`bc-${id}`);
+            if (card) { card.style.transition = 'opacity 0.2s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 200); }
+        }
+    };
+
+    // Long-press on blessing cards
+    const blessingFeed = document.getElementById('blessingsFeed');
+    if (blessingFeed) {
+        let lpTimer = null;
+        let lpStartX = 0, lpStartY = 0;
+
+        blessingFeed.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.card-fav-star')) return;
+            const card = e.target.closest('[data-blessing-id]');
+            if (!card) return;
+            lpStartX = e.clientX; lpStartY = e.clientY;
+            lpTimer = setTimeout(() => { lpTimer = null; toggleFavoritoBlessing(card.dataset.blessingId); }, 500);
+        });
+        blessingFeed.addEventListener('pointermove', (e) => {
+            if (!lpTimer) return;
+            if (Math.abs(e.clientX - lpStartX) > 8 || Math.abs(e.clientY - lpStartY) > 8) { clearTimeout(lpTimer); lpTimer = null; }
+        });
+        blessingFeed.addEventListener('pointerup', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+        blessingFeed.addEventListener('pointercancel', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } });
+        blessingFeed.addEventListener('click', (e) => {
+            const star = e.target.closest('.card-fav-star');
+            if (!star) return;
+            e.stopPropagation();
+            toggleFavoritoBlessing(star.dataset.favId);
+        }, true);
+    }
+
     // --- FILTERS & RANDOM ---
+    const blessingFilterState = { keyword: '', dateStart: '', dateEnd: '', favorites: false };
+
+    const hasBlessingActiveFilter = () =>
+        !!(blessingFilterState.keyword || blessingFilterState.dateStart || blessingFilterState.dateEnd || blessingFilterState.favorites);
+
+    const applyBlessingFilter = (arr) => arr.filter(b => {
+        if (blessingFilterState.keyword) {
+            const k = blessingFilterState.keyword;
+            if (!(b.title?.toLowerCase().includes(k) || b.description?.toLowerCase().includes(k) || b.tags?.some(t => t.toLowerCase().includes(k)))) return false;
+        }
+        if (blessingFilterState.dateStart && b.date < blessingFilterState.dateStart) return false;
+        if (blessingFilterState.dateEnd && b.date > blessingFilterState.dateEnd) return false;
+        if (blessingFilterState.favorites && !b.favorito) return false;
+        return true;
+    });
+
+    const getBlessingShufflePool = (excludeId = null) => {
+        let pool = hasBlessingActiveFilter() ? applyBlessingFilter(allBlessings) : allBlessings.slice();
+        if (excludeId) pool = pool.filter(x => x.id !== excludeId);
+        return pool;
+    };
+
+    const syncClearBlessingFiltersBtn = () => {
+        const btn = document.getElementById('btnClearBlessingFilters');
+        if (btn) btn.style.display = hasBlessingActiveFilter() ? 'flex' : 'none';
+    };
+
     const btnApplyFilters = document.getElementById('btnApplyBlessingFilters');
     if (btnApplyFilters) {
         btnApplyFilters.onclick = () => {
-            const k = document.getElementById('filterBlessingKeyword').value.toLowerCase();
-            const dStart = document.getElementById('filterBlessingDateStart').value;
-            const dEnd = document.getElementById('filterBlessingDateEnd').value;
+            blessingFilterState.keyword = document.getElementById('filterBlessingKeyword').value.toLowerCase().trim();
+            blessingFilterState.dateStart = document.getElementById('filterBlessingDateStart').value;
+            blessingFilterState.dateEnd = document.getElementById('filterBlessingDateEnd').value;
+            blessingFilterState.favorites = document.getElementById('filterBlessingFavorites')?.checked || false;
+            syncClearBlessingFiltersBtn();
+            renderFeed(applyBlessingFilter(allBlessings), true);
+        };
+    }
 
-            const filtered = allBlessings.filter(b => {
-                let match = true;
-                if (k && !(b.title.toLowerCase().includes(k) || b.description.toLowerCase().includes(k) || b.tags?.some(t => t.includes(k)))) match = false;
-                if (dStart && b.date < dStart) match = false;
-                if (dEnd && b.date > dEnd) match = false;
-                return match;
-            });
-            renderFeed(filtered, true);
+    const btnClearBlessingFilters = document.getElementById('btnClearBlessingFilters');
+    if (btnClearBlessingFilters) {
+        btnClearBlessingFilters.onclick = () => {
+            blessingFilterState.keyword = ''; blessingFilterState.dateStart = ''; blessingFilterState.dateEnd = ''; blessingFilterState.favorites = false;
+            const kw = document.getElementById('filterBlessingKeyword'); if (kw) kw.value = '';
+            const ds = document.getElementById('filterBlessingDateStart'); if (ds) ds.value = '';
+            const de = document.getElementById('filterBlessingDateEnd'); if (de) de.value = '';
+            const fv = document.getElementById('filterBlessingFavorites'); if (fv) fv.checked = false;
+            syncClearBlessingFiltersBtn();
+            renderFeed(allBlessings, true);
         };
     }
 
     const btnRandom = document.getElementById('btnRandomBlessing');
     if (btnRandom) {
         btnRandom.onclick = () => {
-            if (allBlessings.length === 0) return showAlert("Registre algumas bênçãos antes de sortear!");
-            const randomIdx = Math.floor(Math.random() * allBlessings.length);
-            window.openBlessingReadingMode(allBlessings[randomIdx].id);
+            const pool = getBlessingShufflePool();
+            if (pool.length === 0) return showAlert(hasBlessingActiveFilter() ? 'Nenhuma bênção disponível com os filtros atuais.' : 'Registre algumas bênçãos antes de sortear!');
+            window.openBlessingReadingMode(pool[Math.floor(Math.random() * pool.length)].id);
         };
     }
 
