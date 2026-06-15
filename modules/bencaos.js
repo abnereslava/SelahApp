@@ -660,7 +660,7 @@ export function init(firebaseDb, firebaseAuth) {
                             <span class="record-type-chip chip-devocional"><i class="ph ph-gift" style="margin-right:3px;"></i>${firstTag || 'Bênção'}</span>
                         </div>
                     </div>
-                    <i class="ph ph-star card-fav-star${b.favorito ? ' active' : ''}" data-fav-id="${b.id}" title="Favoritar"></i>
+                    <i class="ph-fill ph-star card-fav-star${b.favorito ? ' active' : ''}" data-fav-id="${b.id}" title="Favoritar"></i>
                     <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
             </div>`;
@@ -702,7 +702,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-bottom-bar">
                 <button class="reading-close-btn" id="readingCloseBencaos"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
-                    <button class="rc-btn rc-btn-fav${b.favorito ? ' active' : ''}" id="readingFavBencaos" data-id="${b.id}"><i class="ph ${b.favorito ? 'ph-star-fill' : 'ph-star'}"></i> Favorito</button>
+                    <button class="rc-btn rc-btn-fav${b.favorito ? ' active' : ''}" id="readingFavBencaos" data-id="${b.id}"><i class="ph-fill ph-star"></i> Favorito</button>
                     <button class="rc-btn rc-btn-shuffle" id="readingShuffleBencaos"><i class="ph ph-shuffle"></i> Aleatório</button>
                     <button class="rc-btn" id="readingEditBencaos"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
@@ -1055,7 +1055,6 @@ export function init(firebaseDb, firebaseAuth) {
         const favBtn = document.getElementById('readingFavBencaos');
         if (favBtn && favBtn.dataset.id === id) {
             favBtn.classList.toggle('active', newVal);
-            favBtn.querySelector('i').className = newVal ? 'ph ph-star-fill' : 'ph ph-star';
         }
         navigator.vibrate?.(30);
         if (blessingFilterState.favorites && !newVal) {

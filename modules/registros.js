@@ -1126,7 +1126,7 @@ export function init(firebaseDb, firebaseAuth) {
                             <span class="record-type-chip chip-${r.recordType}">${typeLabel}</span>
                         </div>
                     </div>
-                    <i class="ph ph-star card-fav-star${r.favorito ? ' active' : ''}" data-fav-id="${r.id}" title="Favoritar"></i>
+                    <i class="ph-fill ph-star card-fav-star${r.favorito ? ' active' : ''}" data-fav-id="${r.id}" title="Favoritar"></i>
                     <i class="ph ph-caret-right record-card-chevron"></i>
                 </div>
             </div>`;
@@ -1160,7 +1160,6 @@ export function init(firebaseDb, firebaseAuth) {
         const favBtn = document.getElementById('readingFavBtn');
         if (favBtn && favBtn.dataset.id === id) {
             favBtn.classList.toggle('active', newVal);
-            favBtn.querySelector('i').className = newVal ? 'ph ph-star-fill' : 'ph ph-star';
         }
         // Vibrate feedback
         navigator.vibrate?.(30);
@@ -1303,7 +1302,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-bottom-bar">
                 <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
-                    <button class="rc-btn rc-btn-fav${r.favorito ? ' active' : ''}" id="readingFavBtn" data-id="${r.id}"><i class="ph ${r.favorito ? 'ph-star-fill' : 'ph-star'}"></i> Favorito</button>
+                    <button class="rc-btn rc-btn-fav${r.favorito ? ' active' : ''}" id="readingFavBtn" data-id="${r.id}"><i class="ph-fill ph-star"></i> Favorito</button>
                     <button class="rc-btn rc-btn-shuffle" id="readingShuffleBtn"><i class="ph ph-shuffle"></i> Aleatório</button>
                     <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
                 </div>
