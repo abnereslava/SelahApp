@@ -2313,7 +2313,9 @@ a.chain-tl-title:hover {
 .rc-btn.rc-btn-shuffle:hover { background: rgba(212,175,55,0.12); }
 .rc-btn.rc-btn-fav { color: var(--text-muted); }
 .rc-btn.rc-btn-fav.active { color: #c9a84c; border-color: rgba(201,168,76,0.4); }
-.rc-btn.rc-btn-fav:hover { background: rgba(201,168,76,0.1); color: #c9a84c; }
+@media (hover: hover) {
+    .rc-btn.rc-btn-fav:hover { background: rgba(201,168,76,0.1); color: #c9a84c; }
+}
 
 /* Favorites star on card */
 .card-fav-star {

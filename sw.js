@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v37'; // favoritos: estrela no card, long-press, botão na leitura, filtro por favoritos, limpar filtros, sorteio filtrado
+const CACHE_NAME = 'selah-pwa-spa-v38'; // fix: hover do botão favorito não gruda mais no mobile (hover: hover)
 const urlsToCache = [
   './',
   './index.html',
