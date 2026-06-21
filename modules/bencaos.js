@@ -278,6 +278,13 @@ export function init(firebaseDb, firebaseAuth) {
     const mobileToolbar = document.getElementById('mobileQuillToolbar');
 
     if (editor && mobileToolbar) {
+        // Atualiza o botão "refazer" ao digitar (digitar limpa a pilha de redo)
+        editor.on('text-change', () => {
+            if (window.activeQuillEditor === editor) {
+                window._refreshFtRedoBtn && window._refreshFtRedoBtn(editor);
+            }
+        });
+
         editor.on('selection-change', (range) => {
             if (range) {
                 window.activeQuillEditor = editor;
@@ -303,6 +310,7 @@ export function init(firebaseDb, firebaseAuth) {
                 });
                 window._refreshFtListIcon && window._refreshFtListIcon(format);
                 window._refreshFtHeaderIcon && window._refreshFtHeaderIcon(format);
+                window._refreshFtRedoBtn && window._refreshFtRedoBtn(editor);
             } else {
                 setTimeout(() => {
                     if (window.activeQuillEditor === editor && !editor.hasFocus()) {
@@ -335,6 +343,18 @@ export function init(firebaseDb, firebaseAuth) {
 
             const f = btn.dataset.format;
             const v = btn.dataset.value;
+
+            // Desfazer / refazer não dependem de seleção
+            const action = btn.dataset.action;
+            if (action === 'undo' || action === 'redo') {
+                if (activeEditor.history) {
+                    if (action === 'undo') activeEditor.history.undo();
+                    else activeEditor.history.redo();
+                }
+                window._refreshFtRedoBtn && window._refreshFtRedoBtn(activeEditor);
+                return;
+            }
+
             const range = activeEditor.getSelection();
             if (!range) return;
 
@@ -352,6 +372,14 @@ export function init(firebaseDb, firebaseAuth) {
                 const cur = activeEditor.getFormat(range).header;
                 const next = cur === 1 ? 2 : (cur === 2 ? 3 : (cur === 3 ? false : 1));
                 activeEditor.format('header', next);
+            } else if (f === 'color') {
+                // "Remover Cor" usa data-value="false" (string); aplica boolean false
+                if (v === 'false') {
+                    activeEditor.format('color', false);
+                } else {
+                    const cur = activeEditor.getFormat(range).color;
+                    activeEditor.format('color', cur == v ? false : v);
+                }
             } else {
                 const currentFormat = activeEditor.getFormat(range);
                 if (v) {
@@ -380,6 +408,7 @@ export function init(firebaseDb, firebaseAuth) {
                     window._refreshFtListIcon && window._refreshFtListIcon(format);
                     window._refreshFtHeaderIcon && window._refreshFtHeaderIcon(format);
                 }
+                window._refreshFtRedoBtn && window._refreshFtRedoBtn(activeEditor);
             }, 50);
         };
 

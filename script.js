@@ -211,6 +211,14 @@ window._refreshFtHeaderIcon = (format) => {
         : 'ph ph-text-h';
 };
 
+// Mostra o botão "refazer" apenas quando há algo desfeito na pilha do editor ativo.
+window._refreshFtRedoBtn = (editor) => {
+    const b = document.getElementById('ftBtnRedo');
+    if (!b) return;
+    const canRedo = !!(editor && editor.history && editor.history.stack && editor.history.stack.redo.length > 0);
+    b.style.display = canRedo ? 'inline-flex' : 'none';
+};
+
 
 // --- RASCUNHO AUTOMÁTICO (auto-save de registros em andamento) ---
 window.SelahDraft = {
@@ -491,7 +499,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=39`);
+        const module = await import(`./modules/${hash}.js?v=40`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);

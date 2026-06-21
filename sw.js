@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v39'; // quill: botão único de título (cicla T1/T2/T3), fontes de h1/h2 menores + h3
+const CACHE_NAME = 'selah-pwa-spa-v40'; // quill: undo/redo, fix remover cor, laranja com mais contraste, remove botão de travessão (mantém atalho ---)
 const urlsToCache = [
   './',
   './index.html',
