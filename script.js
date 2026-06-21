@@ -198,6 +198,19 @@ window._refreshFtListIcon = (format) => {
     if (i) i.className = (format && format.list === 'ordered') ? 'ph ph-list-numbers' : 'ph ph-list-bullets';
 };
 
+// Atualiza o ícone do botão único de título conforme o nível atual.
+window._refreshFtHeaderIcon = (format) => {
+    const b = document.getElementById('ftBtnHeader');
+    if (!b) return;
+    const i = b.querySelector('i');
+    if (!i) return;
+    const h = format && format.header;
+    i.className = h === 1 ? 'ph ph-text-h-one'
+        : h === 2 ? 'ph ph-text-h-two'
+        : h === 3 ? 'ph ph-text-h-three'
+        : 'ph ph-text-h';
+};
+
 
 // --- RASCUNHO AUTOMÁTICO (auto-save de registros em andamento) ---
 window.SelahDraft = {
@@ -478,7 +491,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=37`);
+        const module = await import(`./modules/${hash}.js?v=39`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);

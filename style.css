@@ -2540,6 +2540,18 @@ a.chain-tl-title:hover {
     margin: 20px 0 8px;
 }
 
+/* Tamanhos de título (T1/T2/T3) — editor e visualizações salvas.
+   Reduz os padrões grandes do Quill e adiciona o nível 3. */
+.ql-editor h1,
+.reading-body h1,
+.record-text h1 { font-size: 1.5em; line-height: 1.3; }
+.ql-editor h2,
+.reading-body h2,
+.record-text h2 { font-size: 1.25em; line-height: 1.3; }
+.ql-editor h3,
+.reading-body h3,
+.record-text h3 { font-size: 1.08em; line-height: 1.35; }
+
 /* Records feed container */
 .records-feed {
     display: flex;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v38'; // fix: hover do botão favorito não gruda mais no mobile (hover: hover)
+const CACHE_NAME = 'selah-pwa-spa-v39'; // quill: botão único de título (cicla T1/T2/T3), fontes de h1/h2 menores + h3
 const urlsToCache = [
   './',
   './index.html',

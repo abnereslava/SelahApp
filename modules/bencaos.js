@@ -302,6 +302,7 @@ export function init(firebaseDb, firebaseAuth) {
                     btn.classList.toggle('active-format', !!isActive);
                 });
                 window._refreshFtListIcon && window._refreshFtListIcon(format);
+                window._refreshFtHeaderIcon && window._refreshFtHeaderIcon(format);
             } else {
                 setTimeout(() => {
                     if (window.activeQuillEditor === editor && !editor.hasFocus()) {
@@ -346,6 +347,11 @@ export function init(firebaseDb, firebaseAuth) {
                 const cur = activeEditor.getFormat(range).list;
                 const next = cur === 'bullet' ? 'ordered' : (cur === 'ordered' ? false : 'bullet');
                 activeEditor.format('list', next);
+            } else if (f === 'header') {
+                // Botão único que cicla: nenhum → T1 → T2 → T3 → nenhum
+                const cur = activeEditor.getFormat(range).header;
+                const next = cur === 1 ? 2 : (cur === 2 ? 3 : (cur === 3 ? false : 1));
+                activeEditor.format('header', next);
             } else {
                 const currentFormat = activeEditor.getFormat(range);
                 if (v) {
@@ -372,6 +378,7 @@ export function init(firebaseDb, firebaseAuth) {
                         b.classList.toggle('active-format', !!isActive);
                     });
                     window._refreshFtListIcon && window._refreshFtListIcon(format);
+                    window._refreshFtHeaderIcon && window._refreshFtHeaderIcon(format);
                 }
             }, 50);
         };
