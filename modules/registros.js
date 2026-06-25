@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, limit, orderBy, query, startAfter, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, limit, orderBy, query, startAfter, updateDoc, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 let db;
 let auth;
@@ -2168,7 +2168,50 @@ export function init(firebaseDb, firebaseAuth) {
         };
     }
 
+    // Migração única: registros antigos não possuem randomSeed, o que faz a query
+    // de sorteio (orderBy('randomSeed')) ignorá-los por completo, fazendo o "Sortear
+    // Registro" sempre cair no fallback local (allRecords / itens já carregados).
+    const backfillRandomSeeds = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        const flagKey = `selah_rs_migrated_${user.uid}`;
+        if (localStorage.getItem(flagKey)) return;
+        try {
+            let cursor = null;
+            let batch = writeBatch(db);
+            let opsInBatch = 0;
+            let totalFixed = 0;
+            while (true) {
+                const q = cursor
+                    ? query(collection(db, "devotionals"), where("userId", "==", user.uid), orderBy("__name__"), startAfter(cursor), limit(300))
+                    : query(collection(db, "devotionals"), where("userId", "==", user.uid), orderBy("__name__"), limit(300));
+                const snap = await getDocs(q);
+                if (snap.empty) break;
+                for (const d of snap.docs) {
+                    if (d.data().randomSeed === undefined) {
+                        batch.update(d.ref, { randomSeed: Math.random() });
+                        opsInBatch++;
+                        totalFixed++;
+                        if (opsInBatch >= 400) {
+                            await batch.commit();
+                            batch = writeBatch(db);
+                            opsInBatch = 0;
+                        }
+                    }
+                }
+                cursor = snap.docs[snap.docs.length - 1];
+                if (snap.docs.length < 300) break;
+            }
+            if (opsInBatch > 0) await batch.commit();
+            if (totalFixed > 0) console.log(`Migração randomSeed: ${totalFixed} registro(s) atualizado(s).`);
+            localStorage.setItem(flagKey, '1');
+        } catch (err) {
+            console.error("Erro ao migrar randomSeed dos registros:", err);
+        }
+    };
+
     fetchAll().then(() => {
+        backfillRandomSeeds();
         // Recuperação automática de rascunho (apenas se este módulo foi escolhido no login)
         if (window._restorePendingModule === 'registros') {
             window._restorePendingModule = null;

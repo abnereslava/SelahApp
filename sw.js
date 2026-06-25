@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v40'; // quill: undo/redo, fix remover cor, laranja com mais contraste, remove botão de travessão (mantém atalho ---)
+const CACHE_NAME = 'selah-pwa-spa-v41'; // fix sorteio de registro: migra randomSeed em registros antigos
 const urlsToCache = [
   './',
   './index.html',
