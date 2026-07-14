@@ -613,7 +613,9 @@ select:focus {
 
 /* ESTILOS RESTAURADOS - Formulário, Opcionais, Autocomplete e Utilitários */
 .optional-fields {
-    background: var(--secondary-color);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border-radius: var(--radius);
     padding: 15px;
     margin-bottom: 20px;
@@ -654,7 +656,9 @@ select:focus {
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--surface-color);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
@@ -1463,7 +1467,7 @@ a.chain-tl-title:hover {
     justify-content: space-between;
     align-items: center;
     padding: 12px 15px;
-    background: var(--secondary-color);
+    background: var(--glass-bg-strong);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     margin-bottom: 8px;
@@ -1604,7 +1608,9 @@ a.chain-tl-title:hover {
 .tag-suggestions-list {
     position: relative;
     z-index: 1000;
-    background: var(--surface-color);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
@@ -2468,7 +2474,7 @@ a.chain-tl-title:hover {
     padding: 10px 16px;
     padding-bottom: max(10px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--border-color);
-    background: var(--bg-color);
+    background: var(--reading-surface); /* mesma superfície do overlay — só ícones, mantém consistência */
     flex-shrink: 0;
     gap: 8px;
 }
@@ -2657,7 +2663,7 @@ a.chain-tl-title:hover {
 .analytics-stats-row {
     display: flex;
     justify-content: space-around;
-    background: var(--secondary-color);
+    background: var(--glass-bg-strong);
     border-radius: var(--radius);
     padding: 20px 12px;
     margin-bottom: 14px;
@@ -2684,7 +2690,7 @@ a.chain-tl-title:hover {
     white-space: nowrap;
 }
 .analytics-card {
-    background: var(--secondary-color);
+    background: var(--glass-bg-strong);
     border-radius: var(--radius);
     padding: 16px;
     margin-bottom: 14px;
@@ -2724,7 +2730,9 @@ a.chain-tl-title:hover {
     gap: 10px;
     padding: 10px 20px;
     border-bottom: 1px solid var(--border-color);
-    background: var(--surface-color);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     flex-shrink: 0;
 }
 .pp-search-row i {
@@ -3096,7 +3104,9 @@ a.chain-tl-title:hover {
     align-items: center;
     gap: 16px;
     padding: 14px 20px;
-    background: var(--surface-color);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--border-color);
     z-index: 10;
     flex-shrink: 0;
@@ -3166,7 +3176,7 @@ a.chain-tl-title:hover {
     border-color: var(--primary-color);
 }
 .create-overlay .optional-fields {
-    background: var(--secondary-color);
+    background: var(--glass-bg-strong);
     border-color: var(--border-color);
 }
 .create-overlay .optional-fields summary {
@@ -3546,7 +3556,9 @@ a.chain-tl-title:hover {
         position: fixed;
         bottom: 88px;
         right: 28px;
-        background: var(--surface-color);
+        background: var(--glass-bg-strong);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);

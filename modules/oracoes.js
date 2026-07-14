@@ -1,6 +1,6 @@
 export function render(container) {
     container.innerHTML = `
-        <div class="form-container text-center" style="padding: 80px 24px; border-radius: 16px; background: var(--secondary-color); border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+        <div class="form-container text-center" style="padding: 80px 24px; border-radius: 16px; background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
             <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(212, 175, 55, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
                 <i class="ph ph-hands-praying" style="font-size: 3.5rem; color: var(--primary-color);"></i>
             </div>

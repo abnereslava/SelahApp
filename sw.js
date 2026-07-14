@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v42'; // tema: fundo com imagem + filtro por horário, janelas translúcidas, remove dark mode
+const CACHE_NAME = 'selah-pwa-spa-v43'; // estende translucidez a mais janelas (filtros, dropdowns, analytics, headers)
 const urlsToCache = [
   './',
   './index.html',
