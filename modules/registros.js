@@ -27,7 +27,7 @@ export function render(container) {
         <!-- Filtros + Feed -->
         <div class="data-container mt-4">
             <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0; background: var(--secondary-color);">
+                <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0;">
                     <summary style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; color: var(--text-muted);"><i class="ph ph-funnel"></i> Filtrar e Buscar Registros</summary>
                     <div class="details-content" style="padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
                         <input type="text" id="filterKeyword" placeholder="Buscar termo ou passagem" style="width: 100%;">
@@ -1862,10 +1862,10 @@ export function init(firebaseDb, firebaseAuth) {
         const chartPalette = ['#1B3A5C','#2A5A8C','#3D6FA3','#5B8FC7','#7FA8CC','#8CB6DE','#B8D4EC'];
         // Cores derivadas do tema atual (claro/escuro) — lidas em runtime
         const cs = getComputedStyle(document.documentElement);
-        const cText = cs.getPropertyValue('--text-main').trim() || '#1F1D1A';
-        const cMuted = cs.getPropertyValue('--text-muted').trim() || '#7B7569';
-        const cCardBg = cs.getPropertyValue('--secondary-color').trim() || '#ECE8E0';
-        const cBorder = cs.getPropertyValue('--border-color').trim() || '#E3DED4';
+        const cText = cs.getPropertyValue('--text-main').trim() || '#1B2126';
+        const cMuted = cs.getPropertyValue('--text-muted').trim() || '#63707B';
+        const cCardBg = cs.getPropertyValue('--secondary-color').trim() || '#E6EDF1';
+        const cBorder = cs.getPropertyValue('--border-color').trim() || '#D7E1E8';
         const cBar = cs.getPropertyValue('--primary-color').trim() || '#2A5A8C';
         const chartOpts = { responsive:true, maintainAspectRatio:false };
 

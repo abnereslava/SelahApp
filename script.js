@@ -499,7 +499,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=44`);
+        const module = await import(`./modules/${hash}.js?v=45`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);
@@ -792,7 +792,7 @@ const resolveTimeOfDay = (date) => {
 };
 
 // theme-color da barra do navegador acompanha a faixa (sutil)
-const TOD_THEME_COLOR = { dia: '#F4F2EC', tarde: '#C77016', noite: '#0A0E1E' };
+const TOD_THEME_COLOR = { dia: '#EEF3F6', tarde: '#C77016', noite: '#0A0E1E' };
 
 const applyTimeOfDayTheme = () => {
     const tod = resolveTimeOfDay(new Date());

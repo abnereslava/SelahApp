@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v44'; // troca cor de destaque de dourado/marrom para azul
+const CACHE_NAME = 'selah-pwa-spa-v45'; // corrige resíduos da paleta antiga: painel de filtro, neutros e header agora frios
 const urlsToCache = [
   './',
   './index.html',

@@ -4,17 +4,17 @@
    (ver ".app-bg" / ".app-bg-overlay" e os data-tod abaixo).
    ─────────────────────────────────────────────────────────────── */
 :root {
-    --bg-color: #F4F2EC;           /* Fundo claro neutro e quente (fallback) */
+    --bg-color: #EEF3F6;           /* Fundo claro neutro e frio (fallback) */
     --surface-color: #FFFFFF;      /* Cartões e painéis */
     --surface-glass: rgba(255, 255, 255, 0.85);
-    --border-color: #E3DED4;       /* Borda clara, nítida */
-    --text-main: #1F1D1A;          /* Quase preto, quente — leitura */
-    --text-muted: #7B7569;         /* Cinza quente — hierarquia clara */
-    --primary-color: #2A5A8C;      /* Azul profundo, legível sobre claro e sobre o fundo quente */
+    --border-color: #D7E1E8;       /* Borda clara, nítida — tom frio */
+    --text-main: #1B2126;          /* Quase preto, frio — leitura */
+    --text-muted: #63707B;         /* Cinza azulado — hierarquia clara */
+    --primary-color: #2A5A8C;      /* Azul profundo, legível sobre claro e sobre o fundo com imagem */
     --primary-hover: #1F4468;
     --on-primary: #FFFFFF;         /* Texto sobre preenchimento primário */
-    --secondary-color: #ECE8E0;    /* Fundo de inputs e painéis */
-    --secondary-hover: #E1DCD2;
+    --secondary-color: #E6EDF1;    /* Fundo de inputs e painéis — tom frio */
+    --secondary-hover: #D9E4EA;
     --accent-color: #2A5A8C;
     --accent-red: #C0392B;
     --danger-color: #C0392B;
@@ -39,7 +39,7 @@
        Ajuste fino de cores/opacidades apenas aqui. */
     --app-bg-image: url("https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?q=80&w=1527&auto=format&fit=crop");
     /* Overlay padrão (dia/manhã): neutro e bem suave — imagem mais fiel */
-    --tod-overlay: linear-gradient(180deg, rgba(244,242,236,0.30) 0%, rgba(244,242,236,0.18) 100%);
+    --tod-overlay: linear-gradient(180deg, rgba(238,243,246,0.30) 0%, rgba(238,243,246,0.18) 100%);
     /* Blur/alpha das janelas translúcidas de listagem/menu */
     --glass-bg: rgba(255, 255, 255, 0.62);
     --glass-bg-strong: rgba(255, 255, 255, 0.78);
