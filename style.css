@@ -1,11 +1,10 @@
 /* ───────────────────────────────────────────────────────────────
-   TEMA — LIGHT MODE (ativo por padrão)
-   O dark mode está preservado em [data-theme="dark"] mais abaixo.
-   Um futuro botão de transição só precisa alternar o atributo
-   data-theme="dark" no <html>.
+   TEMA — LIGHT MODE (único tema ativo)
+   Fundo global: imagem fixa + overlay de coloração por horário
+   (ver ".app-bg" / ".app-bg-overlay" e os data-tod abaixo).
    ─────────────────────────────────────────────────────────────── */
 :root {
-    --bg-color: #F4F2EC;           /* Fundo claro neutro e quente */
+    --bg-color: #F4F2EC;           /* Fundo claro neutro e quente (fallback) */
     --surface-color: #FFFFFF;      /* Cartões e painéis */
     --surface-glass: rgba(255, 255, 255, 0.85);
     --border-color: #E3DED4;       /* Borda clara, nítida */
@@ -32,30 +31,37 @@
     --backdrop-blur: blur(12px);
     --sidebar-width: 280px;
     --sidebar-collapsed-width: 85px;
+
+    /* ── FUNDO DINÂMICO ──────────────────────────────────────────
+       Imagem única (Unsplash) aplicada em .app-bg (fixa) e uma
+       camada de cor .app-bg-overlay cujo gradiente muda por horário
+       via [data-tod] no <html> (definido em script.js).
+       Ajuste fino de cores/opacidades apenas aqui. */
+    --app-bg-image: url("https://images.unsplash.com/photo-1522441815192-d9f04eb0615c?q=80&w=1527&auto=format&fit=crop");
+    /* Overlay padrão (dia/manhã): neutro e bem suave — imagem mais fiel */
+    --tod-overlay: linear-gradient(180deg, rgba(244,242,236,0.30) 0%, rgba(244,242,236,0.18) 100%);
+    /* Blur/alpha das janelas translúcidas de listagem/menu */
+    --glass-bg: rgba(255, 255, 255, 0.62);
+    --glass-bg-strong: rgba(255, 255, 255, 0.78);
+    --glass-blur: blur(14px) saturate(120%);
+    /* Superfícies de leitura/escrita — mais opacas p/ garantir contraste */
+    --reading-surface: rgba(255, 255, 255, 0.94);
 }
 
-/* ── DARK MODE (preservado para o futuro toggle) ── */
-[data-theme="dark"] {
-    --bg-color: #0F0F0F;
-    --surface-color: #191919;
-    --surface-glass: rgba(25, 25, 25, 0.88);
-    --border-color: #2C2C2C;
-    --text-main: #F0EDE6;
-    --text-muted: #8A8A8A;
-    --primary-color: #D4AF37;
-    --primary-hover: #E8C547;
-    --on-primary: #1A1A1A;
-    --secondary-color: #111111;
-    --secondary-hover: #1E1E1E;
-    --accent-color: #D4AF37;
-    --accent-red: #E05252;
-    --danger-color: #E05252;
-    --hover-overlay: rgba(255, 255, 255, 0.06);
+/* Entardecer — filtro âmbar/laranja simulando céu de fim de tarde */
+:root[data-tod="tarde"] {
+    --tod-overlay: linear-gradient(180deg, rgba(224,122,26,0.34) 0%, rgba(198,86,20,0.30) 60%, rgba(120,50,30,0.34) 100%);
+    --glass-bg: rgba(255, 250, 244, 0.60);
+    --glass-bg-strong: rgba(255, 250, 244, 0.78);
+    --reading-surface: rgba(255, 252, 248, 0.95);
+}
 
-    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.55);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.65);
-    --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.75);
+/* Noite — filtro escuro, escurecendo a imagem para conforto noturno */
+:root[data-tod="noite"] {
+    --tod-overlay: linear-gradient(180deg, rgba(10,14,30,0.52) 0%, rgba(8,10,22,0.60) 100%);
+    --glass-bg: rgba(255, 255, 255, 0.70);
+    --glass-bg-strong: rgba(255, 255, 255, 0.84);
+    --reading-surface: rgba(255, 255, 255, 0.95);
 }
 
 * {
@@ -66,10 +72,45 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: var(--bg-color);
+    background: var(--bg-color); /* fallback sólido caso a imagem não carregue */
     color: var(--text-main);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+}
+
+/* ── CAMADAS DE FUNDO GLOBAL (fixas, atrás de todo o conteúdo) ── */
+.app-bg,
+.app-bg-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}
+.app-bg {
+    z-index: -2;
+    background-color: var(--bg-color); /* fallback enquanto/se a imagem falhar */
+    background-image: var(--app-bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.app-bg-overlay {
+    z-index: -1;
+    background: var(--tod-overlay);
+    transition: background 1.2s ease;
+}
+
+/* Fallback: sem backdrop-filter, aumenta a opacidade das janelas de vidro
+   para manter o contraste e a legibilidade. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.90);
+        --glass-bg-strong: rgba(255, 255, 255, 0.95);
+        --reading-surface: rgba(255, 255, 255, 0.98);
+    }
+    :root[data-tod="tarde"] {
+        --glass-bg: rgba(255, 250, 244, 0.90);
+        --glass-bg-strong: rgba(255, 250, 244, 0.95);
+    }
 }
 
 html, body {
@@ -128,7 +169,9 @@ h6,
     left: 0;
     height: 100vh;
     width: var(--sidebar-width);
-    background: var(--surface-color);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border-right: 1px solid var(--border-color);
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
@@ -304,11 +347,13 @@ h6,
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: var(--bg-color);
+    background: transparent; /* mostra a imagem de fundo global */
 }
 
 .login-card {
-    background: var(--surface-color);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     padding: 40px;
     border-radius: var(--radius);
     box-shadow: var(--shadow-lg);
@@ -714,7 +759,9 @@ select:focus {
     left: 0 !important;
     right: 0 !important;
     width: 100% !important;
-    background: var(--surface-color) !important;
+    background: var(--glass-bg-strong) !important;
+    backdrop-filter: var(--glass-blur) !important;
+    -webkit-backdrop-filter: var(--glass-blur) !important;
     border-top: 1px solid var(--border-color) !important;
     border-left: none !important;
     border-right: none !important;
@@ -873,7 +920,9 @@ select:focus {
 
 /* Feed Data e Filtros */
 .data-container {
-    background: var(--surface-color);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     padding: 30px;
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
@@ -1040,7 +1089,9 @@ select:focus {
 }
 
 .record-card {
-    background: var(--secondary-color);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     padding: 20px;
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
@@ -1110,7 +1161,9 @@ select:focus {
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
-    background-color: var(--surface-color);
+    background-color: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     color: var(--text-main);
 }
 
@@ -1825,7 +1878,9 @@ a.chain-tl-title:hover {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: var(--secondary-color);
+        background: var(--glass-bg-strong);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
         padding: 10px 15px;
         border-radius: var(--radius);
         border: 1px solid var(--border-color);
@@ -2151,7 +2206,9 @@ a.chain-tl-title:hover {
    T4 — RECORD CARDS: COMPACT + EXPANDABLE
    ============================================================ */
 .record-card {
-    background: var(--secondary-color);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     margin-bottom: 8px;
@@ -2374,7 +2431,11 @@ a.chain-tl-title:hover {
     position: fixed;
     inset: 0;
     z-index: 10000;
-    background: var(--bg-color);
+    /* Leitura: superfície translúcida forte (0.94) + blur — mantém o texto
+       plenamente legível, deixando apenas um leve ambiente do fundo. */
+    background: var(--reading-surface);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -2920,7 +2981,9 @@ a.chain-tl-title:hover {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--surface-color);
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border-top: 1px solid var(--border-color);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding: 12px 0 calc(env(safe-area-inset-bottom, 0px) + 20px);
@@ -3009,7 +3072,11 @@ a.chain-tl-title:hover {
 .create-overlay {
     position: fixed;
     inset: 0;
-    background: var(--bg-color);
+    /* Escrita: superfície translúcida forte (0.94) + blur — legibilidade
+       preservada; o editor Quill interno mantém fundo sólido próprio. */
+    background: var(--reading-surface);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     z-index: 1200;
     transform: translateY(100%);
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3180,7 +3247,9 @@ a.chain-tl-title:hover {
 
 /* Stats Card (expandable at top of tab) */
 .stats-card {
-    background: var(--surface-color);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     margin-bottom: 20px;

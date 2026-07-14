@@ -23,10 +23,14 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <link rel="stylesheet" href="style.css?v=41">
+    <link rel="stylesheet" href="style.css?v=42">
 </head>
 
 <body>
+    <!-- Camadas de fundo global (imagem fixa + overlay de coloração por horário) -->
+    <div class="app-bg" aria-hidden="true"></div>
+    <div class="app-bg-overlay" aria-hidden="true"></div>
+
     <div id="loginContainer" class="login-container" style="display: none;">
         <div class="login-card">
             <i class="ph ph-book-bookmark login-logo"></i>
@@ -220,7 +224,7 @@
             <button type="button" data-format="color" data-value="#9933ff"><div style="background-color:#9933ff; width:20px; height:20px; border-radius:50%;"></div></button>
         </div>
     </div>
-    <script type="module" src="script.js?v=41"></script>
+    <script type="module" src="script.js?v=42"></script>
 </body>
 
 </html>

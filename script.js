@@ -499,7 +499,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=41`);
+        const module = await import(`./modules/${hash}.js?v=42`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);
@@ -770,3 +770,44 @@ if ('serviceWorker' in navigator) {
             });
     });
 }
+
+// --- FUNDO DINÂMICO: FILTRO DE COLORAÇÃO POR HORÁRIO ---
+// Define document.documentElement.dataset.tod = 'dia' | 'tarde' | 'noite'
+// com base na hora local. O CSS (:root[data-tod=...]) troca o overlay do fundo.
+// Faixas centralizadas para fácil ajuste (hora local, 0–23):
+//   dia    : 06:00–16:59  (neutro/claro)
+//   tarde  : 17:00–19:29  (âmbar/laranja — céu de fim de tarde)
+//   noite  : 19:30–05:59  (escuro)
+const TOD_BANDS = {
+    diaStart: 6,      // início da manhã/dia
+    tardeStart: 17,   // início do entardecer
+    noiteStart: 19.5  // início da noite (19h30)
+};
+
+const resolveTimeOfDay = (date) => {
+    const h = date.getHours() + date.getMinutes() / 60;
+    if (h >= TOD_BANDS.diaStart && h < TOD_BANDS.tardeStart) return 'dia';
+    if (h >= TOD_BANDS.tardeStart && h < TOD_BANDS.noiteStart) return 'tarde';
+    return 'noite';
+};
+
+// theme-color da barra do navegador acompanha a faixa (sutil)
+const TOD_THEME_COLOR = { dia: '#F4F2EC', tarde: '#C77016', noite: '#0A0E1E' };
+
+const applyTimeOfDayTheme = () => {
+    const tod = resolveTimeOfDay(new Date());
+    const root = document.documentElement;
+    if (root.dataset.tod !== tod) {
+        root.dataset.tod = tod;
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta && TOD_THEME_COLOR[tod]) meta.setAttribute('content', TOD_THEME_COLOR[tod]);
+    }
+};
+
+// Aplica imediatamente e reavalia ao retomar o foco e periodicamente (10 min).
+applyTimeOfDayTheme();
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) applyTimeOfDayTheme();
+});
+window.addEventListener('focus', applyTimeOfDayTheme);
+setInterval(applyTimeOfDayTheme, 10 * 60 * 1000);
