@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v43'; // estende translucidez a mais janelas (filtros, dropdowns, analytics, headers)
+const CACHE_NAME = 'selah-pwa-spa-v44'; // troca cor de destaque de dourado/marrom para azul
 const urlsToCache = [
   './',
   './index.html',

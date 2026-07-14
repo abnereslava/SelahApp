@@ -37,7 +37,7 @@ export function render(container) {
                         </div>
                         <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer;">
                             <input type="checkbox" id="filterBlessingFavorites" style="width: auto; accent-color: var(--primary-color);">
-                            <i class="ph ph-star" style="color:#c9a84c;"></i> Apenas favoritas
+                            <i class="ph ph-star" style="color:#3D6FA3;"></i> Apenas favoritas
                         </label>
                         <button type="button" id="btnApplyBlessingFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
                         <button type="button" id="btnClearBlessingFilters" class="btn-clear-filters" style="display: none;"><i class="ph ph-x-circle"></i> Limpar Filtros</button>
@@ -260,7 +260,7 @@ export function init(firebaseDb, firebaseAuth) {
     window._closeBencaos = window._requestCloseBencaos;
 
     // --- EDITOR QUILL INDEPENDENTE ---
-    const customColors = [false, '#e60000', '#ff9900', '#d4af37', '#008a00', '#0066cc', '#9933ff'];
+    const customColors = [false, '#e60000', '#ff9900', '#2A5A8C', '#008a00', '#0066cc', '#9933ff'];
     const toolbar = [['bold', 'italic', 'underline'], [{ 'color': customColors }], [{ 'header': [1, 2, false] }], ['clean']];
     const editor = new Quill('#quillEditorBencaos', { theme: 'snow', modules: { toolbar } });
 
@@ -1000,7 +1000,7 @@ export function init(firebaseDb, firebaseAuth) {
         html += `<div class="meta-item"><span class="meta-label">Data</span><span class="meta-value">${b.date.split('-').reverse().join('/')}</span></div>`;
 
         if (b.tags && b.tags.length > 0) {
-            const tagHtml = b.tags.map(t => `<span class="meta-value tag capitalize" style="background: rgba(212, 175, 55, 0.15); color: var(--primary-color); border: 1px solid var(--border-color);">${globalBlessingTagIndex.get(t) || t}</span>`).join('');
+            const tagHtml = b.tags.map(t => `<span class="meta-value tag capitalize" style="background: rgba(42, 90, 140, 0.15); color: var(--primary-color); border: 1px solid var(--border-color);">${globalBlessingTagIndex.get(t) || t}</span>`).join('');
             html += `<div class="meta-item full-width"><span class="meta-label">Tags</span><div style="display:flex; gap:5px; flex-wrap:wrap;">${tagHtml}</div></div>`;
         }
         html += '</div>';
@@ -1228,20 +1228,20 @@ export function init(firebaseDb, firebaseAuth) {
 
         document.body.appendChild(overlay);
 
-        const gold = ['#D4AF37','#B8860B','#E6C566','#8C6D1F','#F2C94C','#A0722C','#5C4A2E'];
+        const chartPalette = ['#1B3A5C','#2A5A8C','#3D6FA3','#5B8FC7','#7FA8CC','#8CB6DE','#B8D4EC'];
         // Cores derivadas do tema atual (claro/escuro) — lidas em runtime
         const cs = getComputedStyle(document.documentElement);
         const cText = cs.getPropertyValue('--text-main').trim() || '#1F1D1A';
         const cMuted = cs.getPropertyValue('--text-muted').trim() || '#7B7569';
         const cCardBg = cs.getPropertyValue('--secondary-color').trim() || '#ECE8E0';
         const cBorder = cs.getPropertyValue('--border-color').trim() || '#E3DED4';
-        const cBar = cs.getPropertyValue('--primary-color').trim() || '#8A6D1D';
+        const cBar = cs.getPropertyValue('--primary-color').trim() || '#2A5A8C';
         const base = { responsive:true, maintainAspectRatio:false };
 
         let cA, cB;
         if (hasTagChart) {
             cA = new Chart(document.getElementById('bTagChart'), {
-                type:'doughnut', data:{ labels:sortedTags.map(t=>(globalBlessingTagIndex.get(t[0])||t[0])), datasets:[{data:sortedTags.map(t=>t[1]),backgroundColor:gold,borderColor:cCardBg,borderWidth:2}] },
+                type:'doughnut', data:{ labels:sortedTags.map(t=>(globalBlessingTagIndex.get(t[0])||t[0])), datasets:[{data:sortedTags.map(t=>t[1]),backgroundColor:chartPalette,borderColor:cCardBg,borderWidth:2}] },
                 options:{...base,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:cText,boxWidth:12,padding:10,font:{size:11}}}}}
             });
         }

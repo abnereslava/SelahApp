@@ -48,7 +48,7 @@ export function render(container) {
                         <input type="text" id="filterAuthor" placeholder="Filtrar por autor" style="width: 100%;">
                         <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer;">
                             <input type="checkbox" id="filterFavorites" style="width: auto; accent-color: var(--primary-color);">
-                            <i class="ph ph-star" style="color:#c9a84c;"></i> Apenas favoritos
+                            <i class="ph ph-star" style="color:#3D6FA3;"></i> Apenas favoritos
                         </label>
                         <button type="button" id="btnApplyFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
                         <button type="button" id="btnClearFilters" class="btn-clear-filters" style="display: none;"><i class="ph ph-x-circle"></i> Limpar Filtros</button>
@@ -1859,14 +1859,14 @@ export function init(firebaseDb, firebaseAuth) {
 
         document.body.appendChild(overlay);
 
-        const gold = ['#D4AF37','#B8860B','#E6C566','#8C6D1F','#F2C94C','#A0722C','#5C4A2E'];
+        const chartPalette = ['#1B3A5C','#2A5A8C','#3D6FA3','#5B8FC7','#7FA8CC','#8CB6DE','#B8D4EC'];
         // Cores derivadas do tema atual (claro/escuro) — lidas em runtime
         const cs = getComputedStyle(document.documentElement);
         const cText = cs.getPropertyValue('--text-main').trim() || '#1F1D1A';
         const cMuted = cs.getPropertyValue('--text-muted').trim() || '#7B7569';
         const cCardBg = cs.getPropertyValue('--secondary-color').trim() || '#ECE8E0';
         const cBorder = cs.getPropertyValue('--border-color').trim() || '#E3DED4';
-        const cBar = cs.getPropertyValue('--primary-color').trim() || '#8A6D1D';
+        const cBar = cs.getPropertyValue('--primary-color').trim() || '#2A5A8C';
         const chartOpts = { responsive:true, maintainAspectRatio:false };
 
         const typeCounts = data.reduce((acc,r) => { acc[r.recordType]=(acc[r.recordType]||0)+1; return acc; }, {});
@@ -1874,7 +1874,7 @@ export function init(firebaseDb, firebaseAuth) {
         const sortedBooks = Object.entries(bookCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
 
         const cA = new Chart(document.getElementById('aTypeChart'), {
-            type:'doughnut', data:{ labels:Object.keys(typeCounts).map(t=>RECORD_TYPE_LABELS[t]||t), datasets:[{data:Object.values(typeCounts),backgroundColor:gold,borderColor:cCardBg,borderWidth:2}] },
+            type:'doughnut', data:{ labels:Object.keys(typeCounts).map(t=>RECORD_TYPE_LABELS[t]||t), datasets:[{data:Object.values(typeCounts),backgroundColor:chartPalette,borderColor:cCardBg,borderWidth:2}] },
             options:{...chartOpts,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:cText,boxWidth:12,padding:10,font:{size:11}}}}}
         });
         const cB = new Chart(document.getElementById('aBooksChart'), {
