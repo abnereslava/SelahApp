@@ -1251,7 +1251,14 @@ export function init(firebaseDb, firebaseAuth) {
 
     window.openReadingMode = (id, fromRandom = false, opts = {}) => {
         const { openChain = false } = typeof fromRandom === 'object' ? fromRandom : opts;
-        const r = allRecords.find(x => x.id === id);
+        let r = allRecords.find(x => x.id === id);
+        if (!r) {
+            r = statsRecords.find(x => x.id === id);
+            if (r) {
+                allRecords.push(r);
+                buildIndices();
+            }
+        }
         if (!r) return;
 
         const dp = formatDateParts(r.date);
@@ -2075,7 +2082,8 @@ export function init(firebaseDb, firebaseAuth) {
     });
 
     const getShufflePool = (excludeId = null) => {
-        let pool = hasActiveFilter() ? applyFilterToArray(allRecords) : allRecords.slice();
+        const source = statsRecords.length ? statsRecords : allRecords;
+        let pool = hasActiveFilter() ? applyFilterToArray(source) : source.slice();
         if (excludeId) pool = pool.filter(x => x.id !== excludeId);
         return pool;
     };
@@ -2120,7 +2128,7 @@ export function init(firebaseDb, firebaseAuth) {
         btnRandom.onclick = async () => {
             const user = auth.currentUser;
             if (!user) return;
-            // When filters active, draw from local filtered pool
+            // When filters active, draw from the complete filtered pool
             if (hasActiveFilter()) {
                 const pool = getShufflePool();
                 if (pool.length === 0) return showAlert('Nenhum item disponível com os filtros atuais.');
@@ -2149,18 +2157,27 @@ export function init(firebaseDb, firebaseAuth) {
                     snap = await getDocs(q);
                 }
                 if (!snap.empty) {
-                    window.openReadingMode(snap.docs[0].id, true);
-                } else if (allRecords.length > 0) {
-                    // Fallback: registros sem randomSeed (pré-migração)
-                    window.openReadingMode(allRecords[Math.floor(Math.random() * allRecords.length)].id, true);
+                    const pickedDoc = snap.docs[0];
+                    const pickedRecord = { id: pickedDoc.id, ...pickedDoc.data() };
+                    if (!allRecords.some(x => x.id === pickedRecord.id)) {
+                        allRecords.push(pickedRecord);
+                        buildIndices();
+                    }
+                    window.openReadingMode(pickedRecord.id, true);
                 } else {
-                    showAlert("Nenhum registro encontrado.");
+                    const pool = getShufflePool();
+                    if (pool.length > 0) {
+                        window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id, true);
+                    } else {
+                        showAlert("Nenhum registro encontrado.");
+                    }
                 }
             } catch (err) {
                 console.error('Erro ao sortear registro:', err);
-                // Fallback se o índice ainda não existe
-                if (allRecords.length > 0) {
-                    window.openReadingMode(allRecords[Math.floor(Math.random() * allRecords.length)].id, true);
+                // Fallback usa a coleção completa já carregada para estatísticas
+                const pool = getShufflePool();
+                if (pool.length > 0) {
+                    window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id, true);
                 } else {
                     showAlert("Nenhum registro encontrado.");
                 }
