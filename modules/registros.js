@@ -323,6 +323,7 @@ export function init(firebaseDb, firebaseAuth) {
         if (overlay) overlay.classList.remove('open');
         const mobileToolbar = document.getElementById('mobileQuillToolbar');
         if (mobileToolbar) { mobileToolbar.style.display = 'none'; mobileToolbar.style.bottom = ''; }
+        window._resetQuillViewport && window._resetQuillViewport();
         const bottomNav = document.getElementById('mobileBottomNav');
         if (bottomNav) bottomNav.style.display = '';
         window.activeQuillEditor = null;
@@ -431,6 +432,7 @@ export function init(firebaseDb, firebaseAuth) {
         qEditor.on('text-change', () => {
             if (window.activeQuillEditor === qEditor) {
                 window._refreshFtRedoBtn && window._refreshFtRedoBtn(qEditor);
+                window._requestQuillViewportSync && window._requestQuillViewportSync();
             }
         });
 
@@ -465,6 +467,7 @@ export function init(firebaseDb, firebaseAuth) {
                 setTimeout(() => {
                     if (window.activeQuillEditor === qEditor && !qEditor.hasFocus()) {
                         mobileToolbar.style.display = 'none';
+                        window._resetQuillViewport && window._resetQuillViewport();
                         if (window.innerWidth <= 768) {
                             const bottomNav = document.getElementById('mobileBottomNav');
                             if (bottomNav) bottomNav.style.display = 'flex';

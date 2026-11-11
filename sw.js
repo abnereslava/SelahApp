@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v45'; // corrige resíduos da paleta antiga: painel de filtro, neutros e header agora frios
+const CACHE_NAME = 'selah-pwa-spa-v46'; // compacta a leitura e mantém o cursor do Quill visível no mobile
 const urlsToCache = [
   './',
   './index.html',

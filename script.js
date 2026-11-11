@@ -109,9 +109,19 @@ if (sidebar) {
 }
 
 // --- QUILL TOOLBAR: segue o teclado via Visual Viewport API ---
+const resetQuillViewport = () => {
+    document.querySelectorAll('.create-overlay-scroll.quill-toolbar-active').forEach(scrollEl => {
+        scrollEl.classList.remove('quill-toolbar-active');
+        scrollEl.style.removeProperty('--quill-toolbar-height');
+    });
+};
+
 const reposQuillToolbar = () => {
     const toolbar = document.getElementById('mobileQuillToolbar');
-    if (!toolbar || toolbar.style.display === 'none') return;
+    if (!toolbar || toolbar.style.display === 'none') {
+        resetQuillViewport();
+        return;
+    }
     if (window.innerWidth > 768) return; // no desktop a posição é fixa (CSS)
     if (!window.visualViewport) return;
     const vv = window.visualViewport;
@@ -130,12 +140,16 @@ const reposQuillToolbar = () => {
         const editorEl = editor.root;
         const scrollEl = editorEl.closest('.create-overlay-scroll');
         if (!scrollEl) return;
+        const toolbarH = toolbar.offsetHeight || 56;
+        scrollEl.classList.add('quill-toolbar-active');
+        scrollEl.style.setProperty('--quill-toolbar-height', toolbarH + 'px');
+
         const editorRect = editorEl.getBoundingClientRect();
         // Posição vertical do cursor relativa à tela
         const cursorBottom = editorRect.top + bounds.top + bounds.height;
-        // Limite inferior visível: topo do teclado menos a altura da toolbar flutuante
-        const toolbarH = toolbar.offsetHeight || 48;
-        const visibleBottom = vv.offsetTop + vv.height - toolbarH - 8;
+        // Usa o topo real da toolbar como limite; evita que a linha ativa fique atrás dela.
+        const toolbarTop = toolbar.getBoundingClientRect().top;
+        const visibleBottom = Math.min(vv.offsetTop + vv.height, toolbarTop) - 10;
         if (cursorBottom > visibleBottom) {
             scrollEl.scrollTop += cursorBottom - visibleBottom + 16;
         }
@@ -143,9 +157,21 @@ const reposQuillToolbar = () => {
 };
 // Exposto para que os módulos reposicionem assim que a toolbar é exibida
 window._reposQuillToolbar = reposQuillToolbar;
+window._resetQuillViewport = resetQuillViewport;
+
+let quillViewportFrame = 0;
+const requestQuillViewportSync = () => {
+    if (quillViewportFrame) return;
+    quillViewportFrame = requestAnimationFrame(() => {
+        quillViewportFrame = 0;
+        reposQuillToolbar();
+    });
+};
+window._requestQuillViewportSync = requestQuillViewportSync;
+
 if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', reposQuillToolbar);
-    window.visualViewport.addEventListener('scroll', reposQuillToolbar);
+    window.visualViewport.addEventListener('resize', requestQuillViewportSync);
+    window.visualViewport.addEventListener('scroll', requestQuillViewportSync);
 }
 
 // --- QUILL: LINHA HORIZONTAL (HR) ---
@@ -499,7 +525,7 @@ const handleRouteChange = async (direction = null) => {
     }
 
     try {
-        const module = await import(`./modules/${hash}.js?v=45`);
+        const module = await import(`./modules/${hash}.js?v=46`);
         loadedModules.add(hash);
         module.render(spaContent);
         module.init(db, auth);

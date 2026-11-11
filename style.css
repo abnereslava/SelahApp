@@ -2581,7 +2581,7 @@ a.chain-tl-title:hover {
 }
 .reading-body {
     font-size: 1.05rem;
-    line-height: 1.8;
+    line-height: 1.55;
     color: var(--text-main);
 }
 
@@ -2589,22 +2589,22 @@ a.chain-tl-title:hover {
 .reading-body ul,
 .reading-body ol {
     padding-left: 1.5em;
-    margin: 0.5em 0;
+    margin: 0.35em 0;
 }
 
 .reading-body li {
     list-style: inherit;
-    margin-bottom: 0.25em;
+    margin-bottom: 0;
 }
 
 .reading-body p {
-    margin-bottom: 0.6em;
+    margin: 0;
 }
 .reading-body h4 {
     font-family: 'Playfair Display', serif;
     font-size: 1rem;
     color: var(--primary-color);
-    margin: 20px 0 8px;
+    margin: 1em 0 0.35em;
 }
 
 /* Tamanhos de título (T1/T2/T3) — editor e visualizações salvas.
@@ -3146,6 +3146,15 @@ a.chain-tl-title:hover {
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+}
+
+/* Reserva espaço para a barra do Quill enquanto o teclado está aberto.
+   Assim, até a última linha do editor pode subir acima da barra flutuante. */
+@media (max-width: 768px) {
+    .create-overlay-scroll.quill-toolbar-active {
+        padding-bottom: calc(var(--quill-toolbar-height, 56px) + 16px);
+        scroll-padding-bottom: calc(var(--quill-toolbar-height, 56px) + 24px);
+    }
 }
 
 /* ── Estilo refinado do formulário (alinhado ao overlay de leitura) ── */
