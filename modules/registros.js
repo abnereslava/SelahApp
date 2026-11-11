@@ -1181,7 +1181,7 @@ export function init(firebaseDb, firebaseAuth) {
 
     // --- FAVORITOS ---
     const toggleFavorito = async (id) => {
-        const r = allRecords.find(x => x.id === id);
+        const r = allRecords.find(x => x.id === id) || statsRecords.find(x => x.id === id);
         if (!r) return;
         const newVal = !r.favorito;
         r.favorito = newVal;
@@ -1192,6 +1192,11 @@ export function init(firebaseDb, firebaseAuth) {
             console.error('Erro ao atualizar favorito:', err);
             return;
         }
+        // Mantém as duas fontes em sincronia quando o item ainda não foi paginado no feed.
+        const statsRecord = statsRecords.find(x => x.id === id);
+        if (statsRecord && statsRecord !== r) statsRecord.favorito = newVal;
+        const pagedRecord = allRecords.find(x => x.id === id);
+        if (pagedRecord && pagedRecord !== r) pagedRecord.favorito = newVal;
         // Update card star icon
         const star = document.querySelector(`.card-fav-star[data-fav-id="${id}"]`);
         if (star) star.classList.toggle('active', newVal);
@@ -2106,7 +2111,8 @@ export function init(firebaseDb, firebaseAuth) {
             filterState.dateEnd = document.getElementById('filterDateEnd').value;
             filterState.favorites = document.getElementById('filterFavorites')?.checked || false;
             syncClearFiltersBtn();
-            renderFeed(applyFilterToArray(allRecords), true);
+            const filterSource = statsRecords.length ? statsRecords : allRecords;
+            renderFeed(applyFilterToArray(filterSource), true);
         };
     }
 

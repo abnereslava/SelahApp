@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v46'; // compacta a leitura e mantém o cursor do Quill visível no mobile
+const CACHE_NAME = 'selah-pwa-spa-v47'; // filtro completo por favoritos e demais critérios
 const urlsToCache = [
   './',
   './index.html',
