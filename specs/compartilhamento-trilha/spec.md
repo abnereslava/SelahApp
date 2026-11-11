@@ -1,157 +1,146 @@
-# Especificação: Compartilhamento Público de Trilha
+# Especificação: Compartilhamento de Registro em PDF
 
 ## 1. Objetivo
 
-Permitir que um usuário autenticado compartilhe, a partir do modo leitura, um registro e exclusivamente os demais registros pertencentes à mesma trilha. A pessoa que receber o link poderá ler esse conteúdo sem entrar no Selah, mas não poderá navegar pelo restante dos registros, acessar a conta do proprietário nem usar ações privadas.
+Permitir que o usuário gere e compartilhe um arquivo PDF de um registro específico diretamente a partir do modo leitura, sem criar link público, sem publicar dados e sem alterar permissões ou regras do Firebase.
 
-Também corrigir o filtro de registros para que a opção **Apenas favoritos** funcione sozinha, sem exigir termo, tipo, autor ou período, e considere todos os registros do usuário, não apenas a página já carregada no feed.
+O PDF deve conter somente o registro atualmente aberto. A trilha de registros deve ser omitida do arquivo, assim como qualquer ação privada do aplicativo.
 
 ## 2. Contexto
 
-O Selah é uma SPA autenticada por Google/Firebase. Os registros ficam na coleção `devotionals` e formam trilhas por meio do campo `continuationOf`. Atualmente, o modo leitura é acessível somente dentro da área autenticada, e o filtro de favoritos é aplicado sobre `allRecords`, que pode conter apenas a parcela já carregada pela paginação.
+O Selah exibe registros em um modal de leitura que pode conter título, data, passagem principal, tipo, autoria, passagens relacionadas, temas, conteúdo formatado e links. Alguns registros também pertencem a uma trilha definida pelo campo `continuationOf`.
 
-O compartilhamento público não deve liberar leitura direta da coleção privada `devotionals`. Deve existir uma representação pública separada contendo somente os campos necessários dos registros autorizados para aquela trilha.
+O compartilhamento inicialmente considerado por link público exigiria uma coleção e regras próprias no Firebase. Essa abordagem foi descartada. O compartilhamento será feito por um PDF gerado localmente no navegador com os dados que já estão carregados no modo leitura.
 
 ## 3. Usuários envolvidos
 
-* **Proprietário autenticado:** usuário do Selah que pode compartilhar um registro próprio.
-* **Visitante do link:** qualquer pessoa que possua o link público, com ou sem conta Google.
-* **Usuário sem o link:** não pode consultar nem listar compartilhamentos públicos.
+* **Usuário autenticado:** pode gerar e compartilhar o PDF de um registro que esteja lendo no Selah.
+* **Destinatário:** recebe apenas o arquivo PDF e não obtém qualquer acesso ao aplicativo, à conta ou a outros registros.
 
 ## 4. Funcionamento esperado
 
 ### 4.1 Botão de compartilhamento
 
 * O botão deve existir somente no modo leitura de Registros.
-* No mobile, deve ser discreto e ficar na mesma linha da data, no topo do conteúdo.
-* No desktop, pode ficar no cabeçalho/barra superior do diálogo de leitura.
-* O botão não deve aparecer nos cards, no formulário de escrita/edição nem na visualização pública.
-* Ao acioná-lo, o app deve preparar um link público da trilha e abrir o compartilhamento nativo do dispositivo quando `navigator.share` estiver disponível.
-* Quando o compartilhamento nativo não estiver disponível, o link deve ser copiado para a área de transferência e o usuário deve receber confirmação.
+* No mobile, deve ser discreto e ficar na mesma linha da data.
+* No desktop, deve ficar na barra superior/cabeçalho do diálogo de leitura.
+* O botão não deve aparecer nos cards, no formulário de escrita/edição nem nos PDFs.
+* Ao tocar no botão, o app deve gerar um PDF do registro atualmente aberto.
+* Após a geração, o app deve abrir o compartilhamento nativo do dispositivo quando o navegador aceitar compartilhamento de arquivos.
+* Quando o compartilhamento de arquivo não estiver disponível, o PDF deve ser baixado automaticamente para o dispositivo.
 
-### 4.2 Conteúdo do link público
+### 4.2 Conteúdo do PDF
 
-* O link deve abrir sem exigir login.
-* O registro originalmente compartilhado deve ser aberto primeiro.
-* A página pública deve exibir a trilha do registro, permitindo abrir os registros anteriores e seguintes que façam parte dela.
-* A página pública não deve exibir feed geral, sorteio, favoritos, edição, exclusão, analytics, menu lateral, dados da conta ou links para registros de outras trilhas.
-* A navegação pública deve aceitar somente IDs presentes no conteúdo publicado daquele compartilhamento.
-* Campos privados ou desnecessários, como `userId`, `favorito`, metadados administrativos e identificadores internos não usados pela tela pública, não devem ser publicados.
+O arquivo deve preservar, quando existentes:
 
-### 4.3 Filtro de favoritos
+* título;
+* data;
+* passagem principal;
+* tipo do registro;
+* autoria;
+* passagens relacionadas;
+* temas/palavras-chave;
+* conteúdo completo e sua formatação de leitura;
+* links anexados ao registro.
 
-* Marcar somente **Apenas favoritos** e tocar em **Aplicar Filtros** deve listar todos os favoritos do usuário.
-* Os demais campos podem permanecer vazios.
-* O resultado deve usar a coleção completa já carregada para estatísticas (`statsRecords`) quando disponível, evitando limitar o filtro à primeira página do feed.
-* Desfavoritar um item enquanto o filtro estiver ativo deve removê-lo do resultado, preservando o comportamento atual.
-* Limpar filtros deve restaurar o feed paginado normal.
+O PDF não deve conter:
+
+* trilha de registros;
+* registros anteriores ou seguintes;
+* botões de favorito, aleatório, editar ou compartilhar;
+* menu, cabeçalho de conta ou navegação do aplicativo;
+* identificador do usuário;
+* dados administrativos;
+* conteúdo de qualquer outro registro.
+
+### 4.3 Aparência do PDF
+
+* Formato A4, orientação retrato.
+* Fundo branco e texto escuro, independentemente do horário ou tema visual ativo no aplicativo.
+* Margens adequadas para impressão e leitura.
+* Título, metadados e corpo com hierarquia visual semelhante ao modo leitura.
+* Conteúdo longo deve continuar em páginas adicionais sem cortar linhas de texto de forma indevida.
+* Nome do arquivo deve ser derivado do título do registro, higienizado para uso como nome de arquivo, com fallback como `registro-selah.pdf`.
 
 ## 5. Fluxo principal
 
-### Compartilhamento
-
-1. O proprietário abre um registro no modo leitura.
-2. O app monta a trilha completa seguindo `continuationOf` para trás e para frente.
-3. O proprietário toca em **Compartilhar**.
-4. O app grava ou atualiza um documento público contendo somente o registro selecionado, os registros da mesma trilha e os campos permitidos.
-5. O app gera o link e abre o compartilhamento nativo; na ausência dele, copia o link.
-6. O visitante abre o link sem autenticação.
-7. A página mostra o registro selecionado e permite navegar somente pelos itens incluídos naquela trilha publicada.
-
-### Favoritos
-
-1. O proprietário abre os filtros.
-2. Marca somente **Apenas favoritos**.
-3. Toca em **Aplicar Filtros**.
-4. O feed exibe todos os favoritos disponíveis na coleção completa do usuário.
+1. O usuário abre um registro no modo leitura.
+2. Toca no botão discreto de compartilhamento.
+3. O botão entra no estado de processamento enquanto o PDF é montado localmente.
+4. O app gera um PDF contendo somente o registro aberto.
+5. Se o dispositivo suportar compartilhamento de arquivo, o seletor nativo é aberto com o PDF anexado.
+6. Caso contrário, o PDF é baixado e o app informa que o arquivo foi salvo para compartilhamento manual.
+7. O modal de leitura permanece aberto no mesmo registro.
 
 ## 6. Regras de negócio
 
-* O compartilhamento deve ser iniciado somente pelo proprietário autenticado do conteúdo.
-* A coleção privada `devotionals` deve continuar inacessível para visitantes anônimos.
-* O documento público deve usar um identificador longo e não previsível.
-* A leitura anônima deve permitir obtenção de um compartilhamento específico, mas não a listagem da coleção de compartilhamentos.
-* O visitante não pode alterar, favoritar, excluir ou editar nenhum registro.
-* O visitante não pode sair da trilha publicada por manipulação da URL.
-* A trilha publicada deve pertencer integralmente ao mesmo proprietário.
-* Conteúdo HTML salvo pelo Quill deve receber o mesmo tratamento de exibição já usado no modo leitura privado.
-* [Pendente] Definir se o botão aparece somente para registros do tipo `devocional` ou para todos os tipos presentes na área Registros.
-* [Pendente] Definir validade e atualização do link público.
+* Nenhuma coleção, documento, regra ou permissão do Firebase deve ser criada ou alterada.
+* A geração deve usar somente os dados do registro já carregado no cliente.
+* O PDF deve conter exatamente um registro.
+* A trilha pode continuar aparecendo normalmente no modal privado, mas nunca deve ser incluída no PDF.
+* O arquivo não deve conter ações interativas privadas.
+* A geração do PDF não deve alterar o registro, seu favorito ou qualquer dado salvo.
+* O botão deve bloquear acionamentos repetidos enquanto o arquivo estiver sendo gerado.
+* [Pendente] Definir se o compartilhamento estará disponível somente para registros do tipo `devocional` ou para todos os tipos da área Registros.
 
 ## 7. Permissões
 
-* **Proprietário autenticado:** pode criar/atualizar e, se incluída a revogação, excluir seus próprios compartilhamentos.
-* **Visitante:** pode apenas obter um documento público específico por seu identificador; não pode listar compartilhamentos.
-* **Outros usuários autenticados:** não podem alterar compartilhamentos de outro proprietário.
-
-As regras do Firestore devem separar `get` de `list`: a leitura pública de um token específico pode ser permitida, enquanto consultas/listagens da coleção pública devem ser negadas.
+* Apenas usuários que já conseguem abrir o modo leitura autenticado podem gerar o PDF.
+* O destinatário recebe um arquivo independente e não ganha permissão no Selah.
+* Não há leitura pública nem compartilhamento de credenciais, tokens ou URLs privadas.
 
 ## 8. Dados necessários
 
-### [Sugestão] Coleção `public_shares`
+Nenhum dado novo precisa ser persistido.
 
-Cada documento público pode conter:
+Dados usados somente durante a geração:
 
-* `ownerId`: UID usado somente para validar escrita nas regras; não deve ser exibido na página.
-* `createdAt`: criação do compartilhamento.
-* `updatedAt`: última atualização do conteúdo público.
-* `selectedRecordId`: registro que deve abrir primeiro.
-* `records`: array de registros sanitizados pertencentes à mesma trilha.
-* `schemaVersion`: versão do formato público.
+* registro atualmente aberto;
+* metadados já exibidos no modo leitura;
+* HTML formatado do conteúdo;
+* links do registro;
+* nome de arquivo derivado do título.
 
-Campos permitidos por registro:
+Dependência técnica prevista:
 
-* identificador público interno à trilha;
-* título;
-* data;
-* passagem principal e passagens relacionadas;
-* tipo;
-* autoria;
-* palavras-chave;
-* conteúdo textual/HTML;
-* relação de continuidade necessária para montar a trilha;
-* links anexados ao registro, quando já fazem parte do modo leitura.
+* biblioteca de geração de PDF executada no navegador, carregada junto ao aplicativo e compatível com conversão de HTML paginado.
 
 ## 9. Estados e mensagens
 
-* Preparando compartilhamento.
-* Link compartilhado/copiado com sucesso.
-* Não foi possível criar o link.
-* Compartilhamento não encontrado, inválido ou revogado.
-* Conteúdo público carregando.
-* Trilha pública vazia ou inconsistente.
-* Nenhum favorito encontrado.
+* **Gerando PDF:** botão desabilitado com indicador de processamento.
+* **Compartilhando:** seletor nativo aberto pelo dispositivo.
+* **Baixado:** mensagem informando que o PDF foi salvo para compartilhamento manual.
+* **Erro:** mensagem informando que não foi possível gerar o PDF.
+* **Compartilhamento cancelado:** não deve ser tratado como erro de geração.
 
 ## 10. Casos extremos
 
-* Registro sem continuação: o link deve mostrar apenas aquele registro.
-* Elo ausente na trilha: publicar somente os registros válidos encontrados, sem abrir acesso a outras coleções.
-* Dois registros apontando para o mesmo anterior: a implementação atual considera uma cadeia linear; ramificações devem ser tratadas de forma determinística e registradas no plano técnico.
-* Registro da trilha pertencente a outro usuário: deve ser excluído e o compartilhamento deve falhar de forma segura se a integridade não puder ser confirmada.
-* Navegador sem Web Share API ou Clipboard API: exibir o link para cópia manual.
-* Link alterado manualmente para outro ID: exibir estado de compartilhamento inválido.
-* Visitante já autenticado no Selah: o link público deve continuar mostrando apenas a visualização pública, sem ampliar automaticamente o escopo.
-* Favoritos ausentes na primeira página, mas presentes em páginas antigas: ainda devem aparecer no filtro.
+* Registro sem título: usar passagem principal ou nome padrão no cabeçalho e no arquivo.
+* Registro muito longo: criar páginas adicionais.
+* Conteúdo com listas, títulos, cores e separadores: preservar a estrutura legível dentro das limitações do PDF.
+* Imagens externas ou conteúdo não suportado: não bloquear a geração do restante do texto.
+* Nome com acentos ou caracteres inválidos: gerar nome de arquivo seguro.
+* Navegador que suporta `navigator.share`, mas não aceita arquivos: usar download.
+* Usuário cancela o seletor de compartilhamento: manter o modal aberto e não exibir falha genérica.
+* Biblioteca indisponível ou falha de carregamento: exibir erro e não alterar o registro.
+* Trilha com vários registros: ignorar todos os outros e exportar apenas o registro aberto.
 
 ## 11. Critérios de aceite
 
-* [ ] Existe botão discreto de compartilhamento apenas no modo leitura.
+* [ ] Existe botão discreto de compartilhamento somente no modo leitura.
 * [ ] No mobile, o botão fica na mesma linha da data.
-* [ ] No desktop, o botão integra o cabeçalho/barra superior do diálogo.
-* [ ] O compartilhamento usa a interface nativa quando disponível e possui fallback de cópia.
-* [ ] O link abre sem login.
-* [ ] O visitante pode navegar por todos os registros da trilha publicada.
-* [ ] O visitante não consegue acessar registros externos à trilha, feed, sorteio ou ações privadas.
-* [ ] A coleção privada `devotionals` não recebe permissão pública de leitura.
-* [ ] A coleção pública não pode ser listada anonimamente.
-* [ ] Apenas o proprietário pode criar/alterar seu compartilhamento.
-* [ ] O filtro funciona com somente **Apenas favoritos** marcado.
-* [ ] O filtro de favoritos considera todos os registros do usuário já obtidos para estatísticas.
-* [ ] Limpar filtros restaura o feed normal.
+* [ ] No desktop, o botão integra a barra superior do diálogo.
+* [ ] O botão gera um PDF A4 do registro aberto.
+* [ ] O PDF contém somente um registro.
+* [ ] A trilha de registros não aparece no PDF.
+* [ ] A trilha continua disponível normalmente no modo leitura privado.
+* [ ] O PDF preserva título, data, metadados, conteúdo formatado e links existentes.
+* [ ] Nenhum botão ou dado privado do aplicativo aparece no arquivo.
+* [ ] O compartilhamento nativo de arquivo é usado quando suportado.
+* [ ] O fallback baixa o PDF quando o compartilhamento de arquivo não é suportado.
+* [ ] Cancelar o compartilhamento não fecha o modo leitura nem gera erro genérico.
+* [ ] Nenhum dado ou regra do Firebase é alterado.
 
 ## 12. Dúvidas pendentes
 
-* [Pendente] O compartilhamento deve estar disponível somente em registros com tipo **Devocional** ou em qualquer item da área **Registros**?
-* [Pendente] O link deve representar uma fotografia permanente do conteúdo no momento do compartilhamento ou acompanhar edições futuras?
-* [Pendente] O link deve permanecer válido indefinidamente até revogação manual, expirar automaticamente ou gerar uma nova cópia a cada compartilhamento?
-* [Pendente] As regras do Firestore não estão versionadas neste repositório. Confirmar como serão publicadas no projeto Firebase para que a visualização anônima funcione sem liberar a coleção privada.
+* [Pendente] O botão deve aparecer somente em registros do tipo **Devocional** ou em qualquer item da área **Registros**?
