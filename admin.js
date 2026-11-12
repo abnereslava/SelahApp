@@ -15,6 +15,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const ADMIN_EMAIL = 'abner.eslava@gmail.com';
+const TYPOGRAPHY_SELF_SERVICE_EMAIL = 'drivedoabner@gmail.com';
 
 const getWhitelistEntryByEmail = async (email) => {
     const directSnap = await getDoc(doc(db, "whitelisted_emails", email));
@@ -33,6 +34,24 @@ const dashboardContainer = document.getElementById('dashboardContainer');
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const email = user.email ? user.email.toLowerCase().trim() : '';
+        const isTypographySelfService = email === TYPOGRAPHY_SELF_SERVICE_EMAIL
+            && new URLSearchParams(window.location.search).get('typography-self-service') === '1';
+
+        if (isTypographySelfService) {
+            dashboardContainer.style.display = 'block';
+            document.querySelectorAll('main section').forEach(section => {
+                section.style.display = section.id === 'typographyNormalizationContainer' ? '' : 'none';
+            });
+            const emailSelect = document.getElementById('typographyTargetEmail');
+            const uidInput = document.getElementById('typographyTargetUid');
+            if (emailSelect) {
+                emailSelect.innerHTML = `<option value="${email}" data-uid="${user.uid}" selected>${email}</option>`;
+                emailSelect.disabled = true;
+            }
+            if (uidInput) uidInput.value = user.uid;
+            return;
+        }
+
         if (email === ADMIN_EMAIL) {
             // Acesso liberado
             dashboardContainer.style.display = 'block';
@@ -1271,7 +1290,7 @@ populateImportTargets();
 // NORMALIZAÇÃO TIPOGRÁFICA DOS REGISTROS (migração versionada)
 // ==========================================================
 
-const TYPOGRAPHY_NORMALIZATION_VERSION = '1.0.0';
+const TYPOGRAPHY_NORMALIZATION_VERSION = '2.0.0';
 const TYPOGRAPHY_BLUE = '#0066cc';
 const TYPOGRAPHY_SAFE_DOC_BYTES = 850000;
 
@@ -1330,6 +1349,7 @@ const createTypographyStats = () => ({
     markdownHeadingsConverted: 0,
     headingLevelsNormalized: 0,
     versesStyled: 0,
+    quoteMarkersRemoved: 0,
     separatorsRemoved: 0
 });
 
@@ -1364,16 +1384,38 @@ const startsWithBibleReference = (text) => {
     return verseMarker.test(normalized) || bookReference.test(normalized);
 };
 
+const containsBibleReference = (text) => {
+    const normalized = text.replace(/\s+/g, ' ').trim();
+    const bookReference = /(?:(?:[1-3]|I{1,3})\s*)?[\p{L}.]+(?:\s+[\p{L}.]+){0,3}\s+\d+\s*:\s*\d+(?:\s*[-–—]\s*\d+)?/iu;
+    return bookReference.test(normalized);
+};
+
+const removeLeadingQuoteMarker = (element) => {
+    const walker = element.ownerDocument.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+        if ((node.nodeValue || '').trim()) {
+            const cleaned = node.nodeValue.replace(/^\s*>\s*/u, '');
+            if (cleaned !== node.nodeValue) {
+                node.nodeValue = cleaned;
+                return true;
+            }
+            return false;
+        }
+        node = walker.nextNode();
+    }
+    return false;
+};
+
 const isVerseBlock = (element) => {
     const text = (element.textContent || '').replace(/\s+/g, ' ').trim();
-    if (!startsWithBibleReference(text)) return false;
-
     const hasQuotation = /[“”"«»]/u.test(text);
     const hasVerseFormatting = Boolean(
         element.querySelector('[style*="color"]') ||
         (element.querySelector('strong') && element.querySelector('em'))
     );
-    return hasQuotation || hasVerseFormatting;
+    if (startsWithBibleReference(text)) return hasQuotation || hasVerseFormatting;
+    return containsBibleReference(text) && hasQuotation && hasVerseFormatting;
 };
 
 const styleVerseBlock = (element) => {
@@ -1403,6 +1445,10 @@ const normalizeTypographyHtml = (html) => {
     body.querySelectorAll('.ql-cursor').forEach(node => {
         node.remove();
         stats.cursorArtifactsRemoved++;
+    });
+
+    body.querySelectorAll('p').forEach(paragraph => {
+        if (removeLeadingQuoteMarker(paragraph)) stats.quoteMarkersRemoved++;
     });
 
     body.querySelectorAll('h1').forEach(node => {
@@ -1488,14 +1534,16 @@ const normalizeRecordContent = (content) => {
     return { content: normalized, changed, stats };
 };
 
-const estimateMigratedDocumentBytes = (data, normalizedContent) => {
+const estimateMigratedDocumentBytes = (data, normalizedContent, sourceContent) => {
+    const usedV1Backup = Boolean(data.typographyNormalizationV1?.originalContent);
     const candidate = {
         ...data,
         content: normalizedContent,
-        typographyNormalizationV1: {
+        typographyNormalizationV2: {
             version: TYPOGRAPHY_NORMALIZATION_VERSION,
             migratedAt: new Date().toISOString(),
-            originalContent: data.content
+            source: usedV1Backup ? 'typographyNormalizationV1.originalContent' : 'content',
+            ...(usedV1Backup ? {} : { originalContent: sourceContent })
         }
     };
     return new TextEncoder().encode(JSON.stringify(candidate)).length;
@@ -1507,7 +1555,7 @@ const renderTypographyPreview = state => {
     typographyPreview.innerHTML = `
         <strong style="color:var(--text-main);">Prévia concluída — nenhuma gravação realizada.</strong><br>
         Registros encontrados: <strong>${total}</strong> · A alterar: <strong>${changes.length}</strong> · Sem mudança necessária: <strong>${unchanged}</strong> · Já normalizados: <strong>${migrated}</strong> · Acima da margem segura: <strong>${oversized}</strong><br>
-        Ajustes detectados: ${stats.versesStyled} versículo(s), ${stats.markdownHeadingsConverted} marcador(es) Markdown, ${stats.headingLevelsNormalized} nível(is) de título, ${stats.emptyBlocksRemoved} bloco(s) vazio(s), ${stats.cursorArtifactsRemoved} resíduo(s) do editor e ${stats.separatorsRemoved} separador(es) redundante(s).
+        Ajustes detectados: ${stats.versesStyled} versículo(s), ${stats.quoteMarkersRemoved} marcador(es) <code>&gt;</code>, ${stats.markdownHeadingsConverted} marcador(es) Markdown, ${stats.headingLevelsNormalized} nível(is) de título, ${stats.emptyBlocksRemoved} bloco(s) vazio(s), ${stats.cursorArtifactsRemoved} resíduo(s) do editor e ${stats.separatorsRemoved} separador(es) redundante(s).
     `;
     typographyPreview.style.display = 'block';
 };
@@ -1552,18 +1600,20 @@ if (btnPreviewTypography) {
 
             snapshot.docs.forEach(recordDoc => {
                 const data = recordDoc.data();
-                if (data.typographyNormalizationV1?.version === TYPOGRAPHY_NORMALIZATION_VERSION) {
+                if (data.typographyNormalizationV2?.version === TYPOGRAPHY_NORMALIZATION_VERSION) {
                     state.migrated++;
                     return;
                 }
 
-                const result = normalizeRecordContent(data.content);
-                if (!result.changed) {
+                const sourceContent = data.typographyNormalizationV1?.originalContent || data.content;
+                const result = normalizeRecordContent(sourceContent);
+                const differsFromCurrent = JSON.stringify(result.content) !== JSON.stringify(data.content);
+                if (!differsFromCurrent) {
                     state.unchanged++;
                     return;
                 }
 
-                if (estimateMigratedDocumentBytes(data, result.content) > TYPOGRAPHY_SAFE_DOC_BYTES) {
+                if (estimateMigratedDocumentBytes(data, result.content, sourceContent) > TYPOGRAPHY_SAFE_DOC_BYTES) {
                     state.oversized++;
                     return;
                 }
@@ -1573,7 +1623,8 @@ if (btnPreviewTypography) {
                     id: recordDoc.id,
                     title: data.title || data.mainPassage || recordDoc.id,
                     content: result.content,
-                    originalContent: cloneJson(data.content)
+                    sourceContent: cloneJson(sourceContent),
+                    usedV1Backup: Boolean(data.typographyNormalizationV1?.originalContent)
                 });
             });
 
@@ -1614,10 +1665,11 @@ if (btnApplyTypography) {
             try {
                 await updateDoc(doc(db, 'devotionals', item.id), {
                     content: item.content,
-                    typographyNormalizationV1: {
+                    typographyNormalizationV2: {
                         version: TYPOGRAPHY_NORMALIZATION_VERSION,
                         migratedAt: new Date().toISOString(),
-                        originalContent: item.originalContent
+                        source: item.usedV1Backup ? 'typographyNormalizationV1.originalContent' : 'content',
+                        ...(item.usedV1Backup ? {} : { originalContent: item.sourceContent })
                     }
                 });
                 success++;
