@@ -24,37 +24,21 @@ export function render(container) {
             </div>
         </div>
 
-        <!-- Filtros + Feed -->
+        <!-- Busca + Feed -->
         <div class="data-container mt-4">
-            <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0;">
-                    <summary style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; color: var(--text-muted);"><i class="ph ph-funnel"></i> Filtrar e Buscar Registros</summary>
-                    <div class="details-content" style="padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
-                        <input type="text" id="filterKeyword" placeholder="Buscar termo ou passagem" style="width: 100%;">
-                        <select id="filterType" style="width: 100%;">
-                            <option value="">Todos os Tipos</option>
-                            <option value="devocional">Devocional</option>
-                            <option value="culto_domestico">Culto Doméstico</option>
-                            <option value="aula">Aula</option>
-                            <option value="ebd">EBD</option>
-                            <option value="pregacao">Pregação</option>
-                            <option value="anotacoes_gerais">Anotações Gerais</option>
-                            <option value="outros">Outros</option>
-                        </select>
-                        <div class="filter-dates" style="display: flex; gap: 10px; width: 100%;">
-                            <input type="date" id="filterDateStart" title="Data Inicial" style="flex: 1;">
-                            <input type="date" id="filterDateEnd" title="Data Final" style="flex: 1;">
-                        </div>
-                        <input type="text" id="filterAuthor" placeholder="Filtrar por autor" style="width: 100%;">
-                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer;">
-                            <input type="checkbox" id="filterFavorites" style="width: auto; accent-color: var(--primary-color);">
-                            <i class="ph ph-star" style="color:#3D6FA3;"></i> Apenas favoritos
-                        </label>
-                        <button type="button" id="btnApplyFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
-                        <button type="button" id="btnClearFilters" class="btn-clear-filters" style="display: none;"><i class="ph ph-x-circle"></i> Limpar Filtros</button>
-                    </div>
-                </details>
-                <button type="button" id="btnRandom" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Sortear Devocional Aleatório">
+            <div class="records-list-toolbar">
+                <div class="records-search-shell">
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" id="recordsSearchInput" placeholder="Buscar nos registros..." aria-label="Buscar nos registros" autocomplete="off">
+                    <button type="button" id="recordsSearchClear" class="records-search-clear" aria-label="Limpar busca" title="Limpar busca" hidden>
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+                <button type="button" id="btnFavoritesToggle" class="records-favorites-toggle" aria-pressed="false" title="Mostrar somente favoritos">
+                    <i class="ph ph-star"></i>
+                    <span>Favoritos</span>
+                </button>
+                <button type="button" id="btnRandom" class="btn-secondary records-random-btn" title="Sortear Registro Aleatório">
                     <i class="ph ph-shuffle"></i> Sortear Registro
                 </button>
             </div>
@@ -1285,15 +1269,17 @@ export function init(firebaseDb, firebaseAuth) {
         }
     };
 
-    const renderFeed = (arr, replace = true) => {
+    const renderFeed = (arr, replace = true, emptyState = null) => {
         const feed = document.getElementById('devotionalsFeed');
         if (!feed) return;
 
         if (replace && arr.length === 0) {
+            const icon = emptyState?.icon || 'ph-book-open';
+            const message = emptyState?.message || 'Comece seu diário espiritual.<br>Toque no <strong>+</strong> para registrar o que o Senhor falou.';
             feed.innerHTML = `
                 <div class="records-empty-state">
-                    <i class="ph ph-book-open"></i>
-                    <p>Comece seu diário espiritual.<br>Toque no <strong>+</strong> para registrar o que o Senhor falou.</p>
+                    <i class="ph ${icon}"></i>
+                    <p>${message}</p>
                 </div>`;
             return;
         }
@@ -1361,11 +1347,8 @@ export function init(firebaseDb, firebaseAuth) {
         }
         // Vibrate feedback
         navigator.vibrate?.(30);
-        // If favorites filter is active, remove card from view when deselected
-        if (filterState.favorites && !newVal) {
-            const card = document.getElementById(`rc-${id}`);
-            if (card) { card.style.transition = 'opacity 0.2s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 200); }
-        }
+        // Reaplica busca/favoritos para refletir imediatamente o novo estado.
+        if (hasActiveRecordView()) renderRecordListState();
     };
     window._toggleRecordFavorito = toggleFavorito;
 
@@ -2135,6 +2118,8 @@ export function init(firebaseDb, firebaseAuth) {
             console.error("Erro ao carregar estatísticas:", err);
             statsRecords = allRecords.slice(); // fallback: usa o que estiver carregado
         }
+        rebuildSearchIndex();
+        if (hasActiveRecordView()) renderRecordListState();
         updateStatsCard();
     };
 
@@ -2224,8 +2209,10 @@ export function init(firebaseDb, firebaseAuth) {
                 uppercase: true
             });
 
-            if (isFirst) {
-                initAutocomplete();
+            if (isFirst) initAutocomplete();
+            if (hasActiveRecordView()) {
+                renderRecordListState();
+            } else if (isFirst) {
                 renderFeed(newRecords, true);
             } else {
                 renderFeed(newRecords, false);
@@ -2233,7 +2220,10 @@ export function init(firebaseDb, firebaseAuth) {
             updateStatsCard();
 
             if (sentinel) {
-                if (allLoaded) {
+                if (hasActiveRecordView()) {
+                    sentinel.innerHTML = '';
+                    if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+                } else if (allLoaded) {
                     sentinel.innerHTML = `<div class="list-end-msg"><i class="ph ph-check-circle"></i> Você chegou ao início do seu diário.</div>`;
                     if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
                 } else {
@@ -2267,77 +2257,234 @@ export function init(firebaseDb, firebaseAuth) {
         await refreshStats();
     };
 
-    // --- FILTROS E BUSCA ---
-    const filterState = { keyword: '', type: '', author: '', dateStart: '', dateEnd: '', favorites: false };
+    // --- BUSCA INSTANTÂNEA ---
+    const SEARCH_MONTHS = [
+        'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    const recordListState = { query: '', favorites: false };
+    const searchIndex = new Map();
+    let searchInputTimer = null;
 
-    const hasActiveFilter = () =>
-        !!(filterState.keyword || filterState.type || filterState.author || filterState.dateStart || filterState.dateEnd || filterState.favorites);
+    const normalizeSearchText = (value) => String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-    const applyFilterToArray = (arr) => arr.filter(r => {
-        if (filterState.type && r.recordType !== filterState.type) return false;
-        if (filterState.keyword) {
-            const k = filterState.keyword;
-            if (!(r.mainPassage?.toLowerCase().includes(k) || r.title?.toLowerCase().includes(k) || r.keywords?.some(kw => kw.toLowerCase().includes(k)))) return false;
+    const htmlToSearchText = (html) => {
+        if (!html) return '';
+        const container = document.createElement('div');
+        container.innerHTML = String(html);
+        return container.textContent || container.innerText || '';
+    };
+
+    const buildDateSearchText = (dateValue) => {
+        if (!dateValue || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue || '';
+        const [year, month, day] = dateValue.split('-');
+        const monthIndex = Number(month) - 1;
+        const monthName = SEARCH_MONTHS[monthIndex];
+        if (!monthName) return dateValue;
+        return [
+            dateValue,
+            `${day}/${month}/${year}`,
+            `${day} ${month} ${year}`,
+            `${day} ${monthName} ${year}`,
+            `${monthName} ${year}`,
+            monthName,
+            month,
+            year
+        ].join(' ');
+    };
+
+    const buildSearchEntry = (record) => {
+        const authors = Array.isArray(record.author) ? record.author : [record.author || ''];
+        const links = Array.isArray(record.links)
+            ? record.links.flatMap(link => [link?.title || '', link?.url || ''])
+            : [];
+        const questions = Array.isArray(record.content?.questions) ? record.content.questions : [];
+        const guidedText = questions.flatMap(item => [item?.q || '', htmlToSearchText(item?.a || '')]);
+        const primaryParts = [record.title || '', record.mainPassage || ''];
+        const metadataParts = [
+            buildDateSearchText(record.date),
+            record.relatedPassages || '',
+            RECORD_TYPE_LABELS[record.recordType] || record.recordType || '',
+            String(record.recordType || '').replace(/_/g, ' '),
+            ...authors,
+            ...(record.keywords || []),
+            ...links
+        ];
+        const contentParts = [htmlToSearchText(record.content?.texto || ''), ...guidedText];
+        const primaryItems = primaryParts.map(normalizeSearchText).filter(Boolean);
+        const primary = normalizeSearchText(primaryParts.join(' '));
+        const metadata = normalizeSearchText(metadataParts.join(' '));
+        const content = normalizeSearchText(contentParts.join(' '));
+        return {
+            record,
+            primaryItems,
+            primary,
+            metadata,
+            content,
+            combined: [primary, metadata, content].filter(Boolean).join(' ')
+        };
+    };
+
+    const rebuildSearchIndex = () => {
+        searchIndex.clear();
+        getCompleteRecordSource().forEach(record => {
+            searchIndex.set(record.id, buildSearchEntry(record));
+        });
+    };
+
+    const getSearchTerms = (query) => [...new Set(normalizeSearchText(query).split(' ').filter(Boolean))];
+
+    const scoreSearchEntry = (entry, normalizedQuery, terms) => {
+        let score = 0;
+        if (entry.primaryItems.some(item => item === normalizedQuery)) score += 1000;
+        else if (entry.primaryItems.some(item => item.startsWith(normalizedQuery))) score += 820;
+        else if (entry.primary.split(' ').some(word => word.startsWith(normalizedQuery))) score += 700;
+        else if (entry.primary.includes(normalizedQuery)) score += 600;
+        else if (entry.metadata.includes(normalizedQuery)) score += 440;
+        else if (entry.content.includes(normalizedQuery)) score += 280;
+
+        terms.forEach(term => {
+            if (entry.primaryItems.some(item => item === term)) score += 100;
+            else if (entry.primary.split(' ').some(word => word.startsWith(term))) score += 70;
+            else if (entry.primary.includes(term)) score += 50;
+            else if (entry.metadata.includes(term)) score += 25;
+            else if (entry.content.includes(term)) score += 10;
+        });
+        return score;
+    };
+
+    const compareRecordsByRecency = (a, b) => {
+        const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+        if (dateCompare !== 0) return dateCompare;
+        const timeA = String(a.updatedAt || a.createdAt || '');
+        const timeB = String(b.updatedAt || b.createdAt || '');
+        return timeB.localeCompare(timeA);
+    };
+
+    const getRecordListResults = () => {
+        const normalizedQuery = normalizeSearchText(recordListState.query);
+        const terms = getSearchTerms(normalizedQuery);
+        let results;
+
+        if (terms.length) {
+            results = Array.from(searchIndex.values())
+                .filter(entry => terms.every(term => entry.combined.includes(term)))
+                .map(entry => ({ record: entry.record, score: scoreSearchEntry(entry, normalizedQuery, terms) }))
+                .sort((a, b) => (b.score - a.score) || compareRecordsByRecency(a.record, b.record))
+                .map(item => item.record);
+        } else {
+            results = getCompleteRecordSource().slice().sort(compareRecordsByRecency);
         }
-        if (filterState.author && !(r.author && (Array.isArray(r.author) ? r.author.join(' ') : r.author).toLowerCase().includes(filterState.author))) return false;
-        if (filterState.dateStart && r.date < filterState.dateStart) return false;
-        if (filterState.dateEnd && r.date > filterState.dateEnd) return false;
-        if (filterState.favorites && !r.favorito) return false;
-        return true;
-    });
+
+        if (recordListState.favorites) results = results.filter(record => record.favorito);
+        return results;
+    };
+
+    const hasActiveRecordView = () => !!(normalizeSearchText(recordListState.query) || recordListState.favorites);
+
+    const syncRecordsSentinel = () => {
+        const sentinel = document.getElementById('devotionalsSentinel');
+        if (!sentinel) return;
+        if (hasActiveRecordView()) {
+            sentinel.innerHTML = '';
+            if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+        } else if (allLoaded) {
+            sentinel.innerHTML = `<div class="list-end-msg"><i class="ph ph-check-circle"></i> Você chegou ao início do seu diário.</div>`;
+            if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+        } else {
+            sentinel.innerHTML = '';
+            initSentinelObserver();
+        }
+    };
+
+    const getRecordListEmptyState = () => {
+        if (normalizeSearchText(recordListState.query) && recordListState.favorites) {
+            return { icon: 'ph-star', message: 'Nenhum favorito corresponde à sua busca.' };
+        }
+        if (recordListState.favorites) {
+            return { icon: 'ph-star', message: 'Você ainda não possui registros favoritos.' };
+        }
+        return { icon: 'ph-magnifying-glass', message: 'Nenhum registro corresponde à sua busca.' };
+    };
+
+    const renderRecordListState = () => {
+        const clearButton = document.getElementById('recordsSearchClear');
+        if (clearButton) clearButton.hidden = !document.getElementById('recordsSearchInput')?.value;
+
+        if (hasActiveRecordView()) {
+            renderFeed(getRecordListResults(), true, getRecordListEmptyState());
+        } else {
+            renderFeed(allRecords, true);
+        }
+        syncRecordsSentinel();
+    };
+
+    const searchInput = document.getElementById('recordsSearchInput');
+    const searchClearButton = document.getElementById('recordsSearchClear');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            if (searchClearButton) searchClearButton.hidden = !searchInput.value;
+            clearTimeout(searchInputTimer);
+            searchInputTimer = setTimeout(() => {
+                recordListState.query = searchInput.value;
+                renderRecordListState();
+            }, 80);
+        });
+    }
+    if (searchClearButton) {
+        searchClearButton.addEventListener('click', () => {
+            clearTimeout(searchInputTimer);
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            recordListState.query = '';
+            searchClearButton.hidden = true;
+            renderRecordListState();
+        });
+    }
+
+    const favoritesToggle = document.getElementById('btnFavoritesToggle');
+    if (favoritesToggle) {
+        favoritesToggle.addEventListener('click', () => {
+            recordListState.favorites = !recordListState.favorites;
+            favoritesToggle.classList.toggle('active', recordListState.favorites);
+            favoritesToggle.setAttribute('aria-pressed', String(recordListState.favorites));
+            favoritesToggle.title = recordListState.favorites
+                ? 'Mostrar todos os registros'
+                : 'Mostrar somente favoritos';
+            const icon = favoritesToggle.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('ph', !recordListState.favorites);
+                icon.classList.toggle('ph-fill', recordListState.favorites);
+            }
+            renderRecordListState();
+        });
+    }
 
     const getShufflePool = (excludeId = null) => {
-        const source = statsRecords.length ? statsRecords : allRecords;
-        let pool = hasActiveFilter() ? applyFilterToArray(source) : source.slice();
+        let pool = hasActiveRecordView()
+            ? getRecordListResults()
+            : (statsRecords.length ? statsRecords.slice() : allRecords.slice());
         if (excludeId) pool = pool.filter(x => x.id !== excludeId);
         return pool;
     };
-
-    const syncClearFiltersBtn = () => {
-        const btn = document.getElementById('btnClearFilters');
-        if (btn) btn.style.display = hasActiveFilter() ? 'flex' : 'none';
-    };
-
-    const btnApplyFilters = document.getElementById('btnApplyFilters');
-    if (btnApplyFilters) {
-        btnApplyFilters.onclick = () => {
-            filterState.keyword = document.getElementById('filterKeyword').value.toLowerCase().trim();
-            filterState.type = document.getElementById('filterType').value;
-            filterState.author = document.getElementById('filterAuthor').value.toLowerCase().trim();
-            filterState.dateStart = document.getElementById('filterDateStart').value;
-            filterState.dateEnd = document.getElementById('filterDateEnd').value;
-            filterState.favorites = document.getElementById('filterFavorites')?.checked || false;
-            syncClearFiltersBtn();
-            const filterSource = statsRecords.length ? statsRecords : allRecords;
-            renderFeed(applyFilterToArray(filterSource), true);
-        };
-    }
-
-    const btnClearFilters = document.getElementById('btnClearFilters');
-    if (btnClearFilters) {
-        btnClearFilters.onclick = () => {
-            filterState.keyword = ''; filterState.type = ''; filterState.author = '';
-            filterState.dateStart = ''; filterState.dateEnd = ''; filterState.favorites = false;
-            const kw = document.getElementById('filterKeyword'); if (kw) kw.value = '';
-            const tp = document.getElementById('filterType'); if (tp) tp.value = '';
-            const au = document.getElementById('filterAuthor'); if (au) au.value = '';
-            const ds = document.getElementById('filterDateStart'); if (ds) ds.value = '';
-            const de = document.getElementById('filterDateEnd'); if (de) de.value = '';
-            const fv = document.getElementById('filterFavorites'); if (fv) fv.checked = false;
-            syncClearFiltersBtn();
-            renderFeed(allRecords, true);
-        };
-    }
 
     const btnRandom = document.getElementById('btnRandom');
     if (btnRandom) {
         btnRandom.onclick = async () => {
             const user = auth.currentUser;
             if (!user) return;
-            // When filters active, draw from the complete filtered pool
-            if (hasActiveFilter()) {
+            // Com busca/favoritos ativos, sorteia exatamente dentro dos resultados visíveis.
+            if (hasActiveRecordView()) {
                 const pool = getShufflePool();
-                if (pool.length === 0) return showAlert('Nenhum item disponível com os filtros atuais.');
+                if (pool.length === 0) return showAlert('Nenhum registro disponível na busca atual.');
                 window.openReadingMode(pool[Math.floor(Math.random() * pool.length)].id, true);
                 return;
             }

@@ -80,7 +80,7 @@ Para consultas com várias palavras, a relevância deve considerar o conjunto co
 * Ao ativar, a lista deve usar a coleção completa disponível em `statsRecords`, e não apenas os cards já paginados.
 * Se houver uma busca digitada, o toggle deve restringir os resultados da busca aos favoritos.
 * Ao desfavoritar um item enquanto o toggle está ativo, esse item deve sair da lista.
-* Ao desativar, a busca atual permanece aplicada; se o campo estiver vazio, o feed retorna ao comportamento padrão definido na decisão pendente da seção 12.
+* Ao desativar, a busca atual permanece aplicada; se o campo estiver vazio, o feed volta ao comportamento paginado padrão.
 
 ## 5. Fluxo principal
 
@@ -175,5 +175,5 @@ Estado temporário de interface:
 
 ## 12. Dúvidas pendentes
 
-* [Pendente] Ao desligar o toggle com a busca vazia, o feed deve voltar ao comportamento paginado atual — carregando mais ao rolar — ou deve renderizar todos os registros de uma vez?
+Nenhuma. O usuário confirmou que, com busca vazia e favoritos desligado, o feed deve voltar à paginação normal. Com busca preenchida, favoritos restringe os resultados pesquisados; com busca vazia, considera a coleção completa.
 

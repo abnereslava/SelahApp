@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v48'; // compartilhamento em PDF e trilha completa de registros
+const CACHE_NAME = 'selah-pwa-spa-v49'; // busca instantânea e toggle de favoritos nos registros
 const urlsToCache = [
   './',
   './index.html',
