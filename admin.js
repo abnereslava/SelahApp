@@ -233,6 +233,7 @@ const fetchInvitedEmails = async () => {
         applyInvitedFilters();
         populateMigrationTargets();
         if (typeof populateImportTargets === 'function') populateImportTargets();
+        if (typeof populateTypographyTargets === 'function') populateTypographyTargets();
     } catch (err) {
         console.error("Erro ao carregar whitelist:", err);
         showAlert(`Erro ao carregar a lista de e-mails convidados. Detalhes: ${err.message}`);
@@ -1265,6 +1266,380 @@ if (btnClearImportLogs) {
 
 // Popula o seletor caso a whitelist já tenha sido carregada
 populateImportTargets();
+
+// ==========================================================
+// NORMALIZAÇÃO TIPOGRÁFICA DOS REGISTROS (migração versionada)
+// ==========================================================
+
+const TYPOGRAPHY_NORMALIZATION_VERSION = '1.0.0';
+const TYPOGRAPHY_BLUE = '#0066cc';
+const TYPOGRAPHY_SAFE_DOC_BYTES = 850000;
+
+const typographyTargetEmail = document.getElementById('typographyTargetEmail');
+const typographyTargetUid = document.getElementById('typographyTargetUid');
+const btnPreviewTypography = document.getElementById('btnPreviewTypography');
+const btnApplyTypography = document.getElementById('btnApplyTypography');
+const typographyPreview = document.getElementById('typographyPreview');
+const typographyLogs = document.getElementById('typographyLogs');
+const btnClearTypographyLogs = document.getElementById('btnClearTypographyLogs');
+
+let typographyPreviewState = null;
+
+function populateTypographyTargets() {
+    if (!typographyTargetEmail) return;
+
+    const previous = typographyTargetEmail.value;
+    const options = getMigrationTargetOptions();
+    typographyTargetEmail.innerHTML = '<option value="">Selecione a conta...</option>';
+
+    options.forEach(option => {
+        const el = document.createElement('option');
+        el.value = option.email;
+        el.dataset.uid = option.uid || '';
+        el.textContent = option.label;
+        typographyTargetEmail.appendChild(el);
+    });
+
+    if (previous && options.some(option => option.email === previous)) {
+        typographyTargetEmail.value = previous;
+    }
+    syncTypographyTarget();
+}
+
+function syncTypographyTarget() {
+    if (!typographyTargetEmail || !typographyTargetUid) return;
+    const selected = typographyTargetEmail.selectedOptions[0];
+    typographyTargetUid.value = selected?.dataset?.uid || '';
+    typographyPreviewState = null;
+    if (btnApplyTypography) btnApplyTypography.disabled = true;
+    if (typographyPreview) typographyPreview.style.display = 'none';
+}
+
+function logTypography(message, type = 'info') {
+    if (!typographyLogs) return;
+    const line = document.createElement('div');
+    line.style.color = type === 'error' ? '#f87171' : type === 'warning' ? '#fbbf24' : type === 'ok' ? '#86efac' : '#cbd5e1';
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    typographyLogs.appendChild(line);
+    typographyLogs.scrollTop = typographyLogs.scrollHeight;
+}
+
+const createTypographyStats = () => ({
+    cursorArtifactsRemoved: 0,
+    emptyBlocksRemoved: 0,
+    markdownHeadingsConverted: 0,
+    headingLevelsNormalized: 0,
+    versesStyled: 0,
+    separatorsRemoved: 0
+});
+
+const mergeTypographyStats = (target, source) => {
+    Object.keys(target).forEach(key => { target[key] += source[key] || 0; });
+};
+
+const elementHasVisibleContent = (element) => {
+    const text = (element.textContent || '').replace(/[\u200B\uFEFF\u00A0]/g, ' ').trim();
+    return Boolean(text || element.querySelector('img, video, audio, iframe'));
+};
+
+const replaceTag = (element, tagName) => {
+    const replacement = element.ownerDocument.createElement(tagName);
+    [...element.attributes].forEach(attr => replacement.setAttribute(attr.name, attr.value));
+    while (element.firstChild) replacement.appendChild(element.firstChild);
+    element.replaceWith(replacement);
+    return replacement;
+};
+
+const unwrapElement = (element) => {
+    const parent = element.parentNode;
+    if (!parent) return;
+    while (element.firstChild) parent.insertBefore(element.firstChild, element);
+    element.remove();
+};
+
+const startsWithBibleReference = (text) => {
+    const normalized = text.replace(/\s+/g, ' ').trim();
+    const verseMarker = /^(?:vv?\.?\s*)?\d+\s*(?:[-–—]\s*\d+)?\s*[:：]/iu;
+    const bookReference = /^(?:(?:[1-3]|I{1,3})\s*)?[\p{L}.]+(?:\s+[\p{L}.]+){0,3}\s+\d+\s*:\s*\d+(?:\s*[-–—]\s*\d+)?\s*[:：-]?/iu;
+    return verseMarker.test(normalized) || bookReference.test(normalized);
+};
+
+const isVerseBlock = (element) => {
+    const text = (element.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!startsWithBibleReference(text)) return false;
+
+    const hasQuotation = /[“”"«»]/u.test(text);
+    const hasVerseFormatting = Boolean(
+        element.querySelector('[style*="color"]') ||
+        (element.querySelector('strong') && element.querySelector('em'))
+    );
+    return hasQuotation || hasVerseFormatting;
+};
+
+const styleVerseBlock = (element) => {
+    element.querySelectorAll('strong, em').forEach(unwrapElement);
+    element.querySelectorAll('[style]').forEach(node => {
+        node.style.removeProperty('color');
+        if (!node.getAttribute('style')?.trim()) node.removeAttribute('style');
+    });
+
+    const strong = element.ownerDocument.createElement('strong');
+    const emphasis = element.ownerDocument.createElement('em');
+    strong.style.color = TYPOGRAPHY_BLUE;
+    while (element.firstChild) emphasis.appendChild(element.firstChild);
+    strong.appendChild(emphasis);
+    element.appendChild(strong);
+};
+
+const normalizeTypographyHtml = (html) => {
+    if (typeof html !== 'string' || !html.trim()) {
+        return { html: html || '', changed: false, stats: createTypographyStats() };
+    }
+
+    const stats = createTypographyStats();
+    const documentFragment = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    const body = documentFragment.body;
+
+    body.querySelectorAll('.ql-cursor').forEach(node => {
+        node.remove();
+        stats.cursorArtifactsRemoved++;
+    });
+
+    body.querySelectorAll('h1').forEach(node => {
+        replaceTag(node, 'h2');
+        stats.headingLevelsNormalized++;
+    });
+
+    body.querySelectorAll('h4, h5, h6').forEach(node => {
+        replaceTag(node, 'h3');
+        stats.headingLevelsNormalized++;
+    });
+
+    body.querySelectorAll('p').forEach(paragraph => {
+        const text = (paragraph.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
+        const markdownHeading = text.match(/^(#{2,3})\s*(.*?)\s*$/s);
+        if (!markdownHeading) return;
+
+        if (!markdownHeading[2]) {
+            paragraph.remove();
+            stats.emptyBlocksRemoved++;
+            return;
+        }
+
+        const heading = documentFragment.createElement(markdownHeading[1].length === 2 ? 'h2' : 'h3');
+        heading.textContent = markdownHeading[2];
+        paragraph.replaceWith(heading);
+        stats.markdownHeadingsConverted++;
+    });
+
+    body.querySelectorAll('p, h2, h3').forEach(element => {
+        if (!elementHasVisibleContent(element)) {
+            element.remove();
+            stats.emptyBlocksRemoved++;
+        }
+    });
+
+    body.querySelectorAll('p').forEach(paragraph => {
+        if (!isVerseBlock(paragraph)) return;
+        styleVerseBlock(paragraph);
+        stats.versesStyled++;
+    });
+
+    body.querySelectorAll('hr').forEach(separator => {
+        const previous = separator.previousElementSibling;
+        const next = separator.nextElementSibling;
+        const nextIsHeading = next && /^(H2|H3)$/u.test(next.tagName);
+        const previousIsHeading = previous && /^(H2|H3)$/u.test(previous.tagName);
+        const redundant = !previous || !next || previous.tagName === 'HR' || next.tagName === 'HR' || previousIsHeading || nextIsHeading;
+        if (redundant) {
+            separator.remove();
+            stats.separatorsRemoved++;
+        }
+    });
+
+    const normalizedHtml = body.innerHTML.trim();
+    return { html: normalizedHtml, changed: normalizedHtml !== html.trim(), stats };
+};
+
+const cloneJson = value => JSON.parse(JSON.stringify(value || {}));
+
+const normalizeRecordContent = (content) => {
+    const normalized = cloneJson(content);
+    const stats = createTypographyStats();
+    let changed = false;
+
+    const normalizeField = (object, key) => {
+        if (!object || typeof object[key] !== 'string') return;
+        const result = normalizeTypographyHtml(object[key]);
+        if (result.changed) {
+            object[key] = result.html;
+            changed = true;
+        }
+        mergeTypographyStats(stats, result.stats);
+    };
+
+    normalizeField(normalized, 'texto');
+    ['c1', 'c2', 'c3', 'c4', 'c5'].forEach(key => normalizeField(normalized, key));
+
+    if (Array.isArray(normalized.questions)) {
+        normalized.questions.forEach(question => normalizeField(question, 'a'));
+    }
+
+    return { content: normalized, changed, stats };
+};
+
+const estimateMigratedDocumentBytes = (data, normalizedContent) => {
+    const candidate = {
+        ...data,
+        content: normalizedContent,
+        typographyNormalizationV1: {
+            version: TYPOGRAPHY_NORMALIZATION_VERSION,
+            migratedAt: new Date().toISOString(),
+            originalContent: data.content
+        }
+    };
+    return new TextEncoder().encode(JSON.stringify(candidate)).length;
+};
+
+const renderTypographyPreview = state => {
+    if (!typographyPreview) return;
+    const { total, changes, unchanged, migrated, oversized, stats } = state;
+    typographyPreview.innerHTML = `
+        <strong style="color:var(--text-main);">Prévia concluída — nenhuma gravação realizada.</strong><br>
+        Registros encontrados: <strong>${total}</strong> · A alterar: <strong>${changes.length}</strong> · Sem mudança necessária: <strong>${unchanged}</strong> · Já normalizados: <strong>${migrated}</strong> · Acima da margem segura: <strong>${oversized}</strong><br>
+        Ajustes detectados: ${stats.versesStyled} versículo(s), ${stats.markdownHeadingsConverted} marcador(es) Markdown, ${stats.headingLevelsNormalized} nível(is) de título, ${stats.emptyBlocksRemoved} bloco(s) vazio(s), ${stats.cursorArtifactsRemoved} resíduo(s) do editor e ${stats.separatorsRemoved} separador(es) redundante(s).
+    `;
+    typographyPreview.style.display = 'block';
+};
+
+if (typographyTargetEmail) typographyTargetEmail.addEventListener('change', syncTypographyTarget);
+
+if (btnClearTypographyLogs) {
+    btnClearTypographyLogs.addEventListener('click', () => {
+        if (typographyLogs) typographyLogs.innerHTML = '';
+        logTypography('Console limpo.');
+    });
+}
+
+if (btnPreviewTypography) {
+    btnPreviewTypography.addEventListener('click', async () => {
+        const uid = typographyTargetUid?.value?.trim();
+        const email = typographyTargetEmail?.value || '';
+        if (!uid) return showAlert('Selecione uma conta com UID conhecido.');
+
+        btnPreviewTypography.disabled = true;
+        if (btnApplyTypography) btnApplyTypography.disabled = true;
+        typographyPreviewState = null;
+        if (typographyLogs) typographyLogs.innerHTML = '';
+        logTypography(`Analisando os registros de ${email || uid}...`, 'warning');
+
+        try {
+            const snapshot = await getDocs(query(
+                collection(db, 'devotionals'),
+                where('userId', '==', uid)
+            ));
+
+            const state = {
+                uid,
+                email,
+                total: snapshot.size,
+                changes: [],
+                unchanged: 0,
+                migrated: 0,
+                oversized: 0,
+                stats: createTypographyStats()
+            };
+
+            snapshot.docs.forEach(recordDoc => {
+                const data = recordDoc.data();
+                if (data.typographyNormalizationV1?.version === TYPOGRAPHY_NORMALIZATION_VERSION) {
+                    state.migrated++;
+                    return;
+                }
+
+                const result = normalizeRecordContent(data.content);
+                if (!result.changed) {
+                    state.unchanged++;
+                    return;
+                }
+
+                if (estimateMigratedDocumentBytes(data, result.content) > TYPOGRAPHY_SAFE_DOC_BYTES) {
+                    state.oversized++;
+                    return;
+                }
+
+                mergeTypographyStats(state.stats, result.stats);
+                state.changes.push({
+                    id: recordDoc.id,
+                    title: data.title || data.mainPassage || recordDoc.id,
+                    content: result.content,
+                    originalContent: cloneJson(data.content)
+                });
+            });
+
+            typographyPreviewState = state;
+            renderTypographyPreview(state);
+            logTypography(`Análise concluída: ${state.changes.length} de ${state.total} registro(s) precisam de alteração.`, 'ok');
+            if (state.oversized) logTypography(`${state.oversized} registro(s) foram preservados por excederem a margem segura de tamanho.`, 'warning');
+            if (btnApplyTypography) btnApplyTypography.disabled = state.changes.length === 0;
+        } catch (error) {
+            console.error('Erro na análise tipográfica:', error);
+            logTypography(`Erro ao analisar: ${error.message}`, 'error');
+            showAlert('Não foi possível analisar os registros. Consulte o console da ferramenta.');
+        } finally {
+            btnPreviewTypography.disabled = false;
+        }
+    });
+}
+
+if (btnApplyTypography) {
+    btnApplyTypography.addEventListener('click', async () => {
+        const state = typographyPreviewState;
+        const currentUid = typographyTargetUid?.value?.trim();
+        if (!state || !state.changes.length || state.uid !== currentUid) {
+            return showAlert('Execute novamente a análise para esta conta antes de aplicar.');
+        }
+
+        const confirmed = await showConfirm(`Aplicar a normalização em ${state.changes.length} registro(s) de ${state.email || state.uid}? O conteúdo original será salvo em cada registro.`);
+        if (!confirmed) return;
+
+        btnApplyTypography.disabled = true;
+        btnPreviewTypography.disabled = true;
+        let success = 0;
+        let failures = 0;
+        logTypography(`Iniciando a atualização de ${state.changes.length} registro(s)...`, 'warning');
+
+        for (let index = 0; index < state.changes.length; index++) {
+            const item = state.changes[index];
+            try {
+                await updateDoc(doc(db, 'devotionals', item.id), {
+                    content: item.content,
+                    typographyNormalizationV1: {
+                        version: TYPOGRAPHY_NORMALIZATION_VERSION,
+                        migratedAt: new Date().toISOString(),
+                        originalContent: item.originalContent
+                    }
+                });
+                success++;
+            } catch (error) {
+                failures++;
+                logTypography(`Falha em “${item.title}”: ${error.message}`, 'error');
+            }
+
+            if ((index + 1) % 25 === 0 || index === state.changes.length - 1) {
+                logTypography(`Progresso: ${index + 1}/${state.changes.length} · atualizados: ${success} · falhas: ${failures}`);
+            }
+        }
+
+        logTypography(`Concluído: ${success} atualizado(s) e ${failures} falha(s).`, failures ? 'warning' : 'ok');
+        showAlert(`Normalização concluída.\nAtualizados: ${success}\nFalhas: ${failures}`);
+        typographyPreviewState = null;
+        btnApplyTypography.disabled = true;
+        btnPreviewTypography.disabled = false;
+    });
+}
+
+populateTypographyTargets();
 
 // ── ÍNDICE: disparar a query do Aleatório e revelar o link de criação ───────
 {
