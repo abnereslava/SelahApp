@@ -2712,7 +2712,10 @@ a.chain-tl-title:hover {
 }
 
 .reading-body p {
-    margin: 0;
+    margin: 0 0 0.65em;
+}
+.reading-body p:last-child {
+    margin-bottom: 0;
 }
 .reading-body h4 {
     font-family: 'Playfair Display', serif;
@@ -2732,6 +2735,9 @@ a.chain-tl-title:hover {
 .ql-editor h3,
 .reading-body h3,
 .record-text h3 { font-size: 1.08em; line-height: 1.35; }
+
+.reading-body h2 { margin: 0.9em 0 0.35em; }
+.reading-body h3 { margin: 0.75em 0 0.3em; }
 
 /* Records feed container */
 .records-feed {
