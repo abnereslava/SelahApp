@@ -6,7 +6,7 @@ Implementar normalização conservadora, validar em prévia, aplicar com cópia 
 
 ## Tarefa 1 — Normalizador HTML
 
-Status: Em andamento
+Status: Concluída
 
 ### Objetivo
 
@@ -34,7 +34,7 @@ Estruturas ambíguas devem permanecer inalteradas.
 
 ## Tarefa 2 — Interface administrativa
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -63,7 +63,7 @@ A execução deve ignorar documentos já migrados.
 
 ## Tarefa 3 — Semântica do formato orientado
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
@@ -91,7 +91,7 @@ O editor continua armazenando as perguntas separadamente.
 
 ## Tarefa 4 — Publicação, execução e verificação
 
-Status: Pendente
+Status: Concluída
 
 ### Objetivo
 
