@@ -15,7 +15,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const ADMIN_EMAIL = 'abner.eslava@gmail.com';
-const TYPOGRAPHY_SELF_SERVICE_EMAIL = 'drivedoabner@gmail.com';
 
 const getWhitelistEntryByEmail = async (email) => {
     const directSnap = await getDoc(doc(db, "whitelisted_emails", email));
@@ -34,24 +33,6 @@ const dashboardContainer = document.getElementById('dashboardContainer');
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         const email = user.email ? user.email.toLowerCase().trim() : '';
-        const isTypographySelfService = email === TYPOGRAPHY_SELF_SERVICE_EMAIL
-            && new URLSearchParams(window.location.search).get('typography-self-service') === '1';
-
-        if (isTypographySelfService) {
-            dashboardContainer.style.display = 'block';
-            document.querySelectorAll('main section').forEach(section => {
-                section.style.display = section.id === 'typographyNormalizationContainer' ? '' : 'none';
-            });
-            const emailSelect = document.getElementById('typographyTargetEmail');
-            const uidInput = document.getElementById('typographyTargetUid');
-            if (emailSelect) {
-                emailSelect.innerHTML = `<option value="${email}" data-uid="${user.uid}" selected>${email}</option>`;
-                emailSelect.disabled = true;
-            }
-            if (uidInput) uidInput.value = user.uid;
-            return;
-        }
-
         if (email === ADMIN_EMAIL) {
             // Acesso liberado
             dashboardContainer.style.display = 'block';
