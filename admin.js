@@ -1549,13 +1549,40 @@ const estimateMigratedDocumentBytes = (data, normalizedContent, sourceContent) =
     return new TextEncoder().encode(JSON.stringify(candidate)).length;
 };
 
+const escapeTypographyPreviewText = value => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+const getTypographyPreviewHtml = content => {
+    if (typeof content?.texto === 'string' && content.texto.trim()) return content.texto;
+    const questionAnswer = content?.questions?.find(question => typeof question?.a === 'string' && question.a.trim())?.a;
+    if (questionAnswer) return questionAnswer;
+    const columnKey = ['c1', 'c2', 'c3', 'c4', 'c5'].find(key => typeof content?.[key] === 'string' && content[key].trim());
+    return columnKey ? content[columnKey] : '';
+};
+
 const renderTypographyPreview = state => {
     if (!typographyPreview) return;
     const { total, changes, unchanged, migrated, oversized, stats } = state;
+    const sample = changes.find(item => item.title.includes('29/10/24'))
+        || changes.find(item => item.stats.quoteMarkersRemoved > 0)
+        || changes[0];
+    const sampleHtml = sample ? getTypographyPreviewHtml(sample.content) : '';
     typographyPreview.innerHTML = `
         <strong style="color:var(--text-main);">Prévia concluída — nenhuma gravação realizada.</strong><br>
         Registros encontrados: <strong>${total}</strong> · A alterar: <strong>${changes.length}</strong> · Sem mudança necessária: <strong>${unchanged}</strong> · Já normalizados: <strong>${migrated}</strong> · Acima da margem segura: <strong>${oversized}</strong><br>
         Ajustes detectados: ${stats.versesStyled} versículo(s), ${stats.quoteMarkersRemoved} marcador(es) <code>&gt;</code>, ${stats.markdownHeadingsConverted} marcador(es) Markdown, ${stats.headingLevelsNormalized} nível(is) de título, ${stats.emptyBlocksRemoved} bloco(s) vazio(s), ${stats.cursorArtifactsRemoved} resíduo(s) do editor e ${stats.separatorsRemoved} separador(es) redundante(s).
+        ${sampleHtml ? `
+            <details style="margin-top:12px;">
+                <summary style="cursor:pointer;font-weight:600;">Conferir amostra corrigida: ${escapeTypographyPreviewText(sample.title)}</summary>
+                <div class="reading-body" style="margin-top:10px;max-height:420px;overflow:auto;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:left;">
+                    ${sampleHtml}
+                </div>
+            </details>
+        ` : ''}
     `;
     typographyPreview.style.display = 'block';
 };
@@ -1624,7 +1651,8 @@ if (btnPreviewTypography) {
                     title: data.title || data.mainPassage || recordDoc.id,
                     content: result.content,
                     sourceContent: cloneJson(sourceContent),
-                    usedV1Backup: Boolean(data.typographyNormalizationV1?.originalContent)
+                    usedV1Backup: Boolean(data.typographyNormalizationV1?.originalContent),
+                    stats: result.stats
                 });
             });
 
