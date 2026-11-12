@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v50'; // busca instantânea e toggle de favoritas em bênçãos
+const CACHE_NAME = 'selah-pwa-spa-v51'; // normalização tipográfica dos registros
 const urlsToCache = [
   './',
   './index.html',
