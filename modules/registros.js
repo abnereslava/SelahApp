@@ -1451,7 +1451,7 @@ export function init(firebaseDb, firebaseAuth) {
         } else if (r.content?.questions) {
             bodyHtml = r.content.questions
                 .filter(q => q.a && q.a !== '<p><br></p>')
-                .map(q => `<h4>${q.q}</h4><div>${q.a}</div>`)
+                .map(q => `<h2>${q.q}</h2><div>${q.a}</div>`)
                 .join('');
         }
 
@@ -1660,12 +1660,12 @@ export function init(firebaseDb, firebaseAuth) {
         } else {
             if (r.content.questions) {
                 r.content.questions.forEach(q => {
-                    if (q.a && q.a !== '<p><br></p>') html += `<h4>${q.q}</h4><div>${q.a}</div>`;
+                    if (q.a && q.a !== '<p><br></p>') html += `<h2>${q.q}</h2><div>${q.a}</div>`;
                 });
             } else {
                 const qs = ["Contexto", "Sobre o que fala", "Revela sobre Deus", "Revela sobre o Homem", "Aplicação"];
                 [r.content.c1, r.content.c2, r.content.c3, r.content.c4, r.content.c5].forEach((c, i) => {
-                    if (c && c !== '<p><br></p>') html += `<h4>${qs[i]}</h4><div>${c}</div>`;
+                    if (c && c !== '<p><br></p>') html += `<h2>${qs[i]}</h2><div>${c}</div>`;
                 });
             }
         }
