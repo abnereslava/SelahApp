@@ -2508,8 +2508,33 @@ a.chain-tl-title:hover {
     font-size: 0.8rem;
     color: var(--primary-color);
     font-weight: 500;
-    margin-bottom: 8px;
     letter-spacing: 0.03em;
+}
+.reading-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.reading-share-btn--mobile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+}
+.reading-share-btn--desktop { display: none; }
+.reading-share-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
 }
 .reading-title {
     font-family: 'Playfair Display', serif;
@@ -2632,6 +2657,95 @@ a.chain-tl-title:hover {
     .reading-scroll { padding: 24px 18px 16px; }
     .reading-title { font-size: 1.4rem; }
     .reading-body { font-size: 0.95rem; }
+}
+
+/* Documento temporário usado exclusivamente pela exportação em PDF. */
+.pdf-export-document {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+    width: 720px;
+    padding: 0;
+    background: #ffffff;
+    color: #1b2126;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+}
+.pdf-export-document * { box-sizing: border-box; }
+.pdf-export-header,
+.pdf-export-meta-row,
+.pdf-export-links h2 { break-inside: avoid; }
+.pdf-export-date {
+    margin-bottom: 8px;
+    color: #2a5a8c;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.pdf-export-document h1,
+.pdf-export-document h2,
+.pdf-export-document h3,
+.pdf-export-document h4 {
+    color: #244f7a;
+    font-family: 'Playfair Display', Georgia, serif;
+}
+.pdf-export-document h1 {
+    margin: 0 0 6px;
+    color: #1b2126;
+    font-size: 28px;
+    line-height: 1.25;
+}
+.pdf-export-passage { margin-bottom: 8px; color: #63707b; }
+.pdf-export-type {
+    display: inline-block;
+    margin-bottom: 14px;
+    padding: 3px 8px;
+    border: 1px solid #d7e1e8;
+    border-radius: 4px;
+    color: #2a5a8c;
+    font-size: 11px;
+    font-weight: 600;
+}
+.pdf-export-meta { display: grid; gap: 5px; }
+.pdf-export-meta-row { display: flex; align-items: baseline; gap: 8px; }
+.pdf-export-meta-label {
+    min-width: 76px;
+    color: #63707b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.pdf-export-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.pdf-export-tag {
+    padding: 2px 6px;
+    border: 1px solid #d7e1e8;
+    border-radius: 4px;
+    color: #4e5b66;
+    font-size: 10px;
+}
+.pdf-export-document > hr {
+    margin: 18px 0;
+    border: none;
+    border-top: 1px solid #d7e1e8;
+}
+.pdf-export-body p { margin: 0; }
+.pdf-export-body ul,
+.pdf-export-body ol { margin: 0.35em 0; padding-left: 1.5em; }
+.pdf-export-body hr { margin: 16px 0; border: none; border-top: 1px solid #9aa8b3; }
+.pdf-export-body h1 { font-size: 21px; }
+.pdf-export-body h2 { font-size: 18px; }
+.pdf-export-body h3,
+.pdf-export-body h4 { margin: 1em 0 0.35em; font-size: 16px; }
+.pdf-export-links { margin-top: 22px; break-inside: avoid; }
+.pdf-export-links h2 { margin: 0 0 8px; font-size: 16px; }
+.pdf-export-links a {
+    display: block;
+    margin-bottom: 5px;
+    color: #2a5a8c;
+    overflow-wrap: anywhere;
 }
 
 /* ── Overlay dialog wrapper: no mobile, preenche o overlay e propaga o flex
@@ -3478,6 +3592,9 @@ a.chain-tl-title:hover {
         margin-right: 0 !important;
         width: 100% !important;
     }
+
+    .reading-share-btn--mobile { display: none; }
+    .reading-share-btn--desktop { display: inline-flex; }
 
     /* ── Reading bottom-bar sobe para o topo no desktop ── */
     .overlay-dialog .reading-bottom-bar {

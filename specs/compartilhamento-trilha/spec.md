@@ -6,9 +6,13 @@ Permitir que o usuário gere e compartilhe um arquivo PDF de um registro especí
 
 O PDF deve conter somente o registro atualmente aberto. A trilha de registros deve ser omitida do arquivo, assim como qualquer ação privada do aplicativo.
 
+Também corrigir a montagem da trilha dentro do modo leitura privado para que todos os títulos relacionados apareçam mesmo quando os cards antigos ainda não foram carregados pela rolagem do feed.
+
 ## 2. Contexto
 
 O Selah exibe registros em um modal de leitura que pode conter título, data, passagem principal, tipo, autoria, passagens relacionadas, temas, conteúdo formatado e links. Alguns registros também pertencem a uma trilha definida pelo campo `continuationOf`.
+
+O feed principal é paginado. A variável `allRecords` contém apenas os cards já carregados, enquanto `statsRecords` reúne a coleção completa do usuário. A trilha atual usa somente `allRecords`, por isso omite títulos antigos quando o usuário abre um registro recente antes de rolar a tela.
 
 O compartilhamento inicialmente considerado por link público exigiria uma coleção e regras próprias no Firebase. Essa abordagem foi descartada. O compartilhamento será feito por um PDF gerado localmente no navegador com os dados que já estão carregados no modo leitura.
 
@@ -21,7 +25,7 @@ O compartilhamento inicialmente considerado por link público exigiria uma cole�
 
 ### 4.1 Botão de compartilhamento
 
-* O botão deve existir somente no modo leitura de Registros.
+* O botão deve existir somente no modo leitura de Registros e estar disponível para todos os tipos de registro.
 * No mobile, deve ser discreto e ficar na mesma linha da data.
 * No desktop, deve ficar na barra superior/cabeçalho do diálogo de leitura.
 * O botão não deve aparecer nos cards, no formulário de escrita/edição nem nos PDFs.
@@ -81,7 +85,9 @@ O PDF não deve conter:
 * O arquivo não deve conter ações interativas privadas.
 * A geração do PDF não deve alterar o registro, seu favorito ou qualquer dado salvo.
 * O botão deve bloquear acionamentos repetidos enquanto o arquivo estiver sendo gerado.
-* [Pendente] Definir se o compartilhamento estará disponível somente para registros do tipo `devocional` ou para todos os tipos da área Registros.
+* O compartilhamento deve estar disponível para todos os tipos da área Registros.
+* A trilha exibida no modo leitura deve ser calculada sobre a coleção completa disponível em `statsRecords`, combinada com registros locais mais recentes de `allRecords`.
+* A correção da trilha não deve forçar o carregamento ou a renderização de todos os cards no feed.
 
 ## 7. Permissões
 
@@ -124,10 +130,12 @@ Dependência técnica prevista:
 * Usuário cancela o seletor de compartilhamento: manter o modal aberto e não exibir falha genérica.
 * Biblioteca indisponível ou falha de carregamento: exibir erro e não alterar o registro.
 * Trilha com vários registros: ignorar todos os outros e exportar apenas o registro aberto.
+* Trilha com registros anteriores que ainda não foram paginados no feed: mostrar seus títulos normalmente no modo leitura.
 
 ## 11. Critérios de aceite
 
 * [ ] Existe botão discreto de compartilhamento somente no modo leitura.
+* [ ] O botão aparece para todos os tipos de registro.
 * [ ] No mobile, o botão fica na mesma linha da data.
 * [ ] No desktop, o botão integra a barra superior do diálogo.
 * [ ] O botão gera um PDF A4 do registro aberto.
@@ -140,7 +148,9 @@ Dependência técnica prevista:
 * [ ] O fallback baixa o PDF quando o compartilhamento de arquivo não é suportado.
 * [ ] Cancelar o compartilhamento não fecha o modo leitura nem gera erro genérico.
 * [ ] Nenhum dado ou regra do Firebase é alterado.
+* [ ] A trilha privada mostra registros antigos mesmo sem rolar o feed principal.
+* [ ] O feed continua paginado e não precisa renderizar todos os cards para montar a trilha.
 
 ## 12. Dúvidas pendentes
 
-* [Pendente] O botão deve aparecer somente em registros do tipo **Devocional** ou em qualquer item da área **Registros**?
+Nenhuma. O usuário confirmou o compartilhamento para todos os tipos de registro e a exportação de somente um registro por PDF.

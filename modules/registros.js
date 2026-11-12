@@ -898,6 +898,16 @@ export function init(firebaseDb, firebaseAuth) {
     let sentinelObserver = null;
     const PAGE_SIZE = 15;
 
+    // A paginação mantém apenas parte dos registros em allRecords. Para recursos
+    // relacionais (como a trilha), combina a coleção completa das estatísticas
+    // com os dados locais mais recentes, sem renderizar cards adicionais no feed.
+    const getCompleteRecordSource = () => {
+        const recordsById = new Map();
+        statsRecords.forEach(record => recordsById.set(record.id, record));
+        allRecords.forEach(record => recordsById.set(record.id, record));
+        return Array.from(recordsById.values());
+    };
+
     const initAutocomplete = () => {
         const input = document.getElementById('continuationSearch');
         const dropdown = document.getElementById('continuationDropdown');
@@ -1131,6 +1141,150 @@ export function init(firebaseDb, firebaseAuth) {
         return { day: d, month: months[parseInt(m,10)-1], year: y };
     };
 
+    const buildPdfExportElement = ({ record, dateParts, typeLabel, authors, bodyHtml }) => {
+        const element = document.createElement('article');
+        element.className = 'pdf-export-document';
+
+        const metadataRows = [];
+        if (authors.length) {
+            const authorLabel = record.recordType === 'pregacao' ? 'Pregador' : 'Autor';
+            metadataRows.push(`
+                <div class="pdf-export-meta-row">
+                    <span class="pdf-export-meta-label">${authorLabel}</span>
+                    <span>${authors.map(author => author.toUpperCase()).join(', ')}</span>
+                </div>`);
+        }
+        if (record.relatedPassages) {
+            metadataRows.push(`
+                <div class="pdf-export-meta-row">
+                    <span class="pdf-export-meta-label">Passagens</span>
+                    <span>${record.relatedPassages}</span>
+                </div>`);
+        }
+        if (record.keywords?.length) {
+            metadataRows.push(`
+                <div class="pdf-export-meta-row">
+                    <span class="pdf-export-meta-label">Temas</span>
+                    <span class="pdf-export-tags">${record.keywords.map(keyword =>
+                        `<span class="pdf-export-tag">${globalKeywordIndex.get(keyword) || keyword}</span>`
+                    ).join('')}</span>
+                </div>`);
+        }
+
+        const linksHtml = record.links?.length
+            ? `<section class="pdf-export-links">
+                <h2>Links</h2>
+                ${record.links.map(link => `<a href="${link.url}">${link.title}</a>`).join('')}
+               </section>`
+            : '';
+
+        element.innerHTML = `
+            <header class="pdf-export-header">
+                <div class="pdf-export-date">${dateParts.day} ${dateParts.month} ${dateParts.year}</div>
+                <h1>${record.title || record.mainPassage || 'Registro Selah'}</h1>
+                ${record.title && record.mainPassage ? `<div class="pdf-export-passage">${record.mainPassage}</div>` : ''}
+                <div class="pdf-export-type">${typeLabel}</div>
+                ${metadataRows.length ? `<div class="pdf-export-meta">${metadataRows.join('')}</div>` : ''}
+            </header>
+            <hr>
+            <main class="pdf-export-body">${bodyHtml}</main>
+            ${linksHtml}
+        `;
+        return element;
+    };
+
+    const buildPdfFilename = (record) => {
+        const baseName = record.title || record.mainPassage || 'registro-selah';
+        const safeName = baseName
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 80);
+        return `${safeName || 'registro-selah'}.pdf`;
+    };
+
+    const downloadPdfBlob = (blob, filename) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+
+    const generateAndShareRecordPdf = async ({ record, dateParts, typeLabel, authors, bodyHtml }) => {
+        if (typeof window.html2pdf !== 'function') {
+            throw new Error('Biblioteca de PDF indisponível.');
+        }
+
+        const pdfElement = buildPdfExportElement({ record, dateParts, typeLabel, authors, bodyHtml });
+        document.body.appendChild(pdfElement);
+        const filename = buildPdfFilename(record);
+
+        try {
+            const pdfBlob = await window.html2pdf()
+                .set({
+                    margin: [12, 12, 14, 12],
+                    filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        logging: false
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: {
+                        mode: ['css', 'legacy'],
+                        avoid: ['.pdf-export-header', '.pdf-export-meta-row', '.pdf-export-links', 'h1', 'h2', 'h3', 'h4']
+                    },
+                    enableLinks: true
+                })
+                .from(pdfElement)
+                .toPdf()
+                .outputPdf('blob');
+
+            const pdfFile = typeof File === 'function'
+                ? new File([pdfBlob], filename, { type: 'application/pdf' })
+                : null;
+            const shareData = pdfFile ? {
+                files: [pdfFile],
+                title: record.title || record.mainPassage || 'Registro Selah',
+                text: 'Registro compartilhado pelo Selah.'
+            } : null;
+
+            let canShareFile = false;
+            try {
+                canShareFile = !!pdfFile
+                    && typeof navigator.share === 'function'
+                    && typeof navigator.canShare === 'function'
+                    && navigator.canShare({ files: [pdfFile] });
+            } catch (_) {
+                canShareFile = false;
+            }
+
+            if (canShareFile) {
+                try {
+                    await navigator.share(shareData);
+                    return 'shared';
+                } catch (error) {
+                    if (error?.name === 'AbortError') return 'cancelled';
+                    console.warn('Compartilhamento de arquivo indisponível; usando download:', error);
+                }
+            }
+
+            downloadPdfBlob(pdfBlob, filename);
+            return 'downloaded';
+        } finally {
+            pdfElement.remove();
+        }
+    };
+
     const renderFeed = (arr, replace = true) => {
         const feed = document.getElementById('devotionalsFeed');
         if (!feed) return;
@@ -1273,17 +1427,19 @@ export function init(firebaseDb, firebaseAuth) {
         const typeLabel = RECORD_TYPE_LABELS[r.recordType] || r.recordType;
 
         // --- Trilha de registros ---
+        const completeRecords = getCompleteRecordSource();
+        const recordsById = new Map(completeRecords.map(record => [record.id, record]));
         let chainBack = [], chainForward = [];
         let curr = r;
         while (curr.continuationOf) {
-            const parent = allRecords.find(x => x.id === curr.continuationOf);
+            const parent = recordsById.get(curr.continuationOf);
             if (!parent) break;
             chainBack.unshift(parent);
             curr = parent;
         }
         curr = r;
         while (true) {
-            const child = allRecords.find(x => x.continuationOf === curr.id);
+            const child = completeRecords.find(x => x.continuationOf === curr.id);
             if (!child) break;
             chainForward.push(child);
             curr = child;
@@ -1340,7 +1496,12 @@ export function init(firebaseDb, firebaseAuth) {
         overlay.innerHTML = `
             <div class="overlay-dialog">
             <div class="reading-scroll">
-                <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
+                <div class="reading-meta-row">
+                    <div class="reading-meta">${dp.day} ${dp.month} ${dp.year}</div>
+                    <button type="button" class="reading-share-btn reading-share-btn--mobile" id="readingShareBtnMobile" aria-label="Compartilhar registro em PDF" title="Compartilhar PDF">
+                        <i class="ph ph-share-network"></i>
+                    </button>
+                </div>
                 <h1 class="reading-title">${r.title || r.mainPassage}</h1>
                 ${r.title ? `<div class="reading-passage">${r.mainPassage}</div>` : ''}
                 <span class="record-type-chip chip-${r.recordType} reading-type-chip">${typeLabel}</span>
@@ -1353,6 +1514,7 @@ export function init(firebaseDb, firebaseAuth) {
             <div class="reading-bottom-bar">
                 <button class="reading-close-btn" id="readingCloseBtn"><i class="ph ph-arrow-left"></i></button>
                 <div class="reading-actions-row">
+                    <button type="button" class="rc-btn reading-share-btn reading-share-btn--desktop" id="readingShareBtnDesktop" title="Compartilhar registro em PDF"><i class="ph ph-share-network"></i> Compartilhar</button>
                     <button class="rc-btn rc-btn-fav${r.favorito ? ' active' : ''}" id="readingFavBtn" data-id="${r.id}"><i class="ph-fill ph-star"></i> Favorito</button>
                     <button class="rc-btn rc-btn-shuffle" id="readingShuffleBtn"><i class="ph ph-shuffle"></i> Aleatório</button>
                     <button class="rc-btn" id="readingEditBtn"><i class="ph ph-pencil"></i> Editar</button>
@@ -1377,6 +1539,39 @@ export function init(firebaseDb, firebaseAuth) {
         });
 
         document.getElementById('readingCloseBtn').addEventListener('click', close);
+        const shareButtons = Array.from(overlay.querySelectorAll('.reading-share-btn'));
+        const handlePdfShare = async () => {
+            if (shareButtons.some(button => button.disabled)) return;
+
+            const originalHtml = shareButtons.map(button => button.innerHTML);
+            shareButtons.forEach(button => {
+                button.disabled = true;
+                button.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i>';
+            });
+
+            try {
+                const result = await generateAndShareRecordPdf({
+                    record: r,
+                    dateParts: dp,
+                    typeLabel,
+                    authors: authorsArr,
+                    bodyHtml
+                });
+                if (result === 'downloaded') {
+                    if (window.showToast) window.showToast('PDF baixado para compartilhamento');
+                    else showAlert('PDF baixado para compartilhamento.');
+                }
+            } catch (error) {
+                console.error('Erro ao gerar PDF do registro:', error);
+                showAlert('Não foi possível gerar o PDF. Verifique sua conexão e tente novamente.');
+            } finally {
+                shareButtons.forEach((button, index) => {
+                    button.disabled = false;
+                    button.innerHTML = originalHtml[index];
+                });
+            }
+        };
+        shareButtons.forEach(button => button.addEventListener('click', handlePdfShare));
         document.getElementById('readingFavBtn').addEventListener('click', () => toggleFavorito(r.id));
         document.getElementById('readingEditBtn').addEventListener('click', () => {
             close();
@@ -1410,7 +1605,8 @@ export function init(firebaseDb, firebaseAuth) {
         const prevDetails = document.querySelector('.chain-details');
         const wasOpen = fromTrail && prevDetails ? prevDetails.hasAttribute('open') : false;
 
-        const r = allRecords.find(x => x.id === id);
+        const completeRecords = getCompleteRecordSource();
+        const r = completeRecords.find(x => x.id === id);
         if (!r) return;
         document.getElementById('viewTitle').innerText = r.title ? r.title : r.mainPassage;
 
@@ -1440,16 +1636,17 @@ export function init(firebaseDb, firebaseAuth) {
         html += '</div>';
 
         let chainBack = [], chainForward = [];
+        const recordsById = new Map(completeRecords.map(record => [record.id, record]));
         let curr = r;
         while (curr.continuationOf) {
-            let parent = allRecords.find(x => x.id === curr.continuationOf);
+            let parent = recordsById.get(curr.continuationOf);
             if (!parent) break;
             chainBack.unshift(parent);
             curr = parent;
         }
         curr = r;
         while (true) {
-            let child = allRecords.find(x => x.continuationOf === curr.id);
+            let child = completeRecords.find(x => x.continuationOf === curr.id);
             if (!child) break;
             chainForward.push(child);
             curr = child;

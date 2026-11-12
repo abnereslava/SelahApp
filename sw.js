@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v47'; // filtro completo por favoritos e demais critérios
+const CACHE_NAME = 'selah-pwa-spa-v48'; // compartilhamento em PDF e trilha completa de registros
 const urlsToCache = [
   './',
   './index.html',
