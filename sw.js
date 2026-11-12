@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v49'; // busca instantânea e toggle de favoritos nos registros
+const CACHE_NAME = 'selah-pwa-spa-v50'; // busca instantânea e toggle de favoritas em bênçãos
 const urlsToCache = [
   './',
   './index.html',

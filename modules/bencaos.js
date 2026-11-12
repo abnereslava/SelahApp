@@ -24,26 +24,21 @@ export function render(container) {
             </div>
         </div>
 
-        <!-- Filtros + Feed -->
+        <!-- Busca + Feed -->
         <div class="data-container mt-4">
-            <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
-                <details class="optional-fields" style="border: 1px solid var(--border-color); border-radius: var(--radius); flex: 1; min-width: 280px; margin: 0;">
-                    <summary style="font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; color: var(--text-muted);"><i class="ph ph-funnel"></i> Filtrar Bênçãos</summary>
-                    <div class="details-content" style="padding: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
-                        <input type="text" id="filterBlessingKeyword" placeholder="Buscar no diário de bênçãos..." style="width: 100%;">
-                        <div class="filter-dates" style="display: flex; gap: 10px; width: 100%;">
-                            <input type="date" id="filterBlessingDateStart" title="Data Inicial" style="flex: 1;">
-                            <input type="date" id="filterBlessingDateEnd" title="Data Final" style="flex: 1;">
-                        </div>
-                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer;">
-                            <input type="checkbox" id="filterBlessingFavorites" style="width: auto; accent-color: var(--primary-color);">
-                            <i class="ph ph-star" style="color:#3D6FA3;"></i> Apenas favoritas
-                        </label>
-                        <button type="button" id="btnApplyBlessingFilters" class="btn-primary" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;"><i class="ph ph-funnel"></i> Aplicar Filtros</button>
-                        <button type="button" id="btnClearBlessingFilters" class="btn-clear-filters" style="display: none;"><i class="ph ph-x-circle"></i> Limpar Filtros</button>
-                    </div>
-                </details>
-                <button type="button" id="btnRandomBlessing" class="btn-secondary" style="height: 48px; border-radius: var(--radius); display: flex; align-items: center; gap: 8px; justify-content: center; padding: 0 20px; font-weight: 500; margin: 0;" title="Recordar Bênção Aleatória">
+            <div class="records-list-toolbar">
+                <div class="records-search-shell">
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" id="blessingsSearchInput" placeholder="Buscar nas bênçãos..." aria-label="Buscar nas bênçãos" autocomplete="off">
+                    <button type="button" id="blessingsSearchClear" class="records-search-clear" aria-label="Limpar busca" title="Limpar busca" hidden>
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+                <button type="button" id="btnBlessingFavoritesToggle" class="records-favorites-toggle" aria-pressed="false" title="Mostrar somente favoritas">
+                    <i class="ph ph-star"></i>
+                    <span>Favoritas</span>
+                </button>
+                <button type="button" id="btnRandomBlessing" class="btn-secondary records-random-btn" title="Recordar Bênção Aleatória">
                     <i class="ph ph-shuffle"></i> Recordar Bênção
                 </button>
             </div>
@@ -443,9 +438,16 @@ export function init(firebaseDb, firebaseAuth) {
     let sentinelObserver = null;
     const PAGE_SIZE = 15;
 
+    const getCompleteBlessingSource = () => {
+        const blessingsById = new Map();
+        statsBlessings.forEach(blessing => blessingsById.set(blessing.id, blessing));
+        allBlessings.forEach(blessing => blessingsById.set(blessing.id, blessing));
+        return Array.from(blessingsById.values());
+    };
+
     const buildTagIndex = () => {
         globalBlessingTagIndex.clear();
-        allBlessings.forEach(b => {
+        getCompleteBlessingSource().forEach(b => {
             if (b.tags) {
                 b.tags.forEach(t => {
                     if (t && !globalBlessingTagIndex.has(t.toLowerCase())) globalBlessingTagIndex.set(t.toLowerCase(), t);
@@ -666,15 +668,17 @@ export function init(firebaseDb, firebaseAuth) {
         return { day: d, month: months[parseInt(m,10)-1], year: y };
     };
 
-    const renderFeed = (arr, replace = true) => {
+    const renderFeed = (arr, replace = true, emptyState = null) => {
         const feed = document.getElementById('blessingsFeed');
         if (!feed) return;
 
         if (replace && arr.length === 0) {
+            const icon = emptyState?.icon || 'ph-hands-praying';
+            const message = emptyState?.message || 'Registre as bênçãos que o Senhor derramou sobre você.<br>Toque no <strong>+</strong> para começar.';
             feed.innerHTML = `
                 <div class="records-empty-state">
-                    <i class="ph ph-hands-praying"></i>
-                    <p>Registre as bênçãos que o Senhor derramou sobre você.<br>Toque no <strong>+</strong> para começar.</p>
+                    <i class="ph ${icon}"></i>
+                    <p>${message}</p>
                 </div>`;
             return;
         }
@@ -719,7 +723,7 @@ export function init(firebaseDb, firebaseAuth) {
     };
 
     window.openBlessingReadingMode = (id) => {
-        const b = allBlessings.find(x => x.id === id);
+        const b = getCompleteBlessingSource().find(x => x.id === id);
         if (!b) return;
         const dp = formatDateParts(b.date);
         const tagChips = (b.tags && b.tags.length)
@@ -805,6 +809,9 @@ export function init(firebaseDb, firebaseAuth) {
             console.error("Erro ao carregar estatísticas de bênçãos:", err);
             statsBlessings = allBlessings.slice();
         }
+        buildTagIndex();
+        rebuildBlessingSearchIndex();
+        if (hasActiveBlessingView()) renderBlessingListState();
         renderStats();
     };
 
@@ -878,8 +885,11 @@ export function init(firebaseDb, firebaseAuth) {
             if (snap.docs.length < PAGE_SIZE) allLoaded = true;
 
             buildTagIndex();
+            rebuildBlessingSearchIndex();
 
-            if (isFirst) {
+            if (hasActiveBlessingView()) {
+                renderBlessingListState();
+            } else if (isFirst) {
                 renderFeed(newBlessings, true);
             } else {
                 renderFeed(newBlessings, false);
@@ -887,7 +897,10 @@ export function init(firebaseDb, firebaseAuth) {
             renderStats();
 
             if (sentinel) {
-                if (allLoaded) {
+                if (hasActiveBlessingView()) {
+                    sentinel.innerHTML = '';
+                    if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+                } else if (allLoaded) {
                     sentinel.innerHTML = `<div class="list-end-msg"><i class="ph ph-check-circle"></i> Você chegou ao início do seu diário.</div>`;
                     if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
                 } else {
@@ -918,7 +931,9 @@ export function init(firebaseDb, firebaseAuth) {
                     allLoaded = true;
                     if (feed) feed.dataset.loaded = '1';
                     buildTagIndex();
-                    renderFeed(newBlessings, true);
+                    rebuildBlessingSearchIndex();
+                    if (hasActiveBlessingView()) renderBlessingListState();
+                    else renderFeed(newBlessings, true);
                     renderStats();
                     if (sentinel) sentinel.innerHTML = '';
                     fallbackOk = true;
@@ -948,6 +963,7 @@ export function init(firebaseDb, firebaseAuth) {
         allLoaded = false;
         isFetching = false;
         allBlessings = [];
+        blessingSearchIndex.clear();
         await fetchPage(true);
         await refreshStats();
     };
@@ -994,7 +1010,7 @@ export function init(firebaseDb, firebaseAuth) {
 
     // --- INTERACTIVE ACTIONS ---
     window.viewBlessing = (id) => {
-        const b = allBlessings.find(x => x.id === id);
+        const b = getCompleteBlessingSource().find(x => x.id === id);
         if (!b) return;
 
         document.getElementById('viewBlessingTitle').innerText = b.title;
@@ -1021,7 +1037,7 @@ export function init(firebaseDb, firebaseAuth) {
         const modal = document.getElementById('viewBlessingModal');
         if (modal && modal.open) modal.close();
 
-        const b = allBlessings.find(x => x.id === id);
+        const b = getCompleteBlessingSource().find(x => x.id === id);
         if (!b) return;
 
         document.getElementById('editBlessingId').value = b.id;
@@ -1078,7 +1094,7 @@ export function init(firebaseDb, firebaseAuth) {
 
     // --- FAVORITOS (BÊNÇÃOS) ---
     const toggleFavoritoBlessing = async (id) => {
-        const b = allBlessings.find(x => x.id === id);
+        const b = getCompleteBlessingSource().find(x => x.id === id);
         if (!b) return;
         const newVal = !b.favorito;
         b.favorito = newVal;
@@ -1089,6 +1105,10 @@ export function init(firebaseDb, firebaseAuth) {
             console.error('Erro ao atualizar favorito:', err);
             return;
         }
+        const statsBlessing = statsBlessings.find(x => x.id === id);
+        if (statsBlessing && statsBlessing !== b) statsBlessing.favorito = newVal;
+        const pagedBlessing = allBlessings.find(x => x.id === id);
+        if (pagedBlessing && pagedBlessing !== b) pagedBlessing.favorito = newVal;
         const star = document.querySelector(`.card-fav-star[data-fav-id="${id}"]`);
         if (star) star.classList.toggle('active', newVal);
         const favBtn = document.getElementById('readingFavBencaos');
@@ -1096,10 +1116,7 @@ export function init(firebaseDb, firebaseAuth) {
             favBtn.classList.toggle('active', newVal);
         }
         navigator.vibrate?.(30);
-        if (blessingFilterState.favorites && !newVal) {
-            const card = document.getElementById(`bc-${id}`);
-            if (card) { card.style.transition = 'opacity 0.2s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 200); }
-        }
+        if (hasActiveBlessingView()) renderBlessingListState();
     };
 
     // Long-press on blessing cards
@@ -1129,64 +1146,217 @@ export function init(firebaseDb, firebaseAuth) {
         }, true);
     }
 
-    // --- FILTERS & RANDOM ---
-    const blessingFilterState = { keyword: '', dateStart: '', dateEnd: '', favorites: false };
+    // --- BUSCA INSTANTÂNEA E FAVORITAS ---
+    const BLESSING_SEARCH_MONTHS = [
+        'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    const blessingListState = { query: '', favorites: false };
+    const blessingSearchIndex = new Map();
+    let blessingSearchTimer = null;
 
-    const hasBlessingActiveFilter = () =>
-        !!(blessingFilterState.keyword || blessingFilterState.dateStart || blessingFilterState.dateEnd || blessingFilterState.favorites);
+    const normalizeBlessingSearchText = (value) => String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-    const applyBlessingFilter = (arr) => arr.filter(b => {
-        if (blessingFilterState.keyword) {
-            const k = blessingFilterState.keyword;
-            if (!(b.title?.toLowerCase().includes(k) || b.description?.toLowerCase().includes(k) || b.tags?.some(t => t.toLowerCase().includes(k)))) return false;
+    const blessingHtmlToText = (html) => {
+        if (!html) return '';
+        const container = document.createElement('div');
+        container.innerHTML = String(html);
+        return container.textContent || container.innerText || '';
+    };
+
+    const buildBlessingDateSearchText = (dateValue) => {
+        if (!dateValue || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue || '';
+        const [year, month, day] = dateValue.split('-');
+        const monthName = BLESSING_SEARCH_MONTHS[Number(month) - 1];
+        if (!monthName) return dateValue;
+        return [
+            dateValue,
+            `${day}/${month}/${year}`,
+            `${day} ${month} ${year}`,
+            `${day} ${monthName} ${year}`,
+            `${monthName} ${year}`,
+            monthName,
+            month,
+            year
+        ].join(' ');
+    };
+
+    const buildBlessingSearchEntry = (blessing) => {
+        const title = normalizeBlessingSearchText(blessing.title || '');
+        const metadata = normalizeBlessingSearchText([
+            ...(blessing.tags || []),
+            buildBlessingDateSearchText(blessing.date)
+        ].join(' '));
+        const content = normalizeBlessingSearchText(blessingHtmlToText(blessing.description || ''));
+        return {
+            blessing,
+            title,
+            metadata,
+            content,
+            combined: [title, metadata, content].filter(Boolean).join(' ')
+        };
+    };
+
+    const rebuildBlessingSearchIndex = () => {
+        blessingSearchIndex.clear();
+        getCompleteBlessingSource().forEach(blessing => {
+            blessingSearchIndex.set(blessing.id, buildBlessingSearchEntry(blessing));
+        });
+    };
+
+    const getBlessingSearchTerms = (query) => [
+        ...new Set(normalizeBlessingSearchText(query).split(' ').filter(Boolean))
+    ];
+
+    const scoreBlessingSearchEntry = (entry, normalizedQuery, terms) => {
+        let score = 0;
+        if (entry.title === normalizedQuery) score += 1000;
+        else if (entry.title.startsWith(normalizedQuery)) score += 820;
+        else if (entry.title.split(' ').some(word => word.startsWith(normalizedQuery))) score += 700;
+        else if (entry.title.includes(normalizedQuery)) score += 600;
+        else if (entry.metadata.includes(normalizedQuery)) score += 440;
+        else if (entry.content.includes(normalizedQuery)) score += 280;
+
+        terms.forEach(term => {
+            if (entry.title === term) score += 100;
+            else if (entry.title.split(' ').some(word => word.startsWith(term))) score += 70;
+            else if (entry.title.includes(term)) score += 50;
+            else if (entry.metadata.includes(term)) score += 25;
+            else if (entry.content.includes(term)) score += 10;
+        });
+        return score;
+    };
+
+    const compareBlessingsByRecency = (a, b) => {
+        const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+        if (dateCompare !== 0) return dateCompare;
+        const timeA = String(a.updatedAt || a.createdAt || '');
+        const timeB = String(b.updatedAt || b.createdAt || '');
+        return timeB.localeCompare(timeA);
+    };
+
+    const getBlessingListResults = () => {
+        const normalizedQuery = normalizeBlessingSearchText(blessingListState.query);
+        const terms = getBlessingSearchTerms(normalizedQuery);
+        let results;
+
+        if (terms.length) {
+            results = Array.from(blessingSearchIndex.values())
+                .filter(entry => terms.every(term => entry.combined.includes(term)))
+                .map(entry => ({ blessing: entry.blessing, score: scoreBlessingSearchEntry(entry, normalizedQuery, terms) }))
+                .sort((a, b) => (b.score - a.score) || compareBlessingsByRecency(a.blessing, b.blessing))
+                .map(item => item.blessing);
+        } else {
+            results = getCompleteBlessingSource().slice().sort(compareBlessingsByRecency);
         }
-        if (blessingFilterState.dateStart && b.date < blessingFilterState.dateStart) return false;
-        if (blessingFilterState.dateEnd && b.date > blessingFilterState.dateEnd) return false;
-        if (blessingFilterState.favorites && !b.favorito) return false;
-        return true;
-    });
+
+        if (blessingListState.favorites) results = results.filter(blessing => blessing.favorito);
+        return results;
+    };
+
+    const hasActiveBlessingView = () => !!(
+        normalizeBlessingSearchText(blessingListState.query) || blessingListState.favorites
+    );
+    const syncBlessingSentinel = () => {
+        const sentinel = document.getElementById('blessingsSentinel');
+        if (!sentinel) return;
+        if (hasActiveBlessingView()) {
+            sentinel.innerHTML = '';
+            if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+        } else if (allLoaded) {
+            sentinel.innerHTML = `<div class="list-end-msg"><i class="ph ph-check-circle"></i> Você chegou ao início do seu diário.</div>`;
+            if (sentinelObserver) { sentinelObserver.disconnect(); sentinelObserver = null; }
+        } else {
+            sentinel.innerHTML = '';
+            initSentinelObserver();
+        }
+    };
+
+    const getBlessingEmptyState = () => {
+        if (normalizeBlessingSearchText(blessingListState.query) && blessingListState.favorites) {
+            return { icon: 'ph-star', message: 'Nenhuma bênção favorita corresponde à sua busca.' };
+        }
+        if (blessingListState.favorites) {
+            return { icon: 'ph-star', message: 'Você ainda não possui bênçãos favoritas.' };
+        }
+        return { icon: 'ph-magnifying-glass', message: 'Nenhuma bênção corresponde à sua busca.' };
+    };
+
+    const renderBlessingListState = () => {
+        const input = document.getElementById('blessingsSearchInput');
+        const clearButton = document.getElementById('blessingsSearchClear');
+        if (clearButton) clearButton.hidden = !input?.value;
+
+        if (hasActiveBlessingView()) {
+            renderFeed(getBlessingListResults(), true, getBlessingEmptyState());
+        } else {
+            renderFeed(allBlessings, true);
+        }
+        syncBlessingSentinel();
+    };
+
+    const blessingSearchInput = document.getElementById('blessingsSearchInput');
+    const blessingSearchClear = document.getElementById('blessingsSearchClear');
+    if (blessingSearchInput) {
+        blessingSearchInput.addEventListener('input', () => {
+            if (blessingSearchClear) blessingSearchClear.hidden = !blessingSearchInput.value;
+            clearTimeout(blessingSearchTimer);
+            blessingSearchTimer = setTimeout(() => {
+                blessingListState.query = blessingSearchInput.value;
+                renderBlessingListState();
+            }, 80);
+        });
+    }
+    if (blessingSearchClear) {
+        blessingSearchClear.addEventListener('click', () => {
+            clearTimeout(blessingSearchTimer);
+            if (blessingSearchInput) {
+                blessingSearchInput.value = '';
+                blessingSearchInput.focus();
+            }
+            blessingListState.query = '';
+            blessingSearchClear.hidden = true;
+            renderBlessingListState();
+        });
+    }
+
+    const blessingFavoritesToggle = document.getElementById('btnBlessingFavoritesToggle');
+    if (blessingFavoritesToggle) {
+        blessingFavoritesToggle.addEventListener('click', () => {
+            blessingListState.favorites = !blessingListState.favorites;
+            blessingFavoritesToggle.classList.toggle('active', blessingListState.favorites);
+            blessingFavoritesToggle.setAttribute('aria-pressed', String(blessingListState.favorites));
+            blessingFavoritesToggle.title = blessingListState.favorites
+                ? 'Mostrar todas as bênçãos'
+                : 'Mostrar somente favoritas';
+            const icon = blessingFavoritesToggle.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('ph', !blessingListState.favorites);
+                icon.classList.toggle('ph-fill', blessingListState.favorites);
+            }
+            renderBlessingListState();
+        });
+    }
 
     const getBlessingShufflePool = (excludeId = null) => {
-        let pool = hasBlessingActiveFilter() ? applyBlessingFilter(allBlessings) : allBlessings.slice();
+        let pool = hasActiveBlessingView()
+            ? getBlessingListResults()
+            : allBlessings.slice();
         if (excludeId) pool = pool.filter(x => x.id !== excludeId);
         return pool;
     };
-
-    const syncClearBlessingFiltersBtn = () => {
-        const btn = document.getElementById('btnClearBlessingFilters');
-        if (btn) btn.style.display = hasBlessingActiveFilter() ? 'flex' : 'none';
-    };
-
-    const btnApplyFilters = document.getElementById('btnApplyBlessingFilters');
-    if (btnApplyFilters) {
-        btnApplyFilters.onclick = () => {
-            blessingFilterState.keyword = document.getElementById('filterBlessingKeyword').value.toLowerCase().trim();
-            blessingFilterState.dateStart = document.getElementById('filterBlessingDateStart').value;
-            blessingFilterState.dateEnd = document.getElementById('filterBlessingDateEnd').value;
-            blessingFilterState.favorites = document.getElementById('filterBlessingFavorites')?.checked || false;
-            syncClearBlessingFiltersBtn();
-            renderFeed(applyBlessingFilter(allBlessings), true);
-        };
-    }
-
-    const btnClearBlessingFilters = document.getElementById('btnClearBlessingFilters');
-    if (btnClearBlessingFilters) {
-        btnClearBlessingFilters.onclick = () => {
-            blessingFilterState.keyword = ''; blessingFilterState.dateStart = ''; blessingFilterState.dateEnd = ''; blessingFilterState.favorites = false;
-            const kw = document.getElementById('filterBlessingKeyword'); if (kw) kw.value = '';
-            const ds = document.getElementById('filterBlessingDateStart'); if (ds) ds.value = '';
-            const de = document.getElementById('filterBlessingDateEnd'); if (de) de.value = '';
-            const fv = document.getElementById('filterBlessingFavorites'); if (fv) fv.checked = false;
-            syncClearBlessingFiltersBtn();
-            renderFeed(allBlessings, true);
-        };
-    }
 
     const btnRandom = document.getElementById('btnRandomBlessing');
     if (btnRandom) {
         btnRandom.onclick = () => {
             const pool = getBlessingShufflePool();
-            if (pool.length === 0) return showAlert(hasBlessingActiveFilter() ? 'Nenhuma bênção disponível com os filtros atuais.' : 'Registre algumas bênçãos antes de sortear!');
+            if (pool.length === 0) return showAlert(hasActiveBlessingView() ? 'Nenhuma bênção disponível na busca atual.' : 'Registre algumas bênçãos antes de sortear!');
             window.openBlessingReadingMode(pool[Math.floor(Math.random() * pool.length)].id);
         };
     }
