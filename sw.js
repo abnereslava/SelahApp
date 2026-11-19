@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selah-pwa-spa-v52'; // correção da normalização tipográfica
+const CACHE_NAME = 'selah-pwa-spa-v53'; // texto justificado no modo leitura
 const urlsToCache = [
   './',
   './index.html',
